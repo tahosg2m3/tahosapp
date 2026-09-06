@@ -1,8 +1,10 @@
-# Discord Clone
+# tahosapp — Messaging, Voice Chat and Communities
 
-A full-stack, real-time communication platform inspired by Discord.
+[Official website](https://tahosapp.com.tr/) · [Web app](https://tahosapp.com.tr/app/) · [Features](https://tahosapp.com.tr/ozellikler/) · [Security](https://tahosapp.com.tr/guvenlik/)
 
-Built as an educational and portfolio project, **Discord Clone** includes servers, channels, direct messages, voice/video communication, roles, moderation tools and a desktop application.
+**tahosapp** is an independent, full-stack, real-time messaging, voice chat and community platform for the web and Windows desktop.
+
+It includes servers, channels, direct messages, voice/video communication, screen sharing, roles, moderation tools and a desktop application. This repository is the official public source-code repository linked from [tahosapp.com.tr](https://tahosapp.com.tr/).
 
 > **Disclaimer:** This is an independent project and is not affiliated with, endorsed by, or sponsored by Discord Inc.
 

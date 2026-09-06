@@ -1,8 +1,10 @@
-# Discord Klonu
+# tahosapp — Mesajlaşma, Sesli Sohbet ve Topluluk
 
-Discord'dan ilham alınarak geliştirilmiş, uçtan uca (full-stack) gerçek zamanlı bir iletişim platformu.
+[Resmî web sitesi](https://tahosapp.com.tr/) · [Web uygulaması](https://tahosapp.com.tr/app/) · [Özellikler](https://tahosapp.com.tr/ozellikler/) · [Güvenlik](https://tahosapp.com.tr/guvenlik/)
 
-Eğitim ve portfolyo projeleri kapsamında inşa edilen Discord Klonu; sunucular, kanallar, doğrudan mesajlar, sesli/görüntülü iletişim, roller, moderasyon araçları ve bir masaüstü uygulaması içermektedir.
+**tahosapp**, web ve Windows masaüstü için bağımsız, uçtan uca (full-stack) gerçek zamanlı mesajlaşma, sesli sohbet ve topluluk platformudur.
+
+Sunucular, kanallar, doğrudan mesajlar, sesli/görüntülü iletişim, ekran paylaşımı, roller, moderasyon araçları ve masaüstü uygulaması içerir. Bu depo, [tahosapp.com.tr](https://tahosapp.com.tr/) tarafından bağlantısı verilen resmî ve herkese açık kaynak kodu deposudur.
 
 > **Yasal Uyarı:** Bu bağımsız bir projedir; Discord Inc. ile herhangi bir bağlantısı yoktur, Discord Inc. tarafından desteklenmemekte veya sponsorluk sağlanmamaktadır.
 

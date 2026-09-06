@@ -80,6 +80,12 @@ h1 .gradient, .gradient-text { color: transparent; background: linear-gradient(1
 .trust-item { padding: 22px; background: rgba(13,16,31,.92); }
 .trust-item strong { display: block; margin-bottom: 5px; font-size: 15px; }
 .trust-item span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.github-nav { color: #c6bdff !important; }
+.open-source-card { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 28px; padding: clamp(28px,4vw,46px); border: 1px solid rgba(146,118,255,.3); border-radius: 25px; background: radial-gradient(circle at 8% 20%,rgba(120,103,255,.2),transparent 34%),linear-gradient(145deg,rgba(22,27,49,.96),rgba(13,16,30,.9)); }
+.open-source-card h2 { margin: 0 0 12px; font-size: clamp(27px,4vw,42px); letter-spacing: -.035em; }
+.open-source-card p:not(.eyebrow) { max-width: 760px; margin: 0; color: var(--muted); line-height: 1.7; }
+.source-mark { display: grid; place-items: center; width: 70px; height: 70px; border: 1px solid rgba(255,255,255,.1); border-radius: 21px; background: rgba(120,103,255,.15); color: #bdb5ff; font-size: 22px; font-weight: 950; }
+.source-actions { display: flex; flex-direction: column; gap: 10px; min-width: 190px; }
 
 .product-showcase { padding-bottom: 32px; }
 .app-preview { min-height: 590px; display: grid; grid-template-columns: 76px 230px minmax(0,1fr) 185px; overflow: hidden; border: 1px solid rgba(255,255,255,.13); border-radius: 26px; background: #0d1220; box-shadow: 0 36px 110px rgba(0,0,0,.42); }
@@ -224,6 +230,8 @@ tr:last-child td { border-bottom: 0; }
   .preview-members { display: none; }
   .release-grid { grid-template-columns: 1fr; }
   .release-card { grid-row: auto; }
+  .open-source-card { grid-template-columns: auto minmax(0,1fr); }
+  .source-actions { grid-column: 1 / -1; flex-direction: row; }
   .toc { position: static; order: -1; }
 }
 @media (max-width: 720px) {
@@ -241,6 +249,8 @@ tr:last-child td { border-bottom: 0; }
   .preview-channels { display: none; }
   .preview-messages { padding: 22px 16px; }
   .preview-stream { min-height: 150px; }
+  .open-source-card { grid-template-columns: 1fr; }
+  .source-actions { flex-direction: column; }
   .footer-bottom { align-items: flex-start; flex-direction: column; }
   .section { padding: 68px 0; }
 }

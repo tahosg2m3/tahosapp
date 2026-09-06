@@ -1,7 +1,7 @@
 {
   "name": "tahosapp",
   "short_name": "tahosapp",
-  "description": "Mesajlaşma, sesli sohbet, görüntülü görüşme, ekran paylaşımı ve topluluk platformu.",
+  "description": "Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp bağımsız iletişim platformu.",
   "lang": "tr-TR",
   "start_url": "/app/",
   "scope": "/app/",

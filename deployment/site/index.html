@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>tahosapp | Mesajlaşma, Sesli Sohbet ve Topluluk</title>
-  <meta name="description" content="tahosapp ile mesajlaş, sesli ve görüntülü konuş, ekran paylaş, arkadaşlarınla topluluklar kur. Web ve Windows için modern iletişim uygulaması." />
-  <meta name="keywords" content="tahosapp, sesli sohbet, mesajlaşma uygulaması, görüntülü görüşme, ekran paylaşımı, topluluk uygulaması, oyun sohbeti, Discord alternatifi, Türkçe sohbet uygulaması" />
+  <title>Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp</title>
+  <meta name="description" content="tahosapp; mesajlaşma, sesli sohbet ve topluluk yönetimini görüntülü görüşme, ekran paylaşımı ve Windows uygulamasıyla birleştiren bağımsız, kaynak kodu herkese açık iletişim platformudur." />
+  <meta name="keywords" content="Mesajlaşma, Sesli Sohbet ve Topluluk, tahosapp, tahosapp mesajlaşma, tahosapp sesli sohbet, tahosapp topluluk, mesajlaşma uygulaması, görüntülü görüşme, ekran paylaşımı, topluluk uygulaması, oyun sohbeti, açık kaynak sohbet uygulaması, Türkçe sohbet uygulaması" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <meta name="theme-color" content="#090b17" />
   <meta name="application-name" content="tahosapp" />
@@ -15,30 +15,46 @@
   <link rel="icon" href="/tahosapp.ico" />
   <link rel="apple-touch-icon" href="/assets/tahosapp-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/assets/site.css?v=20260906-1" />
+  <link rel="stylesheet" href="/assets/site.css?v=20260907-1" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="tr_TR" />
   <meta property="og:site_name" content="tahosapp" />
-  <meta property="og:title" content="tahosapp — Konuş. Paylaş. Birlikte kal." />
-  <meta property="og:description" content="Mesajlaşma, sesli sohbet, görüntülü görüşme, ekran paylaşımı ve topluluk yönetimi tek uygulamada." />
+  <meta property="og:title" content="Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp" />
+  <meta property="og:description" content="tahosapp; mesajlaşma, sesli sohbet, görüntülü görüşme, ekran paylaşımı ve topluluk yönetimi sunan bağımsız iletişim platformudur." />
   <meta property="og:url" content="https://tahosapp.com.tr/" />
   <meta property="og:image" content="https://tahosapp.com.tr/assets/og-tahosapp.png" />
   <meta property="og:image:alt" content="tahosapp — Konuş. Paylaş. Birlikte kal." />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="tahosapp — Konuş. Paylaş. Birlikte kal." />
-  <meta name="twitter:description" content="Modern mesajlaşma, ses, görüntü, yayın ve topluluk platformu." />
+  <meta name="twitter:title" content="Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp" />
+  <meta name="twitter:description" content="tahosapp'in kaynak kodu, özellikleri ve bağımsız mesajlaşma platformu hakkında resmi bilgiler." />
   <meta name="twitter:image" content="https://tahosapp.com.tr/assets/og-tahosapp.png" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "Organization",
+        "@id": "https://tahosapp.com.tr/#organization",
+        "name": "tahosapp",
+        "url": "https://tahosapp.com.tr/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://tahosapp.com.tr/assets/tahosapp-icon.png",
+          "width": 1024,
+          "height": 1024
+        },
+        "description": "Mesajlaşma, sesli sohbet ve topluluk yönetimi için bağımsız iletişim platformu.",
+        "sameAs": ["https://github.com/tahosg2m3/discord-clone"]
+      },
+      {
         "@type": "WebSite",
         "@id": "https://tahosapp.com.tr/#website",
         "url": "https://tahosapp.com.tr/",
         "name": "tahosapp",
         "alternateName": ["Tahosapp", "tahos app"],
-        "inLanguage": "tr-TR"
+        "description": "Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp resmi web sitesi",
+        "inLanguage": "tr-TR",
+        "publisher": { "@id": "https://tahosapp.com.tr/#organization" }
       },
       {
         "@type": "SoftwareApplication",
@@ -51,6 +67,9 @@
         "operatingSystem": "Windows 10, Windows 11, Web",
         "softwareVersion": "1.1.3",
         "isAccessibleForFree": true,
+        "author": { "@id": "https://tahosapp.com.tr/#organization" },
+        "publisher": { "@id": "https://tahosapp.com.tr/#organization" },
+        "sameAs": ["https://github.com/tahosg2m3/discord-clone"],
         "description": "Gerçek zamanlı mesajlaşma, sesli sohbet, görüntülü görüşme, ekran paylaşımı, doğrudan arama ve topluluk yönetimi sunan iletişim uygulaması.",
         "image": "https://tahosapp.com.tr/assets/og-tahosapp.png",
         "featureList": [
@@ -65,6 +84,15 @@
           "Windows masaüstü uygulaması ve web sürümü"
         ],
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TRY" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://tahosapp.com.tr/#source",
+        "name": "tahosapp kaynak kodu",
+        "description": "tahosapp web, Windows masaüstü, backend, gerçek zamanlı mesajlaşma ve ses altyapısının herkese açık kaynak kodu.",
+        "codeRepository": "https://github.com/tahosg2m3/discord-clone",
+        "programmingLanguage": ["JavaScript", "JSX", "PowerShell", "Shell"],
+        "runtimePlatform": ["Node.js", "Electron", "Web"]
       }
     ]
   }
@@ -78,8 +106,9 @@
       <nav class="site-nav" aria-label="Ana menü">
         <a href="/ozellikler/">Özellikler</a>
         <a href="/guvenlik/">Güvenlik</a>
+        <a href="/hakkinda/">Hakkında</a>
         <a href="/durum/">Durum</a>
-        <a href="#sss">SSS</a>
+        <a class="github-nav" href="https://github.com/tahosg2m3/discord-clone" rel="me noreferrer">GitHub ↗</a>
         <a class="nav-cta" href="/app/">Giriş yap</a>
       </nav>
     </div>
@@ -141,6 +170,21 @@
         <div class="trust-item"><strong>RNNoise destekli ses</strong><span>Arka plan gürültüsünü azaltan daha temiz konuşmalar.</span></div>
         <div class="trust-item"><strong>Ayrıntılı izinler</strong><span>Roller, kanal yetkileri ve moderasyon kontrolleri.</span></div>
         <div class="trust-item"><strong>Bağımsız altyapı</strong><span>Başka bir sohbet platformuna bağlı çalışmaz.</span></div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="acik-kaynak-basligi">
+      <div class="container open-source-card">
+        <div class="source-mark" aria-hidden="true">&lt;/&gt;</div>
+        <div>
+          <p class="eyebrow">Açık kaynak ve şeffaf geliştirme</p>
+          <h2 id="acik-kaynak-basligi">tahosapp'in kaynak kodunu GitHub'da incele.</h2>
+          <p>Web uygulaması, Windows masaüstü istemcisi, backend, gerçek zamanlı mesajlaşma ve ses altyapısının kaynak kodu herkese açıktır. Geliştirme geçmişini görebilir, sorun bildirebilir ve güvenlik yaklaşımını inceleyebilirsin.</p>
+        </div>
+        <div class="source-actions">
+          <a class="button primary" href="https://github.com/tahosg2m3/discord-clone" rel="me noreferrer">GitHub deposunu aç ↗</a>
+          <a class="button secondary" href="https://github.com/tahosg2m3/discord-clone/releases" rel="noreferrer">Sürümleri gör</a>
+        </div>
       </div>
     </section>
 
@@ -230,11 +274,11 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><a class="brand" href="/"><img src="/assets/tahosapp-icon.png" alt="" />tahosapp</a><p class="footer-about">Mesajlaşma, ses, görüntü, ekran paylaşımı ve topluluk yönetimini bir araya getiren bağımsız iletişim platformu.</p></div>
-      <div class="footer-column"><strong>Ürün</strong><a href="/ozellikler/">Özellikler</a><a href="/guvenlik/">Güvenlik</a><a href="/durum/">Hizmet durumu</a><a href="/surum-notlari/">Sürüm notları</a><a href="/app/">Web uygulaması</a><a href="/downloads/tahosapp-Setup-latest.exe">Windows indir</a></div>
+      <div class="footer-column"><strong>Ürün</strong><a href="/ozellikler/">Özellikler</a><a href="/hakkinda/">Hakkında</a><a href="/guvenlik/">Güvenlik</a><a href="/durum/">Hizmet durumu</a><a href="/surum-notlari/">Sürüm notları</a><a href="/app/">Web uygulaması</a><a href="/downloads/tahosapp-Setup-latest.exe">Windows indir</a></div>
       <div class="footer-column"><strong>Kurallar</strong><a href="/kullanim-kosullari/">Kullanım Koşulları</a><a href="/topluluk-kurallari/">Topluluk Kuralları</a><a href="/kabul-edilebilir-kullanim/">Kabul Edilebilir Kullanım</a><a href="/guvenlik/#bildirim">Güvenlik bildirimi</a></div>
       <div class="footer-column"><strong>Gizlilik</strong><a href="/gizlilik/">Gizlilik ve KVKK</a><a href="/cerezler/">Çerez ve Yerel Depolama</a><a href="/kvkk-basvuru/">KVKK Başvurusu</a><a href="/iletisim/">İletişim</a></div>
     </div>
-    <div class="container footer-bottom"><span>© 2026 tahosapp. Tüm hakları saklıdır.</span><span>Discord Inc. ile bağlantılı değildir.</span></div>
+    <div class="container footer-bottom"><span>© 2026 tahosapp. Tüm hakları saklıdır.</span><span><a href="https://github.com/tahosg2m3/discord-clone" rel="me noreferrer">Kaynak kodu GitHub'da ↗</a> · Discord Inc. ile bağlantılı değildir.</span></div>
   </footer>
 </body>
 </html>

@@ -1,0 +1,21 @@
+# tahosapp
+
+> tahosapp; mesajlaşma, sesli sohbet ve topluluk yönetimi için bağımsız bir iletişim platformudur. Web tarayıcısında ve Windows masaüstünde çalışır. Resmî web sitesi tahosapp.com.tr, resmî kaynak kodu deposu github.com/tahosg2m3/discord-clone adresidir.
+
+## Resmî kimlik
+
+- Ürün adı: tahosapp
+- Kategori: Mesajlaşma, Sesli Sohbet ve Topluluk
+- Resmî web sitesi: https://tahosapp.com.tr/
+- Resmî ürün açıklaması: https://tahosapp.com.tr/hakkinda/
+- Özellikler: https://tahosapp.com.tr/ozellikler/
+- Güvenlik: https://tahosapp.com.tr/guvenlik/
+- Hizmet durumu: https://tahosapp.com.tr/durum/
+- Sürüm notları: https://tahosapp.com.tr/surum-notlari/
+- Resmî GitHub deposu: https://github.com/tahosg2m3/discord-clone
+
+## Ürün özeti
+
+tahosapp gerçek zamanlı metin mesajlaşması, özel mesajlar, grup konuşmaları, ses kanalları, RNNoise gürültü engelleme, görüntülü görüşme, kamera, ekran paylaşımı, yayın, doğrudan arama, rol ve izin yönetimi, moderasyon, etkinlikler ve kullanıcı denetimli Rich Presence özellikleri sunar.
+
+tahosapp başka bir sohbet platformuna bağlı çalışmaz. Discord hesabı veya Discord API'si gerektirmez ve Discord Inc. ile bağlantılı değildir. Benzer isimli envanter, sağlık, finans veya yapay zekâ ürünleriyle ilişkili değildir.
