@@ -1,4 +1,5 @@
 import { API_URL } from '../config/runtimeConfig';
+import { apiFetch } from './httpClient';
 
 let cachedCredentials = null;
 let pendingRequest = null;
@@ -16,7 +17,7 @@ async function requestTurnCredentials() {
   const token = localStorage.getItem('chat_token');
   if (!token) return [];
 
-  const response = await fetch(`${API_URL}/turn-credentials`, {
+  const response = await apiFetch(`${API_URL}/turn-credentials`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

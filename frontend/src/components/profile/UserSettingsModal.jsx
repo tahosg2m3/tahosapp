@@ -59,6 +59,7 @@ import {
 } from '../../services/platformApi';
 import RichPresenceCard from './RichPresenceCard';
 import { API_URL } from '../../config/runtimeConfig';
+import { apiFetch } from '../../services/httpClient';
 
 const SETTING_GROUPS = [
   {
@@ -86,7 +87,7 @@ const SETTING_GROUPS = [
 const ALL_SETTINGS = SETTING_GROUPS.flatMap(group => group.items);
 
 async function authenticatedRequest(endpoint, options = {}) {
-  const response = await fetch(API_URL + endpoint, {
+  const response = await apiFetch(API_URL + endpoint, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

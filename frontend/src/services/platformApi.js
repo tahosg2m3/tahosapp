@@ -1,4 +1,5 @@
 import { API_URL as API_ROOT } from '../config/runtimeConfig';
+import { apiFetch } from './httpClient';
 
 async function platformRequest(path, options = {}) {
   const token = localStorage.getItem('chat_token');
@@ -7,7 +8,7 @@ async function platformRequest(path, options = {}) {
 
   let response;
   try {
-    response = await fetch(`${API_ROOT}${path}`, { ...options, headers });
+    response = await apiFetch(`${API_ROOT}${path}`, { ...options, headers });
   } catch (_) {
     throw new Error('Sunucuya bağlanılamadı. İnternet bağlantını kontrol edip tekrar dene.');
   }

@@ -10,11 +10,16 @@ export async function uploadChatFile(file) {
   const formData = new FormData();
   formData.append('file', file);
   const token = localStorage.getItem('chat_token');
-  const response = await fetch(`${API_ORIGIN}/api/upload/file`, {
-    method: 'POST',
-    body: formData,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_ORIGIN}/api/upload/file`, {
+      method: 'POST',
+      body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  } catch (_) {
+    throw new Error('Dosya yükleme sunucusuna bağlanılamadı. Uygulamayı yeniden başlatıp tekrar dene.');
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Dosya yüklenemedi.');
   const type = data.mimetype?.startsWith('image/') ? 'image' : data.mimetype?.startsWith('audio/') ? 'audio' : 'file';

@@ -3,6 +3,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
   getAppPath: () => ipcRenderer.invoke('get-app-path'),
   platform: process.platform,
+  api: Object.freeze({
+    request: request => ipcRenderer.invoke('api:request', request),
+  }),
   automaticPresence: Object.freeze({
     start: () => ipcRenderer.invoke('automatic-presence:start'),
     stop: () => ipcRenderer.invoke('automatic-presence:stop'),

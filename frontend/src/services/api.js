@@ -1,4 +1,5 @@
 import { API_URL as RUNTIME_API_URL } from '../config/runtimeConfig';
+import { apiFetch } from './httpClient';
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('chat_token');
@@ -7,7 +8,7 @@ async function request(endpoint, options = {}) {
 
   let response;
   try {
-    response = await fetch(`${RUNTIME_API_URL}${endpoint}`, { ...options, headers });
+    response = await apiFetch(`${RUNTIME_API_URL}${endpoint}`, { ...options, headers });
   } catch (error) {
     throw new Error('Sunucuya bağlanılamadı. İnternet bağlantını kontrol et ve uygulamanın güncel sürümünü kullandığından emin ol.', { cause: error });
   }

@@ -131,6 +131,11 @@ $landingHtml = [regex]::Replace(
   'v\d+\.\d+\.\d+\s+[^A-Za-z0-9<]+\s+Windows',
   "v$packageVersion $middleDot Windows"
 )
+$landingHtml = [regex]::Replace(
+  $landingHtml,
+  '"softwareVersion"\s*:\s*"\d+\.\d+\.\d+"',
+  ('"softwareVersion": "' + $packageVersion + '"')
+)
 [IO.File]::WriteAllText($stagedLandingPage, $landingHtml, [Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath (Join-Path $repoRoot 'installer\tahosapp.ico') -Destination (Join-Path $webStage 'tahosapp.ico')
 Copy-Item -LiteralPath (Join-Path $repoRoot 'frontend\dist') -Destination (Join-Path $webStage 'app') -Recurse

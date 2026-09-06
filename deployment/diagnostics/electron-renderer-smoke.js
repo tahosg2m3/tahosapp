@@ -46,6 +46,22 @@ async function main() {
         result.fetchError = error && (error.stack || error.message || String(error));
       }
       try {
+        const bridgeResponse = await globalThis.electron?.api?.request({
+          path: '/api/auth/login',
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: 'desktop-connectivity-check@invalid.example',
+            password: 'not-a-real-password',
+          }),
+        });
+        result.apiBridge = bridgeResponse?.transportError
+          ? { transportError: true, code: bridgeResponse.code }
+          : { status: bridgeResponse?.status, contentType: bridgeResponse?.headers?.['content-type'] };
+      } catch (error) {
+        result.apiBridgeError = error && (error.stack || error.message || String(error));
+      }
+      try {
         if (globalThis.electron?.desktopUpdater) {
           result.desktopUpdate = await globalThis.electron.desktopUpdater.getState();
         }

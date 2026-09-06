@@ -15,7 +15,7 @@
   <link rel="icon" href="/tahosapp.ico" />
   <link rel="apple-touch-icon" href="/assets/tahosapp-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/assets/site.css?v=20260828-2" />
+  <link rel="stylesheet" href="/assets/site.css?v=20260906-1" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="tr_TR" />
   <meta property="og:site_name" content="tahosapp" />
@@ -49,7 +49,7 @@
         "applicationCategory": "CommunicationApplication",
         "applicationSubCategory": "Mesajlaşma ve topluluk platformu",
         "operatingSystem": "Windows 10, Windows 11, Web",
-        "softwareVersion": "1.1.2",
+        "softwareVersion": "1.1.3",
         "isAccessibleForFree": true,
         "description": "Gerçek zamanlı mesajlaşma, sesli sohbet, görüntülü görüşme, ekran paylaşımı, doğrudan arama ve topluluk yönetimi sunan iletişim uygulaması.",
         "image": "https://tahosapp.com.tr/assets/og-tahosapp.png",
@@ -78,6 +78,7 @@
       <nav class="site-nav" aria-label="Ana menü">
         <a href="/ozellikler/">Özellikler</a>
         <a href="/guvenlik/">Güvenlik</a>
+        <a href="/durum/">Durum</a>
         <a href="#sss">SSS</a>
         <a class="nav-cta" href="/app/">Giriş yap</a>
       </nav>
@@ -95,12 +96,42 @@
           <a class="button secondary" href="/app/">Tarayıcıda kullan</a>
           <a class="button ghost" href="/ozellikler/">Tüm özellikleri gör →</a>
         </div>
-        <p class="subnote">v1.1.2 · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz</p>
+        <p class="subnote">v1.1.3 · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz</p>
       </div>
       <div class="hero-visual" aria-label="tahosapp iletişim uygulaması logosu">
         <span class="signal one">Gerçek zamanlı bağlantı</span>
         <img src="/assets/tahosapp-icon.png" alt="tahosapp logosu" />
         <span class="signal two">Ses bağlantısı hazır</span>
+      </div>
+    </section>
+
+    <section class="section product-showcase" aria-labelledby="urun-onizleme-basligi">
+      <div class="container">
+        <div class="section-heading center">
+          <p class="eyebrow">Ürün önizlemesi</p>
+          <h2 id="urun-onizleme-basligi">Sohbetin, ses odaların ve topluluğun aynı yerde.</h2>
+          <p>Kişisel veri içermeyen bu canlı arayüz önizlemesi tahosapp’in masaüstü ve web düzenini gösterir.</p>
+        </div>
+        <div class="app-preview" role="img" aria-label="tahosapp sunucu, kanal, sohbet ve üye listesi arayüz önizlemesi">
+          <aside class="preview-servers" aria-hidden="true"><span class="preview-logo">t</span><span>GS</span><span>+</span></aside>
+          <aside class="preview-channels">
+            <strong>Oyun Ekibi <span>⌄</span></strong>
+            <small>METİN KANALLARI</small>
+            <p class="selected"># genel</p><p># duyurular</p>
+            <small>SESLİ KANALLAR</small>
+            <p>◖ Takım odası</p><p class="voice-user"><i></i> Ada</p><p class="voice-user"><i></i> Mert</p>
+          </aside>
+          <div class="preview-chat">
+            <header><strong># genel</strong><span>⌕ &nbsp; ♡ &nbsp; ☰</span></header>
+            <div class="preview-messages">
+              <div><span class="avatar purple">A</span><p><strong>Ada <small>bugün 20:41</small></strong>Yayın hazır, ses odasında buluşalım.</p></div>
+              <div><span class="avatar cyan">M</span><p><strong>Mert <small>bugün 20:42</small></strong>Tamamdır! RNNoise açık, ses gayet temiz.</p></div>
+              <div class="preview-stream"><span>CANLI</span><strong>Ekran paylaşımı başladı</strong><small>Takım odası · 2 izleyici</small></div>
+            </div>
+            <div class="preview-composer">#genel kanalına mesaj gönder <span>＋ ◉ ☺</span></div>
+          </div>
+          <aside class="preview-members"><small>ÇEVRİMİÇİ — 3</small><p><i></i>Ada</p><p><i></i>Mert</p><p><i></i>Deniz</p><small>ÇEVRİMDIŞI — 1</small><p class="offline"><i></i>Ece</p></aside>
+        </div>
       </div>
     </section>
 
@@ -156,6 +187,25 @@
       </div>
     </section>
 
+    <section class="section compact" aria-labelledby="guncel-surum-basligi">
+      <div class="container release-grid">
+        <article class="release-card">
+          <p class="eyebrow">Güncel masaüstü sürümü</p>
+          <h2 id="guncel-surum-basligi">tahosapp 1.1.3</h2>
+          <p>Masaüstü API bağlantısı yerel ve güvenli Electron köprüsüne taşındı. Uygulama güncellemeleri arka planda denetlenir ve indirilmeye hazır olduğunda kullanıcıya bildirilir.</p>
+          <div class="actions"><a class="button primary" href="/downloads/tahosapp-Setup-latest.exe" download>1.1.3'ü indir</a><a class="button ghost" href="/surum-notlari/">Sürüm notları →</a></div>
+        </article>
+        <article class="status-card">
+          <span class="status-dot" aria-hidden="true"></span>
+          <div><p class="eyebrow">Hizmet durumu</p><h3>Bağlantıları canlı olarak kontrol et.</h3><p>API, gerçek zamanlı mesajlaşma ve ses altyapısının son durumunu ayrı durum sayfasından görebilirsin.</p><a href="/durum/">Durum sayfasını aç →</a></div>
+        </article>
+        <article class="status-card trust-card">
+          <span class="shield-mark" aria-hidden="true">✓</span>
+          <div><p class="eyebrow">Güven ve şeffaflık</p><h3>Güvenlik yaklaşımı açıkça belgelenir.</h3><p>Hesap koruması, veri işleme, güvenlik bildirimi ve topluluk kuralları herkes için erişilebilir.</p><a href="/guvenlik/">Güvenlik ayrıntıları →</a></div>
+        </article>
+      </div>
+    </section>
+
     <section class="section" id="sss">
       <div class="container">
         <div class="section-heading center"><p class="eyebrow">Sık sorulan sorular</p><h2>Başlamadan önce bilmen gerekenler.</h2></div>
@@ -180,7 +230,7 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><a class="brand" href="/"><img src="/assets/tahosapp-icon.png" alt="" />tahosapp</a><p class="footer-about">Mesajlaşma, ses, görüntü, ekran paylaşımı ve topluluk yönetimini bir araya getiren bağımsız iletişim platformu.</p></div>
-      <div class="footer-column"><strong>Ürün</strong><a href="/ozellikler/">Özellikler</a><a href="/guvenlik/">Güvenlik</a><a href="/app/">Web uygulaması</a><a href="/downloads/tahosapp-Setup-latest.exe">Windows indir</a></div>
+      <div class="footer-column"><strong>Ürün</strong><a href="/ozellikler/">Özellikler</a><a href="/guvenlik/">Güvenlik</a><a href="/durum/">Hizmet durumu</a><a href="/surum-notlari/">Sürüm notları</a><a href="/app/">Web uygulaması</a><a href="/downloads/tahosapp-Setup-latest.exe">Windows indir</a></div>
       <div class="footer-column"><strong>Kurallar</strong><a href="/kullanim-kosullari/">Kullanım Koşulları</a><a href="/topluluk-kurallari/">Topluluk Kuralları</a><a href="/kabul-edilebilir-kullanim/">Kabul Edilebilir Kullanım</a><a href="/guvenlik/#bildirim">Güvenlik bildirimi</a></div>
       <div class="footer-column"><strong>Gizlilik</strong><a href="/gizlilik/">Gizlilik ve KVKK</a><a href="/cerezler/">Çerez ve Yerel Depolama</a><a href="/kvkk-basvuru/">KVKK Başvurusu</a><a href="/iletisim/">İletişim</a></div>
     </div>

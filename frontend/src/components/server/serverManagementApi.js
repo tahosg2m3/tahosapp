@@ -1,4 +1,5 @@
 import { API_URL } from '../../config/runtimeConfig';
+import { apiFetch } from '../../services/httpClient';
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('chat_token');
@@ -9,7 +10,7 @@ async function request(path, options = {}) {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const response = await apiFetch(`${API_URL}${path}`, { ...options, headers });
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {

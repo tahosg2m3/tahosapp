@@ -203,6 +203,10 @@ function buildProductionCsp() {
 }
 
 const PRODUCTION_CSP = buildProductionCsp();
+const API_REQUEST_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD']);
+const API_REQUEST_HEADERS = new Set(['accept', 'authorization', 'cache-control', 'content-type', 'if-none-match']);
+const API_REQUEST_BODY_LIMIT = 2 * 1024 * 1024;
+const API_RESPONSE_BODY_LIMIT = 12 * 1024 * 1024;
 
 // This must run before app.ready. The custom standard/secure protocol avoids
 // granting the renderer the broad privileges of file:// pages.
@@ -364,6 +368,93 @@ function getExternalUrl(value) {
 function openExternalSafely(value) {
   const url = getExternalUrl(value);
   if (url) shell.openExternal(url).catch(() => {});
+}
+
+function normalizeDesktopApiRequest(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Geçersiz masaüstü API isteği.');
+  }
+
+  const requestPath = String(value.path || '');
+  if (!requestPath || requestPath.length > 4096 || /[\r\n\0\\]/.test(requestPath)) {
+    throw new Error('Geçersiz API yolu.');
+  }
+
+  const target = new URL(requestPath, `${DEPLOYMENT_CONFIG.apiOrigin}/`);
+  if (target.origin !== DEPLOYMENT_CONFIG.apiOrigin
+    || !target.pathname.startsWith('/api/')) {
+    throw new Error('API isteği izin verilen sunucu yoluyla sınırlıdır.');
+  }
+
+  const method = String(value.method || 'GET').trim().toUpperCase();
+  if (!API_REQUEST_METHODS.has(method)) throw new Error('API isteği yöntemi desteklenmiyor.');
+
+  const headers = {};
+  if (value.headers && typeof value.headers === 'object' && !Array.isArray(value.headers)) {
+    for (const [rawName, rawValue] of Object.entries(value.headers)) {
+      const name = String(rawName || '').trim().toLowerCase();
+      if (!API_REQUEST_HEADERS.has(name) || typeof rawValue !== 'string') continue;
+      if (rawValue.length > 8192 || /[\r\n\0]/.test(rawValue)) {
+        throw new Error('Geçersiz API üst bilgisi.');
+      }
+      headers[name] = rawValue;
+    }
+  }
+
+  let body;
+  if (value.body != null) {
+    if (typeof value.body !== 'string' || Buffer.byteLength(value.body, 'utf8') > API_REQUEST_BODY_LIMIT) {
+      throw new Error('API isteği gövdesi izin verilen boyutu aşıyor.');
+    }
+    if (method === 'GET' || method === 'HEAD') throw new Error('Bu API yöntemi gövde kabul etmiyor.');
+    body = value.body;
+  }
+
+  return { url: target.href, method, headers, body };
+}
+
+async function performDesktopApiRequest(value) {
+  const request = normalizeDesktopApiRequest(value);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  timeout.unref();
+
+  try {
+    const response = await net.fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      redirect: 'error',
+      signal: controller.signal,
+      bypassCustomProtocolHandlers: true,
+    });
+    const declaredLength = Number(response.headers.get('content-length') || 0);
+    if (Number.isFinite(declaredLength) && declaredLength > API_RESPONSE_BODY_LIMIT) {
+      throw new Error('API yanıtı izin verilen boyutu aşıyor.');
+    }
+    const responseBody = await response.arrayBuffer();
+    if (responseBody.byteLength > API_RESPONSE_BODY_LIMIT) {
+      throw new Error('API yanıtı izin verilen boyutu aşıyor.');
+    }
+
+    const responseHeaders = {};
+    for (const name of ['cache-control', 'content-type', 'etag', 'last-modified']) {
+      const headerValue = response.headers.get(name);
+      if (headerValue) responseHeaders[name] = headerValue;
+    }
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+      body: Buffer.from(responseBody).toString('base64'),
+    };
+  } catch (error) {
+    const code = error?.name === 'AbortError' ? 'API_TIMEOUT' : 'API_UNREACHABLE';
+    return { transportError: true, code };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function prepareRuntimeEnvFile() {
@@ -1083,6 +1174,13 @@ if (!ownsSingleInstance) {
   ipcMain.handle('get-app-path', event => {
     if (!isTrustedAppFrame(event.senderFrame, event.senderFrame?.url)) return null;
     return app.getPath('userData');
+  });
+
+  ipcMain.handle('api:request', (event, request) => {
+    if (!isTrustedAppFrame(event.senderFrame, event.senderFrame?.url)) {
+      return { transportError: true, code: 'UNTRUSTED_RENDERER' };
+    }
+    return performDesktopApiRequest(request);
   });
 
   ipcMain.handle('desktop-update:get-state', event => {
