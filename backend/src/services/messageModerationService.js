@@ -318,7 +318,7 @@ function hasBlockedLink(content, allowedDomains) {
 }
 
 function containsInvite(content) {
-  return /(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord(?:app)?\.com\/invite)\/[a-z0-9_-]+/i.test(String(content || ''));
+  return /(?:https?:\/\/)?(?:www\.)?tahosapp\.com\.tr\/(?:app\/\?invite=|(?:invite|davet)\/)[a-z0-9_-]+/i.test(String(content || ''));
 }
 
 function countMentions(content) {

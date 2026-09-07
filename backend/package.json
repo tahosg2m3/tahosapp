@@ -1,5 +1,5 @@
 {
-  "name": "discord-clone-backend",
+  "name": "tahosapp-backend",
   "version": "2.0.0",
   "main": "src/server.js",
   "scripts": {

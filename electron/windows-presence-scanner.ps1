@@ -117,6 +117,7 @@ while ($true) {
           name = Limit-Text $process.ProcessName 120
           title = $title
           path = $executablePath
+          hasWindow = ([int64]$process.MainWindowHandle -ne 0)
           startedAt = [int64]$startedAt
         }
       } catch {

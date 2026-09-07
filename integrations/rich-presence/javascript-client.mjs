@@ -1,6 +1,6 @@
 /**
  * Dependency-free Rich Presence client for Node.js 18+, Electron and modern browsers.
- * This client talks directly to TahosApp; it does not use Discord or Steam APIs.
+ * This client talks directly to tahosapp's first-party API.
  */
 export class RichPresenceClient {
   constructor({ token, apiUrl = 'http://127.0.0.1:3001/api', heartbeatIntervalMs = 30_000 } = {}) {

@@ -589,7 +589,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
       const completeConversation = { ...conversation, otherUser: profile };
       setActiveDM(completeConversation);
       setCurrentServer(null);
-      window.dispatchEvent(new CustomEvent('discord:navigate-to-dm', { detail: { conversation: completeConversation } }));
+      window.dispatchEvent(new CustomEvent('tahosapp:navigate-to-dm', { detail: { conversation: completeConversation } }));
       onClose();
     } catch (error) {
       toast.error(error.message || 'Mesaj başlatılamadı.');

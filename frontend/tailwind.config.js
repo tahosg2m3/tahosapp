@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        discord: {
+        tahosapp: {
           100: '#F2F3F5', // Metin Rengi
           200: '#DBDEE1', // İkon ve Üst Metin
           300: '#B5BAC1', // Soluk Metin

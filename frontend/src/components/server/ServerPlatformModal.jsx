@@ -65,6 +65,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
 import { useSocket } from '../../context/SocketContext';
 import { fetchChannels } from '../../services/api';
+import { buildInviteUrl } from '../../utils/inviteLinks';
 
 const TAB_GROUPS = [
   {
@@ -131,7 +132,7 @@ function Empty({ children }) {
   return <div className="rounded-xl border border-dashed border-white/[0.1] px-4 py-8 text-center text-sm text-[#64748b]">{children}</div>;
 }
 
-export default function ServerPlatformModal({ onClose, initialTab = 'events', canManage = false, isOwner = false, permissions = {} }) {
+export default function ServerPlatformModal({ onClose, initialTab = 'events', canManage = false, isOwner = false, permissions = {}, embedded = false }) {
   const { currentServer } = useServer();
   const { user } = useAuth();
   const { socket } = useSocket() || {};
@@ -262,9 +263,9 @@ export default function ServerPlatformModal({ onClose, initialTab = 'events', ca
     </>
   );
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex bg-black/75 backdrop-blur-sm">
-      <aside className="w-[280px] shrink-0 border-r border-white/[0.07] bg-[#0b1220] px-4 py-6">
+  const modal = (
+    <div className={embedded ? 'flex h-full min-h-0 w-full bg-[#0f172a]' : 'fixed inset-0 z-[100] flex bg-black/75 backdrop-blur-sm'}>
+      <aside className={`${embedded ? 'w-[230px]' : 'w-[280px]'} shrink-0 overflow-y-auto border-r border-white/[0.07] bg-[#0b1220] px-4 py-6 custom-scrollbar`}>
         <div className="mb-6 px-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#64748b]">Sunucu merkezi</p>
           <h2 className="mt-1 truncate text-lg font-bold text-white">{currentServer.name}</h2>
@@ -290,13 +291,13 @@ export default function ServerPlatformModal({ onClose, initialTab = 'events', ca
       <main className="min-w-0 flex-1 overflow-y-auto bg-[#0f172a]">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-white/[0.07] bg-[#0f172a]/90 px-8 backdrop-blur-xl">
           <div><h1 className="font-bold text-white">{allTabs.find(tab => tab.id === activeTab)?.label}</h1><p className="text-xs text-[#64748b]">Değişiklikler anında sunucuya uygulanır.</p></div>
-          <button type="button" onClick={onClose} className="rounded-full border border-white/[0.1] p-2 text-[#94a3b8] transition hover:bg-white/[0.07] hover:text-white"><X className="h-5 w-5" /></button>
+          {!embedded && <button type="button" onClick={onClose} className="rounded-full border border-white/[0.1] p-2 text-[#94a3b8] transition hover:bg-white/[0.07] hover:text-white"><X className="h-5 w-5" /></button>}
         </header>
         <div className="mx-auto max-w-5xl space-y-4 px-8 py-7">{content}</div>
       </main>
-    </div>,
-    document.body,
+    </div>
   );
+  return embedded ? modal : createPortal(modal, document.body);
 }
 
 function InvitesTab({ serverId, payload, refresh }) {
@@ -307,8 +308,8 @@ function InvitesTab({ serverId, payload, refresh }) {
     event.preventDefault();
     try {
       const created = await createInvite(serverId, { maxUses: Number(maxUses) || 0, maxAgeSeconds: Math.max(0, Number(expiresInHours) || 0) * 3600 });
-      await navigator.clipboard?.writeText(created.code || created.invite?.code || '');
-      toast.success('Davet oluşturuldu ve kod kopyalandı.');
+      await navigator.clipboard?.writeText(buildInviteUrl(created.code || created.invite?.code || ''));
+      toast.success('Davet oluşturuldu ve bağlantı kopyalandı.');
       refresh();
     } catch (error) { toast.error(error.message); }
   };
@@ -321,7 +322,7 @@ function InvitesTab({ serverId, payload, refresh }) {
       </form>
     </Panel>
     <Panel title="Aktif davetler" description="Süresi dolan veya iptal edilen bağlantılar kullanılamaz.">
-      {invites.length === 0 ? <Empty>Aktif davet bulunmuyor.</Empty> : <div className="space-y-2">{invites.map(invite => <div key={invite.id || invite.code} className="flex items-center gap-3 rounded-xl bg-[#0f172a] p-3"><code className="font-bold text-[#93c5fd]">{invite.code}</code><span className="text-xs text-[#64748b]">{invite.uses || 0}/{invite.maxUses || '∞'} kullanım · {formatDate(invite.expiresAt)}</span><div className="ml-auto flex gap-1"><button className={secondaryButton} onClick={() => navigator.clipboard?.writeText(invite.code).then(() => toast.success('Kod kopyalandı.'))}><Copy className="h-4 w-4" /></button><button className="rounded-lg p-2 text-[#f87171] hover:bg-[#ef4444]/10" onClick={() => revokeInvite(serverId, invite.id || invite.code).then(refresh).catch(error => toast.error(error.message))}><Trash2 className="h-4 w-4" /></button></div></div>)}</div>}
+      {invites.length === 0 ? <Empty>Aktif davet bulunmuyor.</Empty> : <div className="space-y-2">{invites.map(invite => <div key={invite.id || invite.code} className="flex items-center gap-3 rounded-xl bg-[#0f172a] p-3"><code className="min-w-0 flex-1 truncate font-bold text-[#93c5fd]">{buildInviteUrl(invite.code)}</code><span className="shrink-0 text-xs text-[#64748b]">{invite.uses || 0}/{invite.maxUses || '∞'} kullanım · {formatDate(invite.expiresAt)}</span><div className="flex shrink-0 gap-1"><button className={secondaryButton} onClick={() => navigator.clipboard?.writeText(buildInviteUrl(invite.code)).then(() => toast.success('Davet bağlantısı kopyalandı.'))}><Copy className="h-4 w-4" /></button><button className="rounded-lg p-2 text-[#f87171] hover:bg-[#ef4444]/10" onClick={() => revokeInvite(serverId, invite.id || invite.code).then(refresh).catch(error => toast.error(error.message))}><Trash2 className="h-4 w-4" /></button></div></div>)}</div>}
     </Panel>
   </>;
 }

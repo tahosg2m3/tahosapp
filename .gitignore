@@ -12,9 +12,10 @@ frontend/dist/
 backend/data.sqlite
 backend/data.sqlite-*
 backend/data.sqlite*.tmp
-backend/discord-clone.sqlite
-backend/discord-clone.sqlite-*
-backend/discord-clone.sqlite*.tmp
+backend/tahosapp.sqlite
+backend/tahosapp.sqlite-*
+backend/tahosapp.sqlite*.tmp
+backend/*-clone.sqlite*
 backend/data.sqlite-key
 backend/data.sqlite-key.*.tmp
 backend/data-encryption.key

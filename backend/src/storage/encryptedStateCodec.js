@@ -3,12 +3,15 @@ const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const ENVELOPE_TYPE = 'discord-clone-encrypted-state';
+const ENVELOPE_TYPE = 'tahosapp-encrypted-state';
+const LEGACY_ENVELOPE_TYPE = 'discord-clone-encrypted-state';
 const ENVELOPE_VERSION = 1;
 const ENVELOPE_ALGORITHM = 'aes-256-gcm';
-const MIGRATION_MARKER_TYPE = 'discord-clone-plaintext-migration';
+const MIGRATION_MARKER_TYPE = 'tahosapp-plaintext-migration';
+const LEGACY_MIGRATION_MARKER_TYPE = 'discord-clone-plaintext-migration';
 const MIGRATION_MARKER_VERSION = 1;
-const KEY_FILE_PREFIX = 'discord-clone-data-key-v1:';
+const KEY_FILE_PREFIX = 'tahosapp-data-key-v1:';
+const LEGACY_KEY_FILE_PREFIX = 'discord-clone-data-key-v1:';
 const KEY_LENGTH = 32;
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
@@ -196,7 +199,8 @@ function readKeyFile(keyFilePath, privateFileProtector = enforcePrivateFilePermi
     );
   }
 
-  const material = contents.startsWith(KEY_FILE_PREFIX) ? contents.slice(KEY_FILE_PREFIX.length) : contents;
+  const prefix = [KEY_FILE_PREFIX, LEGACY_KEY_FILE_PREFIX].find(candidate => contents.startsWith(candidate));
+  const material = prefix ? contents.slice(prefix.length) : contents;
   return parseKeyMaterial(material, 'Veri şifreleme anahtarı dosyası');
 }
 
@@ -273,7 +277,7 @@ function isEncryptionEnvelope(value) {
     value
     && typeof value === 'object'
     && !Array.isArray(value)
-    && value.type === ENVELOPE_TYPE,
+    && [ENVELOPE_TYPE, LEGACY_ENVELOPE_TYPE].includes(value.type),
   );
 }
 
@@ -287,19 +291,19 @@ class EncryptedStateCodec {
     this.keyId = crypto.createHash('sha256').update(this.key).digest('hex').slice(0, 16);
   }
 
-  getAdditionalAuthenticatedData(keyId = this.keyId) {
+  getAdditionalAuthenticatedData(keyId = this.keyId, envelopeType = ENVELOPE_TYPE) {
     return Buffer.from(
-      `${ENVELOPE_TYPE}:${ENVELOPE_VERSION}:${ENVELOPE_ALGORITHM}:${keyId}`,
+      `${envelopeType}:${ENVELOPE_VERSION}:${ENVELOPE_ALGORITHM}:${keyId}`,
       'utf8',
     );
   }
 
-  createMigrationMarker(status) {
+  createMigrationMarker(status, markerType = MIGRATION_MARKER_TYPE) {
     if (!['pending', 'complete'].includes(status)) {
       throw new StateEncryptionError('Geçersiz plaintext migration marker durumu.', 'DATA_MIGRATION_MARKER_INVALID');
     }
     const marker = {
-      type: MIGRATION_MARKER_TYPE,
+      type: markerType,
       version: MIGRATION_MARKER_VERSION,
       keyId: this.keyId,
       status,
@@ -308,7 +312,9 @@ class EncryptedStateCodec {
     return {
       ...marker,
       mac: crypto.createHmac('sha256', this.key)
-        .update('discord-clone:migration-marker:v1\0', 'utf8')
+        .update(markerType === LEGACY_MIGRATION_MARKER_TYPE
+          ? 'discord-clone:migration-marker:v1\0'
+          : 'tahosapp:migration-marker:v1\0', 'utf8')
         .update(canonical, 'utf8')
         .digest('base64url'),
     };
@@ -319,7 +325,7 @@ class EncryptedStateCodec {
       !marker
       || typeof marker !== 'object'
       || Array.isArray(marker)
-      || marker.type !== MIGRATION_MARKER_TYPE
+      || ![MIGRATION_MARKER_TYPE, LEGACY_MIGRATION_MARKER_TYPE].includes(marker.type)
       || marker.version !== MIGRATION_MARKER_VERSION
       || marker.keyId !== this.keyId
       || !['pending', 'complete'].includes(marker.status)
@@ -331,7 +337,7 @@ class EncryptedStateCodec {
     }
 
     const suppliedMac = decodeBase64Url(marker.mac);
-    const expected = this.createMigrationMarker(marker.status);
+    const expected = this.createMigrationMarker(marker.status, marker.type);
     const expectedMac = decodeBase64Url(expected.mac);
     if (
       !suppliedMac
@@ -428,7 +434,7 @@ class EncryptedStateCodec {
       const decipher = crypto.createDecipheriv(ENVELOPE_ALGORITHM, this.key, iv, {
         authTagLength: AUTH_TAG_LENGTH,
       });
-      decipher.setAAD(this.getAdditionalAuthenticatedData(parsed.keyId));
+      decipher.setAAD(this.getAdditionalAuthenticatedData(parsed.keyId, parsed.type));
       decipher.setAuthTag(authTag);
       plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
     } catch (error) {

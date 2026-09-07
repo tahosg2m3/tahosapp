@@ -55,12 +55,16 @@ app.set('query parser', 'simple');
 // without accepting spoofed X-Forwarded-For headers from the public internet.
 app.set('trust proxy', 'loopback');
 const server = http.createServer(app);
-const DESKTOP_CLIENT_ORIGIN = 'discord-clone://app';
+const DESKTOP_CLIENT_ORIGIN = 'tahosapp://app';
+// Eski masaüstü sürümlerinin otomatik güncellemeyi alabilmesi için geçici
+// uyumluluk. En az bir sürüm döngüsünden sonra kaldırılabilir.
+const LEGACY_DESKTOP_CLIENT_ORIGIN = 'discord-clone://app';
 const configuredClientOrigins = new Set(String(process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
   .map(value => value.trim())
   .filter(Boolean));
 configuredClientOrigins.add(DESKTOP_CLIENT_ORIGIN);
+configuredClientOrigins.add(LEGACY_DESKTOP_CLIENT_ORIGIN);
 const allowConfiguredClientOrigin = (origin, callback) => {
   // Health checks and native/non-browser clients may omit Origin. Browser and
   // Electron renderer requests must match the explicit allowlist exactly.
@@ -154,13 +158,13 @@ app.use('/api/gifs', gifRoutes);
 app.use('/api/rich-presence', richPresenceRoutes);
 app.use('/api/turn-credentials', turnRoutes);
 app.use('/api/feedback', feedbackRoutes);
-// Yeni Discord-benzeri özellikler tam API yollarını kendi router'ında tanımlar.
+// Yeni platform özellikleri tam API yollarını kendi router'ında tanımlar.
 // Eski endpoint'ler yukarıda kalır ve geriye dönük uyumluluğunu korur.
 app.use('/api', platformRoutes);
 
 app.get('/health', (req, res) => {
   if (process.env.DESKTOP_INSTANCE_TOKEN) {
-    res.set('X-Discord-Clone-Instance', process.env.DESKTOP_INSTANCE_TOKEN);
+    res.set('X-Tahosapp-Instance', process.env.DESKTOP_INSTANCE_TOKEN);
   }
   const peerReady = Boolean(peerServerController?.isReady());
   res.status(peerReady ? 200 : 503).json({
@@ -321,10 +325,10 @@ function shutdown(signal) {
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('message', message => {
-  if (message?.type === 'discord-clone:shutdown') shutdown('IPC');
+  if (message?.type === 'tahosapp:shutdown') shutdown('IPC');
 });
 process.parentPort?.once('message', event => {
-  if (event?.data?.type === 'discord-clone:shutdown') shutdown('IPC');
+  if (event?.data?.type === 'tahosapp:shutdown') shutdown('IPC');
 });
 
 app.set('io', io);

@@ -11,7 +11,7 @@ import PollPanel from '../chat/PollPanel';
 import ThreadPanel from '../chat/ThreadPanel';
 import AnnouncementFollowModal from '../server/AnnouncementFollowModal';
 import toast from 'react-hot-toast';
-import { getNotificationPreferences, listChannelPermissions, listCommands, listServerAssets, saveChannelNotificationPreferences } from '../../services/platformApi';
+import { getNotificationPreferences, listChannelPermissions, listCommands, listServerAssets, saveChannelNotificationPreferences, saveServerNotificationPreferences } from '../../services/platformApi';
 
 function updateMessageInList(messages, update) {
   const messageId = update.messageId || update.id;
@@ -35,7 +35,8 @@ export default function ChatArea() {
   const [showThreads, setShowThreads] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAnnouncementFollow, setShowAnnouncementFollow] = useState(false);
-  const [channelNotification, setChannelNotification] = useState({ level: 'all', mutedUntil: null });
+  const [serverNotification, setServerNotification] = useState({ level: 'inherit', mutedUntil: null });
+  const [channelNotification, setChannelNotification] = useState({ level: 'inherit', mutedUntil: null });
   const [effectivePermissions, setEffectivePermissions] = useState([]);
   const [firstUnreadId, setFirstUnreadId] = useState(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
@@ -105,9 +106,24 @@ export default function ChatArea() {
   useEffect(() => {
     if (!channelId) return;
     getNotificationPreferences()
-      .then(payload => setChannelNotification({ level: 'all', mutedUntil: null, ...(payload.channels?.[channelId] || {}) }))
-      .catch(() => setChannelNotification({ level: 'all', mutedUntil: null }));
-  }, [channelId]);
+      .then(payload => {
+        setServerNotification({ level: 'inherit', mutedUntil: null, ...(payload.servers?.[currentServer?.id] || {}) });
+        setChannelNotification({ level: 'inherit', mutedUntil: null, ...(payload.channels?.[channelId] || {}) });
+      })
+      .catch(() => {
+        setServerNotification({ level: 'inherit', mutedUntil: null });
+        setChannelNotification({ level: 'inherit', mutedUntil: null });
+      });
+  }, [channelId, currentServer?.id]);
+
+  const saveServerNotifications = async (updates) => {
+    const next = { ...serverNotification, ...updates };
+    try {
+      const saved = await saveServerNotificationPreferences(currentServer.id, next);
+      setServerNotification(saved || next);
+      toast.success('Sunucu bildirimleri güncellendi.');
+    } catch (error) { toast.error(error.message); }
+  };
 
   const saveChannelNotifications = async (updates) => {
     const next = { ...channelNotification, ...updates };
@@ -409,10 +425,20 @@ export default function ChatArea() {
       {showThreads && <ThreadPanel key={channelId} channelId={channelId} canCreateThread={canCreateThreads} canSendThreadMessages={canSendThreadMessages} onClose={() => setShowThreads(false)} />}
       {showAnnouncementFollow && <AnnouncementFollowModal channel={currentChannel} onClose={() => setShowAnnouncementFollow(false)} />}
       {showNotifications && (
-        <div className="absolute right-5 top-16 z-50 w-72 rounded-xl border border-white/[0.1] bg-[#1e293b] p-3 shadow-2xl shadow-black/40">
-          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold text-white">Kanal bildirimleri</p><p className="text-[11px] text-[#64748b]">Yalnızca #{currentChannel.name}</p></div><button type="button" onClick={() => setShowNotifications(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08]"><X className="h-4 w-4" /></button></div>
-          <div className="space-y-1">{[['all', 'Tüm mesajlar'], ['mentions', 'Yalnızca etiketler'], ['nothing', 'Hiçbiri']].map(([value, label]) => <button key={value} type="button" onClick={() => saveChannelNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${channelNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{channelNotification.level === value && <span>✓</span>}</button>)}</div>
-          <div className="mt-3 border-t border-white/[0.08] pt-3"><p className="mb-2 text-[10px] font-bold uppercase text-[#64748b]">Kanalı sessize al</p><div className="grid grid-cols-2 gap-1"><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: Date.now() + 60 * 60 * 1000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">1 saat</button><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: Date.now() + 8 * 60 * 60 * 1000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">8 saat</button><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Süresiz</button><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sesi aç</button></div></div>
+        <div className="custom-scrollbar absolute right-5 top-16 z-50 max-h-[calc(100vh-5rem)] w-80 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1e293b] p-3 shadow-2xl shadow-black/40">
+          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold text-white">Bildirim ayarları</p><p className="text-[11px] text-[#64748b]">Önce sunucu, gerekirse kanal istisnası</p></div><button type="button" onClick={() => setShowNotifications(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08]"><X className="h-4 w-4" /></button></div>
+
+          <section className="rounded-lg border border-white/[0.07] bg-black/10 p-2">
+            <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">{currentServer?.name} sunucusu</p>
+            <div className="space-y-1">{[['inherit', 'Genel ayarı kullan'], ['all', 'Tüm mesajlar'], ['mentions', 'Yalnızca etiketler'], ['nothing', 'Hiçbiri']].map(([value, label]) => <button key={value} type="button" onClick={() => saveServerNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${serverNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{serverNotification.level === value && <span>✓</span>}</button>)}</div>
+            <div className="mt-2 grid grid-cols-2 gap-1"><button type="button" onClick={() => saveServerNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sunucuyu sustur</button><button type="button" onClick={() => saveServerNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sesi aç</button></div>
+          </section>
+
+          <section className="mt-3 rounded-lg border border-white/[0.07] bg-black/10 p-2">
+            <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">#{currentChannel.name} kanal istisnası</p>
+            <div className="space-y-1">{[['inherit', 'Sunucu ayarını kullan'], ['all', 'Tüm mesajlar'], ['mentions', 'Yalnızca etiketler'], ['nothing', 'Hiçbiri']].map(([value, label]) => <button key={value} type="button" onClick={() => saveChannelNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${channelNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{channelNotification.level === value && <span>✓</span>}</button>)}</div>
+            <div className="mt-2 grid grid-cols-2 gap-1"><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Kanalı sustur</button><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sesi aç</button></div>
+          </section>
         </div>
       )}
 

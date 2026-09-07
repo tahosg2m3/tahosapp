@@ -6,8 +6,6 @@
 
 It includes servers, channels, direct messages, voice/video communication, screen sharing, roles, moderation tools and a desktop application. This repository is the official public source-code repository linked from [tahosapp.com.tr](https://tahosapp.com.tr/).
 
-> **Disclaimer:** This is an independent project and is not affiliated with, endorsed by, or sponsored by Discord Inc.
-
 ## ✨ Features
 
 * 💬 Real-time text messaging
@@ -62,8 +60,8 @@ It includes servers, channels, direct messages, voice/video communication, scree
 ### Installation
 
 ```bash
-git clone https://github.com/tahosg2m3/discord-clone.git
-cd discord-clone
+git clone https://github.com/tahosg2m3/tahosapp.git
+cd tahosapp
 npm install
 ```
 
@@ -120,11 +118,9 @@ For security vulnerabilities, see [SECURITY.md](SECURITY.md).
 * [English](README.md)
 * [Türkçe](README.tr.md)
 
-## ⚠️ Project Status
+## Project Status
 
-This project is primarily intended for **educational and portfolio purposes**.
-
-It is not an official Discord client and does not use Discord's proprietary backend.
+tahosapp is an independent open-source communication platform under active development.
 
 ---
 

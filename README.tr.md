@@ -6,8 +6,6 @@
 
 Sunucular, kanallar, doğrudan mesajlar, sesli/görüntülü iletişim, ekran paylaşımı, roller, moderasyon araçları ve masaüstü uygulaması içerir. Bu depo, [tahosapp.com.tr](https://tahosapp.com.tr/) tarafından bağlantısı verilen resmî ve herkese açık kaynak kodu deposudur.
 
-> **Yasal Uyarı:** Bu bağımsız bir projedir; Discord Inc. ile herhangi bir bağlantısı yoktur, Discord Inc. tarafından desteklenmemekte veya sponsorluk sağlanmamaktadır.
-
 ---
 
 ## ✨ Özellikler
@@ -68,8 +66,8 @@ Sunucular, kanallar, doğrudan mesajlar, sesli/görüntülü iletişim, ekran pa
 ### Kurulum
 
 ```bash
-git clone https://github.com/tahosg2m3/discord-clone.git
-cd discord-clone
+git clone https://github.com/tahosg2m3/tahosapp.git
+cd tahosapp
 npm install
 
 ```
@@ -134,10 +132,8 @@ Güvenlik açıkları için lütfen `SECURITY.md` dosyasına göz atın.
 
 ---
 
-## ⚠️ Proje Durumu
+## Proje Durumu
 
-Bu proje öncelikli olarak eğitim ve portfolyo amaçlarıyla tasarlanmıştır.
-
-Resmi bir Discord istemcisi değildir ve Discord'un tescilli arka uç altyapısını kullanmaz.
+tahosapp, aktif olarak geliştirilen bağımsız ve açık kaynaklı bir iletişim platformudur.
 
 **Geliştiren:** tahosg2m3

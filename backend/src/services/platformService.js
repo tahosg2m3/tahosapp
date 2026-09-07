@@ -7,6 +7,7 @@ const PLATFORM_STATE_VERSION = 1;
 const MAX_AUDIT_LOGS_PER_SERVER = 2500;
 const MAX_DAILY_STAT_DAYS = 120;
 const NOTIFICATION_LEVELS = new Set(['all', 'mentions', 'nothing']);
+const NOTIFICATION_OVERRIDE_LEVELS = new Set([...NOTIFICATION_LEVELS, 'inherit']);
 const REPORT_STATUSES = new Set(['open', 'reviewing', 'resolved', 'dismissed']);
 const EVENT_STATUSES = new Set(['scheduled', 'active', 'completed', 'cancelled']);
 const RSVP_STATUSES = new Set(['interested', 'going', 'not_going']);
@@ -57,6 +58,11 @@ function nullableMediaUrl(value) {
 function notificationLevel(value, fallback = 'all') {
   const normalized = value === 'none' ? 'nothing' : value;
   return NOTIFICATION_LEVELS.has(normalized) ? normalized : fallback;
+}
+
+function notificationOverrideLevel(value, fallback = 'inherit') {
+  const normalized = value === 'none' ? 'nothing' : value;
+  return NOTIFICATION_OVERRIDE_LEVELS.has(normalized) ? normalized : fallback;
 }
 
 function integer(value, minimum, maximum, fallback = minimum) {
@@ -1585,10 +1591,10 @@ class PlatformService {
     };
     preferences.level = notificationLevel(preferences.level, 'all');
     Object.values(preferences.servers || {}).forEach(value => {
-      if (isRecord(value)) value.level = notificationLevel(value.level, 'all');
+      if (isRecord(value)) value.level = notificationOverrideLevel(value.level, 'inherit');
     });
     Object.values(preferences.channels || {}).forEach(value => {
-      if (isRecord(value)) value.level = notificationLevel(value.level, 'all');
+      if (isRecord(value)) value.level = notificationOverrideLevel(value.level, 'inherit');
     });
     preferences.directMessages = preferences.dmNotifications;
     preferences.serverMode = preferences.level;
@@ -1624,7 +1630,7 @@ class PlatformService {
     if (!key) return null;
     const current = isRecord(prefs.servers[key]) ? prefs.servers[key] : {};
     prefs.servers[key] = {
-      level: notificationLevel(updates.level, notificationLevel(current.level, 'all')),
+      level: notificationOverrideLevel(updates.level, notificationOverrideLevel(current.level, 'inherit')),
       mutedUntil: updates.mutedUntil === undefined ? (current.mutedUntil || null) : timestamp(updates.mutedUntil),
       suppressEveryone: updates.suppressEveryone === undefined
         ? Boolean(current.suppressEveryone)
@@ -1644,7 +1650,7 @@ class PlatformService {
     if (!key) return null;
     const current = isRecord(prefs.channels[key]) ? prefs.channels[key] : {};
     prefs.channels[key] = {
-      level: notificationLevel(updates.level, notificationLevel(current.level, 'all')),
+      level: notificationOverrideLevel(updates.level, notificationOverrideLevel(current.level, 'inherit')),
       mutedUntil: updates.mutedUntil === undefined ? (current.mutedUntil || null) : timestamp(updates.mutedUntil),
     };
     prefs.updatedAt = Date.now();
@@ -2574,7 +2580,7 @@ class PlatformService {
     return true;
   }
 
-  // Route katmanında kullanılan kısa/Discord terimli adlar. Asıl metotları
+  // Route katmanında kullanılan kısa uyumluluk adları. Asıl metotları
   // koruduğumuz için daha önce yazılmış çağrılar da çalışmaya devam eder.
   consumeInvite(code, userId) {
     return this.useInvite(code, userId);

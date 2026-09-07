@@ -92,8 +92,8 @@ export default function DMList({ setViewMode }) {
         .catch(console.error);
     };
 
-    window.addEventListener('discord:navigate-to-dm', handleExternalDMOpen);
-    return () => window.removeEventListener('discord:navigate-to-dm', handleExternalDMOpen);
+    window.addEventListener('tahosapp:navigate-to-dm', handleExternalDMOpen);
+    return () => window.removeEventListener('tahosapp:navigate-to-dm', handleExternalDMOpen);
   }, [loadConversations, setActiveDM, user?.id]);
 
   const handleSelectDM = useCallback((dm) => {

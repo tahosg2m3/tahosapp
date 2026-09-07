@@ -4,6 +4,7 @@ import { joinServer } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
 import toast from 'react-hot-toast';
+import { normalizeInviteCode } from '../../utils/inviteLinks';
 
 export default function JoinServerModal({ onClose, onJoined }) {
   const [inviteCode, setInviteCode] = useState('');
@@ -17,7 +18,7 @@ export default function JoinServerModal({ onClose, onJoined }) {
 
     setIsLoading(true);
     try {
-      const server = await joinServer(inviteCode.trim(), user.id);
+      const server = await joinServer(normalizeInviteCode(inviteCode), user.id);
       
       // State'i güncelle ve yeni sunucuya git
       setServers(prev => prev.some(item => item.id === server.id) ? prev.map(item => item.id === server.id ? { ...item, ...server } : item) : [...prev, server]);
@@ -48,9 +49,9 @@ export default function JoinServerModal({ onClose, onJoined }) {
 
         {/* Header */}
         <div className="p-6 text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Join a Server</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Sunucuya Katıl</h2>
           <p className="text-gray-400 text-sm">
-            Enter an invite code below to join an existing server.
+            Bir davet bağlantısını veya davet kodunu aşağıya yapıştır.
           </p>
         </div>
 
@@ -58,13 +59,13 @@ export default function JoinServerModal({ onClose, onJoined }) {
         <form onSubmit={handleSubmit} className="px-6 pb-6">
           <div className="mb-4">
             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
-              Invite Code
+              Davet bağlantısı veya kodu
             </label>
             <input
               type="text"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              placeholder="Ex: Xy9Az2"
+              placeholder="https://tahosapp.com.tr/app/?invite=Xy9Az2"
               className="w-full bg-gray-900 text-white p-3 rounded border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
               autoFocus
             />
@@ -75,8 +76,8 @@ export default function JoinServerModal({ onClose, onJoined }) {
                <Compass className="w-5 h-5 text-green-500" />
              </div>
              <div className="text-sm">
-                <h4 className="font-bold text-white">How to find code?</h4>
-                <p className="text-gray-400">Ask the server owner to check their server settings or console logs.</p>
+                <h4 className="font-bold text-white">Davet bağlantısını nereden bulurum?</h4>
+                <p className="text-gray-400">Sunucu sahibinden veya yetkili bir üyeden davet bağlantısı iste.</p>
              </div>
           </div>
 
@@ -86,14 +87,14 @@ export default function JoinServerModal({ onClose, onJoined }) {
               onClick={onClose}
               className="text-gray-300 hover:underline text-sm px-4"
             >
-              Back
+              Geri
             </button>
             <button
               type="submit"
               disabled={isLoading || !inviteCode}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-blue-900/20"
             >
-              {isLoading ? 'Joining...' : 'Join Server'}
+              {isLoading ? 'Katılınıyor…' : 'Sunucuya Katıl'}
             </button>
           </div>
         </form>

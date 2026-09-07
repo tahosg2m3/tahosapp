@@ -8,6 +8,7 @@ import {
   Save,
   Settings,
   Shield,
+  Sparkles,
   Trash2,
   Users,
   X,
@@ -19,6 +20,8 @@ import { getColorForString } from '../../utils/colors';
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 import MemberManagementModal from './MemberManagementModal';
 import RoleManagementModal from './RoleManagementModal';
+import ServerPlatformModal from './ServerPlatformModal';
+import { buildInviteUrl } from '../../utils/inviteLinks';
 import {
   getServerMembers,
   getServerRoles,
@@ -30,17 +33,18 @@ import {
   updateServerDetails,
 } from './serverManagementApi';
 
-const tabs = [
+const ownerTabs = [
   { id: 'overview', label: 'Genel Bakış', icon: Settings },
   { id: 'roles', label: 'Roller', icon: Shield },
   { id: 'members', label: 'Üyeler', icon: Users },
+  { id: 'community', label: 'Topluluk Merkezi', icon: Sparkles },
   { id: 'delete', label: 'Tehlikeli Bölge', icon: Trash2, danger: true },
 ];
 
-export default function ServerSettingsModal({ onClose }) {
+export default function ServerSettingsModal({ onClose, initialTab = 'overview' }) {
   const { currentServer, setCurrentServer, setCurrentChannel, setServers } = useServer();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [serverName, setServerName] = useState(currentServer?.name || '');
   const [serverIcon, setServerIcon] = useState(currentServer?.icon || '');
   const [serverBanner, setServerBanner] = useState(currentServer?.banner || '');
@@ -58,6 +62,9 @@ export default function ServerSettingsModal({ onClose }) {
   const [failedServerIconUrl, setFailedServerIconUrl] = useState('');
 
   const isOwner = Boolean(currentServer && user?.id && currentServer.creatorId === user.id);
+  const visibleTabs = isOwner
+    ? ownerTabs
+    : ownerTabs.filter(tab => tab.id === 'community');
   const serverColor = useMemo(() => getColorForString(currentServer?.name || 'Sunucu'), [currentServer?.name]);
   const safeServerIconUrl = resolveSafeMediaUrl(serverIcon);
   const serverIconPreviewUrl = safeServerIconUrl === failedServerIconUrl ? null : safeServerIconUrl;
@@ -99,6 +106,10 @@ export default function ServerSettingsModal({ onClose }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!visibleTabs.some(tab => tab.id === activeTab)) setActiveTab('community');
+  }, [activeTab, visibleTabs]);
+
   const refreshMembers = async () => {
     if (!currentServer?.id) return;
     try {
@@ -138,12 +149,12 @@ export default function ServerSettingsModal({ onClose }) {
   const copyInvite = async () => {
     if (!currentServer?.inviteCode) return;
     try {
-      await navigator.clipboard.writeText(currentServer.inviteCode);
+      await navigator.clipboard.writeText(buildInviteUrl(currentServer.inviteCode));
       setCopied(true);
-      toast.success('Davet kodu kopyalandı.');
+      toast.success('Davet bağlantısı kopyalandı.');
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error('Davet kodu kopyalanamadı.');
+      toast.error('Davet bağlantısı kopyalanamadı.');
     }
   };
 
@@ -193,19 +204,6 @@ export default function ServerSettingsModal({ onClose }) {
 
   if (!currentServer) return null;
 
-  if (!isOwner) {
-    return (
-      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-        <div className="w-full max-w-sm rounded-lg border border-black/40 bg-[#313338] p-6 text-center shadow-2xl">
-          <Shield className="mx-auto mb-3 h-10 w-10 text-[#ED4245]" />
-          <h2 className="text-lg font-bold text-[#F2F3F5]">Bu ayarlara erişimin yok</h2>
-          <p className="mt-2 text-sm leading-6 text-[#B5BAC1]">Sunucu ayarlarını yalnızca sunucu sahibi değiştirebilir.</p>
-          <button type="button" onClick={onClose} className="mt-5 rounded bg-[#5865F2] px-4 py-2 text-sm font-medium text-white hover:bg-[#4752C4]">Tamam</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[2px] sm:p-6">
       <div className="flex h-[min(760px,calc(100vh-24px))] w-full max-w-6xl overflow-hidden rounded-lg border border-black/40 bg-[#313338] shadow-2xl">
@@ -216,7 +214,7 @@ export default function ServerSettingsModal({ onClose }) {
           </div>
 
           <nav className="space-y-0.5">
-            {tabs.map(({ id, label, icon: Icon, danger }) => (
+            {visibleTabs.map(({ id, label, icon: Icon, danger }) => (
               <button
                 key={id}
                 type="button"
@@ -229,11 +227,7 @@ export default function ServerSettingsModal({ onClose }) {
             ))}
           </nav>
 
-          <div className="mt-auto border-t border-black/25 px-3 pt-4">
-            <div className="flex items-center gap-2 text-xs text-[#B5BAC1]">
-              <Crown className="h-4 w-4 text-[#FEE75C]" /> Sunucu sahibi
-            </div>
-          </div>
+          {isOwner && <div className="mt-auto border-t border-black/25 px-3 pt-4"><div className="flex items-center gap-2 text-xs text-[#B5BAC1]"><Crown className="h-4 w-4 text-[#FEE75C]" /> Sunucu sahibi</div></div>}
         </aside>
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#313338]">
@@ -276,10 +270,10 @@ export default function ServerSettingsModal({ onClose }) {
                 </div>
 
                 <div className="mt-7 rounded-lg border border-black/25 bg-[#2B2D31] p-5">
-                  <h2 className="text-sm font-bold text-[#F2F3F5]">Davet Kodu</h2>
-                  <p className="mt-1 text-xs leading-5 text-[#949BA4]">Bu kodu arkadaşlarınla paylaşarak sunucuya katılmalarını sağlayabilirsin.</p>
+                  <h2 className="text-sm font-bold text-[#F2F3F5]">Davet Bağlantısı</h2>
+                  <p className="mt-1 text-xs leading-5 text-[#949BA4]">Bu bağlantıyı açan kullanıcı giriş yaptıktan sonra sunucuya katılır.</p>
                   <div className="mt-4 flex items-center gap-2 rounded-[4px] bg-[#1E1F22] p-2">
-                    <code className="min-w-0 flex-1 truncate px-2 text-sm font-bold tracking-wider text-[#DBDEE1]">{currentServer.inviteCode || '—'}</code>
+                    <code className="min-w-0 flex-1 truncate px-2 text-xs font-bold text-[#DBDEE1]">{buildInviteUrl(currentServer.inviteCode) || '—'}</code>
                     <button type="button" onClick={copyInvite} className="flex shrink-0 items-center gap-2 rounded bg-[#5865F2] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#4752C4]">
                       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Kopyalandı' : 'Kopyala'}
                     </button>
@@ -300,6 +294,10 @@ export default function ServerSettingsModal({ onClose }) {
 
           {activeTab === 'members' && (
             isLoading ? <LoadingState label="Üyeler yükleniyor…" /> : <MemberManagementModal embedded serverId={currentServer.id} actorId={user.id} roles={roles} members={members} permissions={permissions} isOwner={isOwner} onMembersChange={setMembers} />
+          )}
+
+          {activeTab === 'community' && (
+            <ServerPlatformModal embedded initialTab="events" permissions={permissions} isOwner={isOwner} />
           )}
 
           {activeTab === 'delete' && (

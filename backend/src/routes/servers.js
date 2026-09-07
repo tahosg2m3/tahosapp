@@ -35,6 +35,21 @@ function getTrashServer(req, res) {
   return server;
 }
 
+function normalizeInviteCode(value) {
+  const raw = String(value || '').trim().slice(0, 1000);
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    const queryCode = url.searchParams.get('invite');
+    if (queryCode) return queryCode.trim().slice(0, 128);
+    const pathMatch = url.pathname.match(/\/(?:invite|davet)\/([^/?#]+)/i);
+    if (pathMatch?.[1]) return decodeURIComponent(pathMatch[1]).trim().slice(0, 128);
+  } catch {
+    // Plain invite codes are supported for backwards compatibility.
+  }
+  return raw.slice(0, 128);
+}
+
 // Sadece giriş yapan kullanıcının gerçekten üye olduğu normal sunucular gösterilir.
 router.get('/', authRateLimit, requireAuth, readRateLimit, (req, res) => {
   const servers = storage.getAllServers().filter(server => (
@@ -44,7 +59,7 @@ router.get('/', authRateLimit, requireAuth, readRateLimit, (req, res) => {
 });
 
 router.post('/join', authRateLimit, requireAuth, mutationRateLimit, (req, res) => {
-  const inviteCode = String(req.body.inviteCode || '').trim();
+  const inviteCode = normalizeInviteCode(req.body.inviteCode);
   const managedInvite = platformService.getInviteByCode(inviteCode);
   const server = managedInvite
     ? storage.getServerById(managedInvite.serverId)
@@ -56,7 +71,7 @@ router.post('/join', authRateLimit, requireAuth, mutationRateLimit, (req, res) =
   }
 
   if (storage.isServerMember(server.id, req.user.id)) {
-    return res.status(400).json({ error: 'Bu sunucuya zaten katıldın.' });
+    return res.json(server);
   }
 
   if (managedInvite && !platformService.consumeInvite(inviteCode, req.user.id)) {

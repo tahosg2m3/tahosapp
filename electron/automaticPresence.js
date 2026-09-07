@@ -39,7 +39,7 @@ const KNOWN_GAMES = new Map(Object.entries({
 
 const IGNORED_EXECUTABLES = new Set([
   'applicationframehost.exe', 'battle.net.exe', 'chrome.exe', 'code.exe',
-  'discord clone.exe', 'discord.exe', 'eadesktop.exe', 'epicgameslauncher.exe',
+  'eadesktop.exe', 'epicgameslauncher.exe',
   'eosoverlayrenderer-win64-shipping.exe', 'epiconlineservicesuserhelper.exe',
   'epicwebhelper.exe',
   'explorer.exe', 'firefox.exe', 'gamebar.exe', 'gog galaxy.exe', 'msedge.exe',
@@ -94,6 +94,11 @@ function classifyGame(processInfo) {
   if (executable === 'javaw.exe'
     && !lowerPath.includes('\\.minecraft\\')
     && !/minecraft/i.test(cleanText(processInfo?.title, 240))) return null;
+  // Roblox leaves RobloxPlayerBeta.exe alive in the background after its game
+  // window closes. Only publish it while an actual player window exists.
+  if (executable === 'robloxplayerbeta.exe'
+    && processInfo?.hasWindow !== true
+    && !cleanText(processInfo?.title, 240)) return null;
   const knownName = KNOWN_GAMES.get(executable);
   const store = STORE_PATHS.find(item => lowerPath.includes(item.marker));
   if (!knownName && !store) return null;

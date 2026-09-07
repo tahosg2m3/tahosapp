@@ -127,7 +127,7 @@ Good-faith security research that follows this policy is appreciated.
 
 This is an independent educational and portfolio project.
 
-It is **not affiliated with, endorsed by, or sponsored by Discord Inc.**
+tahosapp is an independent open-source communication platform.
 
 The software is provided **"AS IS"**, without warranty of any kind. Users deploying this project publicly are responsible for properly configuring HTTPS/WSS, secrets, CORS, rate limiting, firewall rules, backups, monitoring, and other production security controls.
 

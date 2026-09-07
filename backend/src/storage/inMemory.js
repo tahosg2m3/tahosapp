@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const { SQLiteStateStore } = require('./sqliteStateStore');
 
@@ -9,10 +10,13 @@ const DATA_DIRECTORY = process.env.APP_DATA_DIR
   ? path.resolve(process.env.APP_DATA_DIR)
   : path.join(__dirname, '../..');
 const DATA_FILE = path.join(DATA_DIRECTORY, 'data.json');
-const DATABASE_FILE = path.join(
-  DATA_DIRECTORY,
-  process.env.APP_DATA_DIR ? 'discord-clone.sqlite' : 'data.sqlite',
-);
+const currentDesktopDatabase = path.join(DATA_DIRECTORY, 'tahosapp.sqlite');
+const legacyDesktopDatabase = path.join(DATA_DIRECTORY, 'discord-clone.sqlite');
+const DATABASE_FILE = process.env.APP_DATA_DIR
+  ? (fs.existsSync(currentDesktopDatabase) || !fs.existsSync(legacyDesktopDatabase)
+    ? currentDesktopDatabase
+    : legacyDesktopDatabase)
+  : path.join(DATA_DIRECTORY, 'data.sqlite');
 const DATA_ENCRYPTION_KEY_FILE = path.join(
   DATA_DIRECTORY,
   process.env.APP_DATA_DIR ? 'data-encryption.key' : 'data.sqlite-key',
@@ -196,7 +200,7 @@ class InMemoryStorage {
     // `viewerUserId:targetUserId` olduğu için başka bir kullanıcı aynı profil
     // için yazılan notu okuyamaz.
     this.profileNotes = new Map();
-    // Discord benzeri platform özellikleri kendi sürümlü alanında tutulur.
+    // Platform özellikleri kendi sürümlü alanında tutulur.
     // Düz obje kullanmak eski JSON/SQLite snapshot biçimiyle geriye uyumludur;
     // ayrıntılı normalizasyonu platformService üstlenir.
     this.platformState = {
@@ -1171,8 +1175,6 @@ class InMemoryStorage {
     };
     this.users.push(user);
     this.userStatuses.set(user.id, 'offline');
-    this.addServerMember('default-server', user.id);
-    this.assignDefaultServerOwnershipIfNeeded(user.id);
     this.saveData();
     return user;
   }
@@ -1200,18 +1202,8 @@ class InMemoryStorage {
     };
     this.users.push(user);
     this.userStatuses.set(user.id, 'offline');
-    this.addServerMember('default-server', user.id);
-    this.assignDefaultServerOwnershipIfNeeded(user.id);
     this.saveData();
     return user;
-  }
-
-  assignDefaultServerOwnershipIfNeeded(userId) {
-    const defaultServer = this.getServerById('default-server');
-    if (defaultServer?.creatorId === 'system' && this.isServerMember(defaultServer.id, userId)) {
-      defaultServer.creatorId = userId;
-      this.saveData();
-    }
   }
 
   getUserById(id) { return this.users.find(user => user.id === id); }
@@ -1293,7 +1285,7 @@ class InMemoryStorage {
       this.userBlocks.set(userId, blocks);
     }
 
-    // Discord'daki davranış gibi engelleme mevcut arkadaşlığı ve iki yöndeki
+    // Engelleme mevcut arkadaşlığı ve iki yöndeki
     // bekleyen arkadaşlık isteklerini kaldırır.
     const [id1, id2] = [userId, blockedUserId].sort();
     this.friendships = this.friendships.filter(item => !(item.user1Id === id1 && item.user2Id === id2));

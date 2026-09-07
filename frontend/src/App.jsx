@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
+import { useRef } from 'react';
 import { SocketProvider, useSocket } from './context/SocketContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ServerProvider, useServer } from './context/ServerContext';
@@ -26,6 +27,8 @@ import NsfwGate from './components/server/NsfwGate';
 import DirectCallOverlay from './components/call/DirectCallOverlay';
 import AutomaticRichPresence from './components/profile/AutomaticRichPresence';
 import DesktopUpdateNotifier from './components/profile/DesktopUpdateNotifier';
+import { joinServer } from './services/api';
+import { normalizeInviteCode } from './utils/inviteLinks';
 
 function AppContent() {
   const { user } = useAuth();
@@ -33,6 +36,7 @@ function AppContent() {
   const { currentServer, currentChannel, setCurrentServer, setCurrentChannel, setServers } = useServer();
   const { activeVoiceChannel, isInVoice, isVoiceViewOpen, setIsVoiceViewOpen, leaveVoiceChannel } = useVoice();
   const [viewMode, setViewMode] = useState('dms'); 
+  const handledInviteRef = useRef('');
 
   const closeVoiceViewForNavigation = useCallback(() => {
     setIsVoiceViewOpen(false);
@@ -42,6 +46,31 @@ function AppContent() {
     closeVoiceViewForNavigation();
     setViewMode(nextViewMode);
   }, [closeVoiceViewForNavigation]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const url = new URL(window.location.href);
+    const inviteCode = normalizeInviteCode(url.searchParams.get('invite'));
+    if (!inviteCode || handledInviteRef.current === inviteCode) return;
+    handledInviteRef.current = inviteCode;
+
+    joinServer(inviteCode, user.id)
+      .then(server => {
+        setServers(previous => previous.some(item => item.id === server.id)
+          ? previous.map(item => item.id === server.id ? { ...item, ...server } : item)
+          : [...previous, server]);
+        setCurrentServer(server);
+        setCurrentChannel(null);
+        setViewMode('servers');
+        url.searchParams.delete('invite');
+        window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+        toast.success(`${server.name} sunucusuna katıldın.`);
+      })
+      .catch(error => {
+        handledInviteRef.current = '';
+        toast.error(error.message || 'Davet bağlantısı kullanılamadı.');
+      });
+  }, [setCurrentChannel, setCurrentServer, setServers, user?.id]);
 
   useEffect(() => {
     if (!socket) return undefined;

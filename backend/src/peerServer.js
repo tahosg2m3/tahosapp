@@ -12,6 +12,8 @@ function createPeerCorsOrigin() {
     .split(',')
     .map(value => value.trim())
     .filter(Boolean));
+  configuredOrigins.add('tahosapp://app');
+  // Geçiş süresince otomatik güncelleme öncesi masaüstü sürümlerini kabul et.
   configuredOrigins.add('discord-clone://app');
 
   return (origin, callback) => {

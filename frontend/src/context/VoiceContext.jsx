@@ -1239,7 +1239,7 @@ export const VoiceProvider = ({ children }) => {
     const activeChannel = activeVoiceChannelRef.current;
     const currentSocket = socketRef.current;
 
-    // Ayrılan kullanıcı da Discord'daki gibi çıkış bildirimini duyar. Başarısız
+    // Ayrılan kullanıcı da çıkış bildirimini duyar. Başarısız
     // join/rollback akışlarında notifyServer=false olduğu için gereksiz çalmaz.
     if (playSound && activeChannel?.id) playFeedbackSound(FEEDBACK_SOUND_IDS.LEAVE_CALL);
 

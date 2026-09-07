@@ -112,8 +112,8 @@ function notificationDecision(recipientId, message, server, mentioned) {
     return { allowed: false };
   }
 
-  const level = channelPrefs.level
-    || serverPrefs.level
+  const level = (channelPrefs.level && channelPrefs.level !== 'inherit' ? channelPrefs.level : null)
+    || (serverPrefs.level && serverPrefs.level !== 'inherit' ? serverPrefs.level : null)
     || prefs.level
     || prefs.serverMode
     || 'all';
@@ -233,11 +233,27 @@ async function executeSlashCommand(io, socket, access, user, content) {
     .replace(/\{username\}/gi, user.username)
     .replace(/\{args\}/gi, args)
     .slice(0, 4000);
+  const invocation = await messageService.createMessage({
+    username: user.username,
+    userId: user.id,
+    content: String(content).slice(0, MAX_MESSAGE_LENGTH),
+    channelId: access.channel.id,
+  });
+  emitChannelUpdate(io, access.channel.id, 'message:receive', invocation);
+  socket.emit('message:receive', invocation);
+  notifyRecipients(io, invocation, access.server, user.id);
+  await forwardAnnouncement(io, invocation, access.channel);
+
   const response = await messageService.createMessage({
     username: command.name,
     userId: `command:${command.id}`,
     content: responseContent,
     channelId: access.channel.id,
+    replyTo: {
+      id: invocation.id,
+      username: invocation.username,
+      content: invocation.content,
+    },
   });
   response.type = 'bot';
   response.bot = true;

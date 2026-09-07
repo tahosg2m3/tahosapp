@@ -1,6 +1,6 @@
 # Independent Rich Presence Integration
 
-TahosApp Rich Presence is a first-party HTTP system. It does not connect to or depend on Discord, Steam, Spotify, or any other presence provider.
+TahosApp Rich Presence is a first-party HTTP system that communicates directly with the tahosapp service.
 
 The TahosApp Windows desktop client automatically detects running games and active Windows media sessions, including Spotify and YouTube Music, without requiring this SDK, an account connection, or any user configuration. The SDK below is optional and only needed when an application wants to publish richer custom data such as a level, score, party, or action buttons.
 

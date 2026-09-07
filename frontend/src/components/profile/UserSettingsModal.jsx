@@ -627,7 +627,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
 
   const renderRichPresence = () => (
     <div className="space-y-5">
-      <SettingsSection icon={Activity} title="Bağımsız Rich Presence" description="Windows'ta çalışan oyunlar ile Spotify ve YouTube Music oturumları otomatik algılanır. Kullanıcı hesabı bağlamak, anahtar girmek veya oyuna eklenti kurmak gerekmez; Discord da kullanılmaz.">
+      <SettingsSection icon={Activity} title="Otomatik etkinlik durumu" description="Windows'ta çalışan oyunlar ile Spotify ve YouTube Music oturumları otomatik algılanır. Kullanıcı hesabı bağlamak, anahtar girmek veya oyuna eklenti kurmak gerekmez.">
         <ToggleRow
           checked={richPresenceState.enabled !== false}
           disabled={presenceBusy === 'toggle'}

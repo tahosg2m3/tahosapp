@@ -42,7 +42,7 @@ if (!isDev) {
     app.setPath('userData', legacyUserDataPath);
   }
 }
-const APP_SCHEME = 'discord-clone';
+const APP_SCHEME = 'tahosapp';
 const APP_HOST = 'app';
 const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`;
 const APP_ENTRY_URL = `${APP_ORIGIN}/index.html`;
@@ -50,12 +50,16 @@ const RENDERER_ROOT = path.resolve(__dirname, '../frontend/dist');
 const DEPLOYMENT_CONFIG_PATH = path.resolve(__dirname, '../deployment/app-config.json');
 const BACKEND_PORT = '3001';
 const PEER_PORT = '9000';
-const SHUTDOWN_MESSAGE = 'discord-clone:shutdown';
+const SHUTDOWN_MESSAGE = 'tahosapp:shutdown';
 const PROTECTED_DATA_KEY_FILE = 'data-encryption-key.safe';
 const DATA_MIGRATION_MARKER_FILE = 'data-encryption-migration.json';
 const DESKTOP_UPDATE_PREFERENCES_FILE = 'desktop-update-preferences.json';
 const DESKTOP_UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
-const ENCRYPTED_STATE_MAGIC = Buffer.from('discord-clone-encrypted-state', 'utf8');
+const ENCRYPTED_STATE_MAGICS = [
+  Buffer.from('tahosapp-encrypted-state', 'utf8'),
+  // Eski şifreli yerel veriyi veri kaybı olmadan tanımaya devam et.
+  Buffer.from('discord-clone-encrypted-state', 'utf8'),
+];
 const BACKEND_PLATFORM_ENV_KEYS = Object.freeze([
   // Node/native modüllerin temel süreç ve geçici klasör ihtiyaçları. Uygulama
   // sırları (SMTP/JWT/GIPHY vb.) burada yoktur; yalnız runtime.env'den okunur.
@@ -546,7 +550,7 @@ function inspectStateBeforeProtectedKeyCreation(dataDirectory) {
   }
 
   const stateArtifacts = entries.filter(entry => (
-    /^(?:data\.json(?:\..+\.tmp)?|(?:discord-clone|data)\.sqlite(?:-(?:wal|shm|journal)|\..+\.tmp)?|datayedek.*\.json(?:\..+\.tmp)?)$/i
+    /^(?:data\.json(?:\..+\.tmp)?|(?:tahosapp|discord-clone|data)\.sqlite(?:-(?:wal|shm|journal)|\..+\.tmp)?|datayedek.*\.json(?:\..+\.tmp)?)$/i
       .test(entry.name)
   ));
 
@@ -558,7 +562,7 @@ function inspectStateBeforeProtectedKeyCreation(dataDirectory) {
     const artifactPath = path.join(dataDirectory, artifact.name);
     const size = fs.statSync(artifactPath).size;
     if (!size) continue;
-    if (fileContainsBytes(artifactPath, ENCRYPTED_STATE_MAGIC)) {
+    if (ENCRYPTED_STATE_MAGICS.some(magic => fileContainsBytes(artifactPath, magic))) {
       throw new Error(
         'Şifreli uygulama verisi bulundu ancak işletim sistemi korumalı anahtarı eksik. '
         + 'Yeni anahtar üretilmedi; veri kurtarma için eski anahtarı geri yükleyin.',
@@ -709,7 +713,7 @@ async function waitForPackagedBackend(timeoutMs = 8_000) {
         signal: requestController.signal,
       });
       if (response.ok
-        && response.headers.get('x-discord-clone-instance') === backendInstanceToken) return true;
+        && response.headers.get('x-tahosapp-instance') === backendInstanceToken) return true;
     } catch (_) {
       // Backend startup is asynchronous; retry briefly before loading the UI.
     } finally {

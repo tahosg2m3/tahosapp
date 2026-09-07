@@ -1,4 +1,4 @@
-Contact: https://github.com/tahosg2m3/discord-clone/security/advisories/new
+Contact: https://github.com/tahosg2m3/tahosapp/security/advisories/new
 Expires: 2027-08-28T23:59:59.000Z
 Preferred-Languages: tr, en
 Canonical: https://tahosapp.com.tr/.well-known/security.txt

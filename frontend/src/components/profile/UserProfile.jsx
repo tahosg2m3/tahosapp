@@ -170,7 +170,7 @@ export default function UserProfile() {
                  </div>
                  <div>
                    <div className="font-bold text-[#F2F3F5] text-[16px]">{user.username}</div>
-                   <div className="text-[13px] text-[#949BA4]">{user.email || 'Discord Kullanıcısı'}</div>
+                   <div className="text-[13px] text-[#949BA4]">{user.email || 'tahosapp kullanıcısı'}</div>
                  </div>
               </div>
             </div>

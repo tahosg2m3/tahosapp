@@ -8,7 +8,7 @@ export function getColorForString(str) {
   }
 
   const colors = [
-    '#5865F2', // Discord blurple
+    '#5865F2', // Ana marka mavisi
     '#57F287', // green
     '#FEE75C', // yellow
     '#EB459E', // pink

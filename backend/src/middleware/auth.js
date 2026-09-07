@@ -4,9 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const storage = require('../storage/inMemory');
 
-const JWT_ISSUER = 'discord-clone';
-const JWT_AUDIENCE = 'discord-clone-client';
-const DEVELOPMENT_FALLBACK_SECRET = 'discord-clone-development-secret-change-me-before-production';
+const JWT_ISSUER = 'tahosapp';
+const JWT_AUDIENCE = 'tahosapp-client';
+const LEGACY_JWT_ISSUER = 'discord-clone';
+const LEGACY_JWT_AUDIENCE = 'discord-clone-client';
+const DEVELOPMENT_FALLBACK_SECRET = 'tahosapp-development-secret-change-me-before-production';
 
 let warnedAboutFallbackSecret = false;
 let cachedJwtSecret = null;
@@ -94,8 +96,8 @@ function verifyAuthToken(token) {
   try {
     const payload = jwt.verify(token, getJwtSecret(), {
       algorithms: ['HS256'],
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
+      issuer: [JWT_ISSUER, LEGACY_JWT_ISSUER],
+      audience: [JWT_AUDIENCE, LEGACY_JWT_AUDIENCE],
     });
     const user = storage.getUserById(payload.sub);
 

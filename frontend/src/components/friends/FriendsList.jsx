@@ -80,7 +80,7 @@ export default function FriendsList() {
       const otherUser = friends.find((friend) => friend.id === friendId);
       setActiveDM({ ...conversation, otherUser });
       setCurrentServer(null);
-      window.dispatchEvent(new CustomEvent('discord:navigate-to-dm', { detail: { conversation } }));
+      window.dispatchEvent(new CustomEvent('tahosapp:navigate-to-dm', { detail: { conversation } }));
       toast.success('Direkt mesaj açıldı.');
     } catch (error) {
       console.error('DM başlatılamadı:', error);

@@ -243,12 +243,21 @@ router.post('/webhooks/:webhookId/:token/messages', webhookRateLimit, async (req
     }
     const content = text(req.body.content, 2000);
     if (!content) return res.status(400).json({ error: 'Mesaj içeriği gerekli.' });
+    const replyTargetId = text(req.body.replyToMessageId || req.body.replyTo?.id, 128);
+    const replyTarget = replyTargetId
+      ? storage.getChannelMessages(webhook.channelId).find(item => item.id === replyTargetId)
+      : null;
     const message = await messageService.createMessage({
       username: text(req.body.username, 80) || webhook.name,
       userId: `webhook:${webhook.id}`,
       content,
       channelId: webhook.channelId,
       attachments: [],
+      replyTo: replyTarget ? {
+        id: replyTarget.id,
+        username: replyTarget.username,
+        content: text(replyTarget.content, 500),
+      } : null,
     });
     message.type = 'webhook';
     message.bot = true;

@@ -34,7 +34,6 @@ import { useSocket } from '../../context/SocketContext';
 import { useVoice } from '../../context/VoiceContext';
 import MemberManagementModal from '../server/MemberManagementModal';
 import ServerSettingsModal from '../server/ServerSettingsModal';
-import ServerPlatformModal from '../server/ServerPlatformModal';
 import ChannelSettingsModal from '../server/ChannelSettingsModal';
 import ServerProfileModal from '../profile/ServerProfileModal';
 import {
@@ -48,6 +47,7 @@ import {
   unwrapRoles,
 } from '../server/serverManagementApi';
 import { fetchChannels, leaveServer } from '../../services/api';
+import { buildInviteUrl } from '../../utils/inviteLinks';
 
 function getMemberId(member) {
   return member?.id || member?.userId || member?.user?.id;
@@ -75,8 +75,8 @@ export default function ChannelList({ onNavigate }) {
   const [channelKind, setChannelKind] = useState('text');
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [showServerSettings, setShowServerSettings] = useState(false);
+  const [serverSettingsInitialTab, setServerSettingsInitialTab] = useState('overview');
   const [showMemberManager, setShowMemberManager] = useState(false);
-  const [platformTab, setPlatformTab] = useState(null);
   const [settingsChannel, setSettingsChannel] = useState(null);
   const [showServerProfile, setShowServerProfile] = useState(false);
   const [openChannelMenu, setOpenChannelMenu] = useState(null);
@@ -274,19 +274,20 @@ export default function ChannelList({ onNavigate }) {
   const copyInviteCode = async () => {
     if (!currentServer?.inviteCode) return;
     try {
-      await navigator.clipboard.writeText(currentServer.inviteCode);
-      toast.success('Davet kodu kopyalandı.');
+      await navigator.clipboard.writeText(buildInviteUrl(currentServer.inviteCode));
+      toast.success('Davet bağlantısı kopyalandı.');
       setShowServerMenu(false);
     } catch {
-      toast.error('Davet kodu kopyalanamadı.');
+      toast.error('Davet bağlantısı kopyalanamadı.');
     }
   };
 
   const shareInvite = async () => {
     if (!currentServer?.inviteCode) return;
-    const text = `${currentServer.name} sunucusuna katıl: ${currentServer.inviteCode}`;
+    const url = buildInviteUrl(currentServer.inviteCode);
+    const text = `${currentServer.name} sunucusuna katıl: ${url}`;
     try {
-      if (navigator.share) await navigator.share({ title: currentServer.name, text });
+      if (navigator.share) await navigator.share({ title: currentServer.name, text, url });
       else await navigator.clipboard.writeText(text);
       toast.success('Davet bilgisi hazır.');
       setShowServerMenu(false);
@@ -482,9 +483,9 @@ export default function ChannelList({ onNavigate }) {
           {showServerMenu && (
             <div className="absolute left-3 right-3 top-12 z-50 overflow-hidden rounded-lg border border-white/[0.08] bg-[#111214] p-1.5 shadow-2xl">
               <div className="mb-1.5 rounded-md border border-[#5865F2]/25 bg-[#5865F2]/10 px-2.5 py-2">
-                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#8EA1E1]">Davet kodu</span>
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#8EA1E1]">Davet bağlantısı</span>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <code className="min-w-0 flex-1 truncate text-sm font-bold tracking-wide text-[#F2F3F5]">{currentServer?.inviteCode || '—'}</code>
+                  <code className="min-w-0 flex-1 truncate text-xs font-bold text-[#F2F3F5]">{buildInviteUrl(currentServer?.inviteCode) || '—'}</code>
                   <button type="button" onClick={copyInviteCode} title="Kopyala" className="rounded p-1 text-[#B5BAC1] transition hover:bg-white/10 hover:text-white"><Copy className="h-4 w-4" /></button>
                 </div>
               </div>
@@ -493,7 +494,7 @@ export default function ChannelList({ onNavigate }) {
                 <UserPlus className="h-4 w-4" /> İnsanları davet et
               </button>
 
-              <button type="button" onClick={() => { setPlatformTab('events'); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
+              <button type="button" onClick={() => { setServerSettingsInitialTab('community'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
                 <CalendarDays className="h-4 w-4" /> Etkinlikler
               </button>
 
@@ -501,15 +502,15 @@ export default function ChannelList({ onNavigate }) {
                 <UserCog className="h-4 w-4" /> Sunucu profilini düzenle
               </button>
 
-              {(
-                <button type="button" onClick={() => { setPlatformTab('invites'); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                  <Sparkles className="h-4 w-4" /> Topluluk merkezi
+              {isOwner && (
+                <button type="button" onClick={() => { setServerSettingsInitialTab('overview'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
+                  <Settings className="h-4 w-4" /> Sunucu ayarları ve topluluk
                 </button>
               )}
 
-              {isOwner && (
-                <button type="button" onClick={() => { setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                  <Settings className="h-4 w-4" /> Sunucu ayarları
+              {!isOwner && (
+                <button type="button" onClick={() => { setServerSettingsInitialTab('community'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
+                  <Sparkles className="h-4 w-4" /> Topluluk merkezi
                 </button>
               )}
 
@@ -671,8 +672,7 @@ export default function ChannelList({ onNavigate }) {
         </div>
       </div>
 
-      {showServerSettings && <ServerSettingsModal onClose={() => setShowServerSettings(false)} />}
-      {platformTab && <ServerPlatformModal initialTab={platformTab} canManage={canManageMembers || canManageChannels} permissions={permissions} isOwner={isOwner} onClose={() => setPlatformTab(null)} />}
+      {showServerSettings && <ServerSettingsModal initialTab={serverSettingsInitialTab} onClose={() => setShowServerSettings(false)} />}
       {settingsChannel && <ChannelSettingsModal channel={settingsChannel} channels={channels} roles={roles} members={members} onUpdated={(updated) => { setChannels(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item)); if (currentChannel?.id === updated.id) setCurrentChannel(current => ({ ...current, ...updated })); setSettingsChannel(null); }} onClose={() => setSettingsChannel(null)} />}
       {showServerProfile && <ServerProfileModal server={currentServer} member={currentMember} user={user} onUpdated={(updated) => setMembers(current => current.map(item => getMemberId(item) === user?.id ? { ...item, ...updated } : item))} onClose={() => setShowServerProfile(false)} />}
       {showMemberManager && (

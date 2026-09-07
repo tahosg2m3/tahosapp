@@ -26,8 +26,8 @@ export default function ServerList({ viewMode, setViewMode }) {
       setViewMode('dms');
     };
 
-    window.addEventListener('discord:navigate-to-dm', navigateToDM);
-    return () => window.removeEventListener('discord:navigate-to-dm', navigateToDM);
+    window.addEventListener('tahosapp:navigate-to-dm', navigateToDM);
+    return () => window.removeEventListener('tahosapp:navigate-to-dm', navigateToDM);
   }, [setCurrentChannel, setCurrentServer, setViewMode]);
 
   useEffect(() => {
