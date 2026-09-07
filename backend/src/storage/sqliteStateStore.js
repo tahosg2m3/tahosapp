@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   ENVELOPE_TYPE,
+  LEGACY_ENVELOPE_TYPE,
   EncryptedStateCodec,
   StateEncryptionError,
   enforcePrivateFilePermissions,
@@ -97,7 +98,11 @@ class SQLiteStateStore {
     let hasEncryptedState = false;
     let hasPlaintextState = false;
     let hasAnyState = false;
-    const envelopeBytes = Buffer.from(ENVELOPE_TYPE, 'utf8');
+    // Marka değişiminden önce yazılmış şifreli kayıtlar da şifreli veridir.
+    // Yalnızca yeni zarf adını aramak, eski ve geçerli AES-GCM verisini
+    // yanlışlıkla plaintext sayarak güvenli başlangıcı engeller.
+    const envelopeSignatures = [ENVELOPE_TYPE, LEGACY_ENVELOPE_TYPE]
+      .map(type => Buffer.from(type, 'utf8'));
 
     const sqliteFiles = [this.databasePath, `${this.databasePath}-wal`]
       .filter(filePath => filePath && fs.existsSync(filePath));
@@ -106,7 +111,9 @@ class SQLiteStateStore {
     sqliteFiles.forEach(filePath => {
       const contents = fs.readFileSync(filePath);
       if (contents.length > 0) sqliteHasContent = true;
-      if (contents.includes(envelopeBytes)) sqliteHasEnvelope = true;
+      if (envelopeSignatures.some(signature => contents.includes(signature))) {
+        sqliteHasEnvelope = true;
+      }
     });
     if (sqliteHasContent) {
       hasAnyState = true;
@@ -125,7 +132,9 @@ class SQLiteStateStore {
         const contents = fs.readFileSync(filePath);
         if (!contents.length) return;
         hasAnyState = true;
-        if (contents.includes(envelopeBytes)) hasEncryptedState = true;
+        if (envelopeSignatures.some(signature => contents.includes(signature))) {
+          hasEncryptedState = true;
+        }
         else hasPlaintextState = true;
       });
     });

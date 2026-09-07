@@ -465,6 +465,7 @@ class EncryptedStateCodec {
 
 module.exports = {
   ENVELOPE_TYPE,
+  LEGACY_ENVELOPE_TYPE,
   EncryptedStateCodec,
   StateEncryptionError,
   enforcePrivateFilePermissions,
