@@ -100,4 +100,12 @@ tahosapp.com.tr {
 		header Cache-Control "no-cache, no-store, must-revalidate"
 		file_server
 	}
+
+	# Var olan 404.html dosyasını gerçekten kullan; bilinmeyen adreslerde
+	# Caddy'nin düz hata metni yerine markalı sayfayı 404 durumuyla döndür.
+	handle_errors {
+		@notFound expression {http.error.status_code} == 404
+		rewrite @notFound /404.html
+		file_server
+	}
 }

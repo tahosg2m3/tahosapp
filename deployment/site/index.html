@@ -24,10 +24,13 @@
   <meta property="og:url" content="https://tahosapp.com.tr/" />
   <meta property="og:image" content="https://tahosapp.com.tr/assets/og-tahosapp.png" />
   <meta property="og:image:alt" content="tahosapp — Konuş. Paylaş. Birlikte kal." />
+  <meta property="og:image:width" content="1729" />
+  <meta property="og:image:height" content="910" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp" />
   <meta name="twitter:description" content="tahosapp'in kaynak kodu, özellikleri ve bağımsız mesajlaşma platformu hakkında resmi bilgiler." />
   <meta name="twitter:image" content="https://tahosapp.com.tr/assets/og-tahosapp.png" />
+  <meta name="twitter:image:alt" content="tahosapp mesajlaşma, sesli sohbet ve topluluk platformu" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -65,7 +68,7 @@
         "applicationCategory": "CommunicationApplication",
         "applicationSubCategory": "Mesajlaşma ve topluluk platformu",
         "operatingSystem": "Windows 10, Windows 11, Web",
-        "softwareVersion": "1.1.3",
+        "softwareVersion": "1.1.4",
         "isAccessibleForFree": true,
         "author": { "@id": "https://tahosapp.com.tr/#organization" },
         "publisher": { "@id": "https://tahosapp.com.tr/#organization" },
@@ -93,6 +96,42 @@
         "codeRepository": "https://github.com/tahosg2m3/tahosapp",
         "programmingLanguage": ["JavaScript", "JSX", "PowerShell", "Shell"],
         "runtimePlatform": ["Node.js", "Electron", "Web"]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://tahosapp.com.tr/#sss",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "tahosapp nedir?",
+            "acceptedAnswer": { "@type": "Answer", "text": "tahosapp; mesajlaşma, sesli ve görüntülü görüşme, ekran paylaşımı, özel mesajlar ve topluluk yönetimi sunan bağımsız bir iletişim platformudur." }
+          },
+          {
+            "@type": "Question",
+            "name": "tahosapp ücretsiz mi?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Mevcut tahosapp sürümü ücretsiz kullanılabilir." }
+          },
+          {
+            "@type": "Question",
+            "name": "Uygulamayı indirmek zorunlu mu?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Hayır. tahosapp tarayıcıdan kullanılabilir veya Windows masaüstü uygulaması kurulabilir." }
+          },
+          {
+            "@type": "Question",
+            "name": "tahosapp'i kullanmak için başka bir hesaba ihtiyaç var mı?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Hayır. Kendi tahosapp hesabını oluşturarak web veya Windows uygulamasında doğrudan kullanabilirsin." }
+          },
+          {
+            "@type": "Question",
+            "name": "Ses ve görüntü kaydediliyor mu?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Sesli ve görüntülü iletişim WebRTC üzerinden iletilir. Hizmetin normal işleyişinde görüşme içeriği sunucu tarafından kayıt altına alınmaz." }
+          },
+          {
+            "@type": "Question",
+            "name": "Hesabım nasıl korunuyor?",
+            "acceptedAnswer": { "@type": "Answer", "text": "E-posta doğrulaması, giriş doğrulama kodu, Argon2id parola özeti, oturum güvenliği, hız sınırlama ve şifreli uygulama verisi gibi katmanlar kullanılır." }
+          }
+        ]
       }
     ]
   }
@@ -125,11 +164,11 @@
           <a class="button secondary" href="/app/">Tarayıcıda kullan</a>
           <a class="button ghost" href="/ozellikler/">Tüm özellikleri gör →</a>
         </div>
-        <p class="subnote">v1.1.3 · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz</p>
+        <p class="subnote">v1.1.4 · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz</p>
       </div>
       <div class="hero-visual" aria-label="tahosapp iletişim uygulaması logosu">
         <span class="signal one">Gerçek zamanlı bağlantı</span>
-        <img src="/assets/tahosapp-icon.png" alt="tahosapp logosu" />
+        <img src="/assets/tahosapp-icon.png" width="1024" height="1024" fetchpriority="high" decoding="async" alt="tahosapp mesajlaşma, sesli sohbet ve topluluk uygulaması logosu" />
         <span class="signal two">Ses bağlantısı hazır</span>
       </div>
     </section>
@@ -235,9 +274,9 @@
       <div class="container release-grid">
         <article class="release-card">
           <p class="eyebrow">Güncel masaüstü sürümü</p>
-          <h2 id="guncel-surum-basligi">tahosapp 1.1.3</h2>
+          <h2 id="guncel-surum-basligi">tahosapp 1.1.4</h2>
           <p>Masaüstü API bağlantısı yerel ve güvenli Electron köprüsüne taşındı. Uygulama güncellemeleri arka planda denetlenir ve indirilmeye hazır olduğunda kullanıcıya bildirilir.</p>
-          <div class="actions"><a class="button primary" href="/downloads/tahosapp-Setup-latest.exe" download>1.1.3'ü indir</a><a class="button ghost" href="/surum-notlari/">Sürüm notları →</a></div>
+          <div class="actions"><a class="button primary" href="/downloads/tahosapp-Setup-latest.exe" download>1.1.4'ü indir</a><a class="button ghost" href="/surum-notlari/">Sürüm notları →</a></div>
         </article>
         <article class="status-card">
           <span class="status-dot" aria-hidden="true"></span>
