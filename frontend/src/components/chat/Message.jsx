@@ -12,6 +12,7 @@ import { createReport, getMessageEditHistory } from '../../services/platformApi'
 import { registerAudioOutputTarget } from '../../services/audioOutputService';
 import { API_ORIGIN } from '../../config/runtimeConfig';
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
+import { getNameAppearance } from '../../utils/profileAppearance';
 
 const QUICK_REACTIONS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F525}'];
 const COUNTRY_FLAG_PATTERN = /(\p{Regional_Indicator}{2})/gu;
@@ -89,12 +90,14 @@ export default function Message({
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [editHistory, setEditHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [reactionBurst, setReactionBurst] = useState('');
 
   useEffect(() => {
     if (!isEditing) setEditContent(message.content || '');
   }, [isEditing, message.content]);
 
   const reactions = useMemo(() => normalizeReactions(message.reactions), [message.reactions]);
+  const authorNameAppearance = getNameAppearance(message.authorAppearance || message.author || {});
   const hasMention = Boolean(
     currentUsername
     && (message.mentions?.includes?.(userId)
@@ -139,6 +142,8 @@ export default function Message({
 
   const handleReaction = (emoji) => {
     setShowReactionPicker(false);
+    setReactionBurst(emoji);
+    window.setTimeout(() => setReactionBurst(current => current === emoji ? '' : current), 650);
     onReaction?.(message, emoji);
   };
 
@@ -275,7 +280,7 @@ export default function Message({
                 <span onClick={(event) => {
                   const rect = event.currentTarget.getBoundingClientRect();
                   setProfileAnchor({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
-                }} className="cursor-pointer text-[1rem] font-medium text-[#F2F3F5] hover:underline">
+                }} className={`cursor-pointer text-[1rem] font-medium text-[#F2F3F5] hover:underline ${authorNameAppearance.className}`} style={authorNameAppearance.style}>
                   {message.username}
                 </span>
                 {(message.bot || message.type === 'bot' || message.author?.bot) && <span className="rounded bg-[#5865F2] px-1 py-0.5 text-[9px] font-bold uppercase leading-none text-white">Bot</span>}
@@ -372,7 +377,7 @@ export default function Message({
                   const reacted = reaction.userIds.includes?.(userId);
                   return (
                     <button key={reaction.emoji} type="button" onClick={() => handleReaction(reaction.emoji)} className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-sm transition-colors ${reacted ? 'border-[#3b82f6]/70 bg-[#2563eb]/20 text-[#dbeafe]' : 'border-white/[0.09] bg-[#1e293b] text-[#cbd5e1] hover:bg-[#26354b]'}`}>
-                      <span>{reaction.emoji}</span>
+                      <span className={reactionBurst === reaction.emoji ? 'reaction-burst' : ''}>{reaction.emoji}</span>
                       <span className="text-xs">{reaction.count || reaction.userIds.length || 1}</span>
                     </button>
                   );

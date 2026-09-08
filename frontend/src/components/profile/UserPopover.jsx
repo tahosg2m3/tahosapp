@@ -38,6 +38,12 @@ import { useServer } from '../../context/ServerContext';
 import { useSocket } from '../../context/SocketContext';
 import { getColorForString } from '../../utils/colors';
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
+import {
+  getAvatarDecoration,
+  getNameAppearance,
+  getProfileAccent,
+  getProfileSurface,
+} from '../../utils/profileAppearance';
 import RichPresenceCard from './RichPresenceCard';
 
 const PRESENCE_STYLES = {
@@ -89,16 +95,17 @@ function getCompactPosition(anchorRect) {
   };
 }
 
-function ProfileAvatar({ avatar, username, presence, size = 'large', serverBorder = false }) {
+function ProfileAvatar({ avatar, username, presence, size = 'large', serverBorder = false, appearance }) {
   const safeAvatar = resolveSafeMediaUrl(avatar);
   const sizeClasses = size === 'hero' ? 'h-44 w-44 text-6xl' : 'h-24 w-24 text-3xl';
   const statusClasses = size === 'hero'
     ? 'bottom-2 right-2 h-10 w-10 border-[8px]'
     : 'bottom-0 right-0 h-7 w-7 border-[6px]';
   const borderColor = serverBorder ? 'border-[#111214]' : 'border-[#0b0b0d]';
+  const decoration = getAvatarDecoration(appearance);
 
   return (
-    <div className="relative inline-flex shrink-0">
+    <div className={`relative inline-flex shrink-0 ${decoration.className}`} style={decoration.style}>
       <div
         className={`${sizeClasses} flex items-center justify-center overflow-hidden rounded-full border-[7px] ${borderColor} font-black text-white shadow-xl`}
         style={{ backgroundColor: getColorForString(username || '?') }}
@@ -269,13 +276,16 @@ function FullProfileModal({
   const [note, setNote] = useState(details?.note || '');
   const [noteSaving, setNoteSaving] = useState(false);
   const lastSavedNote = useRef(details?.note || '');
-  const safeBanner = resolveSafeMediaUrl(profile.banner);
+  const member = details?.serverMember;
+  const safeBanner = resolveSafeMediaUrl(member?.serverBanner || profile.banner);
   const relationship = details?.relationship || {};
   const mutualFriends = details?.mutualFriends || [];
   const mutualServers = details?.mutualServers || [];
   const activities = details?.activities || [];
-  const member = details?.serverMember;
   const displayName = member?.nickname || profile.username;
+  const nameAppearance = getNameAppearance(profile);
+  const profileSurface = getProfileSurface(profile);
+  const profileAccent = getProfileAccent(profile, getColorForString(`${profile.id}banner`));
 
   useEffect(() => {
     const next = details?.note || '';
@@ -331,26 +341,26 @@ function FullProfileModal({
         </button>
 
         <div className="grid h-full min-h-0 w-full grid-cols-1 overflow-y-auto lg:grid-cols-[410px_minmax(0,1fr)] lg:overflow-hidden">
-          <aside className="min-h-full bg-[#111214] lg:overflow-y-auto">
-            <div className="relative h-44 overflow-hidden" style={{ backgroundColor: getColorForString(`${profile.id}banner`) }}>
+          <aside className={`min-h-full bg-[#111214] lg:overflow-y-auto ${profileSurface.className}`} style={profileSurface.style}>
+            <div className="relative h-44 overflow-hidden" style={{ background: `linear-gradient(135deg, ${profileAccent}, #111214)` }}>
               {safeBanner && <img src={safeBanner} alt="" className="h-full w-full object-cover" />}
             </div>
 
             <div className="relative px-8 pb-8">
               <div className="-mt-20">
-                <ProfileAvatar avatar={member?.serverAvatar || profile.avatar} username={displayName} presence={profile.status || profile.presenceStatus} size="hero" serverBorder />
+                <ProfileAvatar avatar={member?.serverAvatar || profile.avatar} username={displayName} presence={profile.status || profile.presenceStatus} size="hero" serverBorder appearance={profile} />
               </div>
 
               <div className="mt-7">
                 <h1 className="flex flex-wrap items-center gap-2 text-3xl font-black leading-tight text-white">
-                  {displayName}
+                  <span className={nameAppearance.className} style={nameAppearance.style}>{displayName}</span>
                   <ProfileBadges verified={profile.emailVerified} isOwner={member?.isOwner} isFriend={relationship.isFriend} />
                 </h1>
                 <p className="mt-2 flex items-center gap-2 text-base font-medium text-[#dbdee1]">
                   {profile.username}
                   {profile.customStatus && <span className="text-sm text-[#949ba4]">• {profile.customStatus}</span>}
                 </p>
-                {profile.bio && <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-[#b5bac1]">{profile.bio}</p>}
+                {(member?.serverBio || profile.bio) && <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-[#b5bac1]">{member?.serverBio || profile.bio}</p>}
               </div>
 
               {!relationship.isSelf && (
@@ -555,12 +565,15 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
   const displayName = member?.nickname || profile.username || 'Kullanıcı';
   const accountName = profile.username || displayName;
   const avatar = member?.serverAvatar || profile.avatar;
-  const safeBanner = resolveSafeMediaUrl(profile.banner);
+  const safeBanner = resolveSafeMediaUrl(member?.serverBanner || profile.banner);
   const roles = member?.roles || baseUser.roles || [];
   const mutualFriends = details?.mutualFriends || [];
   const mutualServers = details?.mutualServers || [];
   const activities = details?.activities || [];
   const presence = profile.status || profile.presenceStatus || 'offline';
+  const nameAppearance = getNameAppearance(profile);
+  const profileSurface = getProfileSurface(profile);
+  const profileAccent = getProfileAccent(profile, getColorForString(`${targetId}banner`));
   const canManageRoles = Boolean(details?.viewer?.canManageRoles && currentServer?.id && !relationship.isSelf);
   const compactPosition = getCompactPosition(anchorRect);
 
@@ -709,10 +722,10 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
         title="Tam profili açmak için karta tekrar tıkla"
         onMouseDown={stopEvent}
         onClick={() => setExpanded(true)}
-        style={compactPosition || undefined}
-        className={`${compactPosition ? 'absolute' : 'relative w-full max-w-[350px]'} cursor-pointer overflow-hidden rounded-xl border border-white/[0.1] bg-[#111214] shadow-[0_24px_80px_rgba(0,0,0,.8)]`}
+        style={{ ...(compactPosition || {}), ...profileSurface.style }}
+        className={`${compactPosition ? 'absolute' : 'relative w-full max-w-[350px]'} ${profileSurface.className} cursor-pointer overflow-hidden rounded-xl border border-white/[0.1] bg-[#111214] shadow-[0_24px_80px_rgba(0,0,0,.8)]`}
       >
-        <div className="relative h-24 overflow-hidden" style={{ backgroundColor: getColorForString(`${targetId}banner`) }}>
+        <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${profileAccent}, #111214)` }}>
           {safeBanner && <img src={safeBanner} alt="" className="h-full w-full object-cover" />}
           {!relationship.isSelf && (
             <div className="absolute right-3 top-3 flex gap-1.5" onClick={stopEvent}>
@@ -741,12 +754,12 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
 
         <div className="relative px-4 pb-4">
           <div className="-mt-12 scale-90 origin-left">
-            <ProfileAvatar avatar={avatar} username={displayName} presence={presence} serverBorder />
+            <ProfileAvatar avatar={avatar} username={displayName} presence={presence} serverBorder appearance={profile} />
           </div>
 
           <div className="mt-1">
             <div className="flex items-center gap-2">
-              <h2 className="truncate text-2xl font-black text-white">{displayName}</h2>
+              <h2 className={`truncate text-2xl font-black text-white ${nameAppearance.className}`} style={nameAppearance.style}>{displayName}</h2>
               {loading && <Loader2 className="h-5 w-5 animate-spin text-[#949ba4]" />}
             </div>
             <p className="mt-1 flex items-center gap-2 text-sm text-[#dbdee1]">

@@ -314,7 +314,10 @@ export default function MessageInput({
             disabled={disabled}
             className="min-w-0 flex-1 bg-transparent px-2 text-[15px] text-[#DBDEE1] outline-none placeholder:text-[#64748b] disabled:cursor-not-allowed"
             autoComplete="off"
+            maxLength={4000}
           />
+
+          {message.length >= 3500 && <span className={`mr-1 shrink-0 text-[10px] font-semibold ${message.length >= 3950 ? 'text-[#f87171]' : 'text-[#94a3b8]'}`}>{message.length}/4000</span>}
 
           <div className="ml-2 flex items-center gap-1">
             <button

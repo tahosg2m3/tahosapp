@@ -4,6 +4,7 @@ import { useServer } from '../../context/ServerContext';
 import { useSocket } from '../../context/SocketContext';
 import { fetchServerMembers } from '../../services/api';
 import { getColorForString } from '../../utils/colors';
+import { getAvatarDecoration, getNameAppearance } from '../../utils/profileAppearance';
 import UserPopover from '../profile/UserPopover';
 
 function sortMembers(members) {
@@ -112,7 +113,10 @@ export default function MemberList() {
         </h3>
 
         <div className="space-y-0.5">
-          {group.map(member => (
+          {group.map(member => {
+            const nameAppearance = getNameAppearance(member);
+            const avatarDecoration = getAvatarDecoration(member);
+            return (
             <button
               type="button"
               key={member.id}
@@ -125,7 +129,7 @@ export default function MemberList() {
               }}
               className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
             >
-              <div className="relative shrink-0">
+              <div className={`relative shrink-0 ${avatarDecoration.className}`} style={avatarDecoration.style}>
                 <div
                   className={`flex h-9 w-9 items-center justify-center rounded-xl text-[13px] font-bold text-white ${online ? '' : 'grayscale opacity-55'}`}
                   style={{ backgroundColor: getColorForString(member.nickname || member.username) }}
@@ -141,7 +145,7 @@ export default function MemberList() {
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
                   {member.isOwner && <Shield className="h-3.5 w-3.5 shrink-0 text-[#fbbf24]" title="Sunucu sahibi" />}
-                  <div className={`truncate text-[14px] font-medium ${online ? 'text-[#e2e8f0]' : 'text-[#718096]'}`}>
+                  <div className={`truncate text-[14px] font-medium ${online ? 'text-[#e2e8f0]' : 'text-[#718096]'} ${nameAppearance.className}`} style={nameAppearance.style}>
                     {member.nickname || member.username}
                   </div>
                   {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#fb7185]" title="Sunucu tarafından susturuldu" />}
@@ -165,7 +169,8 @@ export default function MemberList() {
                 </div>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
     );

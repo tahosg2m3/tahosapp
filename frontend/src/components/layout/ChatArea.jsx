@@ -278,6 +278,22 @@ export default function ChatArea() {
       toast.error(payload.message || 'Mesaj gönderilemedi.');
     };
 
+    const handleProfileUpdate = payload => {
+      const updatedUser = payload?.user;
+      if (!updatedUser?.id) return;
+      setMessages(current => current.map(message => String(message.userId) === String(updatedUser.id)
+        ? {
+          ...message,
+          username: updatedUser.username || message.username,
+          authorAppearance: {
+            profileAccentColor: updatedUser.profileAccentColor,
+            nameFont: updatedUser.nameFont,
+            nameEffect: updatedUser.nameEffect,
+          },
+        }
+        : message));
+    };
+
     socket.on('message:receive', handleReceive);
     socket.on('message:update', handleUpdate);
     socket.on('message:delete', handleDelete);
@@ -287,6 +303,7 @@ export default function ChatArea() {
     socket.on('message:pin:update', handlePinUpdate);
     socket.on('message:search:results', handleSearchResults);
     socket.on('message:error', handleMessageError);
+    socket.on('user:profile-updated', handleProfileUpdate);
 
     return () => {
       socket.emit('user:leave', { channelId });
@@ -299,6 +316,7 @@ export default function ChatArea() {
       socket.off('message:pin:update', handlePinUpdate);
       socket.off('message:search:results', handleSearchResults);
       socket.off('message:error', handleMessageError);
+      socket.off('user:profile-updated', handleProfileUpdate);
       typingTimersRef.current.forEach((timer) => clearTimeout(timer));
       typingTimersRef.current.clear();
     };

@@ -5,6 +5,16 @@ const MAX_MESSAGE_LENGTH = 4000;
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
+function authorAppearanceFor(userId) {
+  const author = storage.getPublicUserById(userId);
+  if (!author) return null;
+  return {
+    profileAccentColor: author.profileAccentColor,
+    nameFont: author.nameFont,
+    nameEffect: author.nameEffect,
+  };
+}
+
 function normalizeMediaUrl(value) {
   const raw = typeof value === 'string' ? value.trim().slice(0, 2048) : '';
   if (/^\/uploads\/[A-Za-z0-9._-]+$/.test(raw)) return raw;
@@ -132,6 +142,7 @@ class MessageService {
       id: uuidv4(),
       username,
       userId,
+      authorAppearance: authorAppearanceFor(userId),
       content: safeContent,
       channelId,
       timestamp: Date.now(),
@@ -174,7 +185,10 @@ class MessageService {
     }
 
     const startIndex = Math.max(0, endIndex - limit);
-    return sorted.slice(startIndex, endIndex);
+    return sorted.slice(startIndex, endIndex).map(message => ({
+      ...message,
+      authorAppearance: authorAppearanceFor(message.userId) || message.authorAppearance || null,
+    }));
   }
 
   updateMessage(messageId, newContent, userId) {

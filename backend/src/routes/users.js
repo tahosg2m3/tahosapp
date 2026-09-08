@@ -131,6 +131,12 @@ router.patch('/me', async (req, res) => {
     'presenceStatus',
     'locale',
     'theme',
+    'profileTheme',
+    'profileAccentColor',
+    'nameFont',
+    'nameEffect',
+    'avatarDecoration',
+    'profileEffect',
   ];
   const updates = {};
   allowedFields.forEach(field => {

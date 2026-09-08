@@ -5,6 +5,7 @@ import { useSocket } from '../../context/SocketContext';
 import { Mic, Headphones, PhoneOff, Settings, LogOut, User } from 'lucide-react';
 import { getColorForString } from '../../utils/colors';
 import { resolveSafeAvatarUrl } from '../../utils/safeMediaUrl';
+import { getAvatarDecoration, getNameAppearance } from '../../utils/profileAppearance';
 import UserSettingsModal from './UserSettingsModal'; // YENİ MODALI İÇE AKTARDIK
 import { useVoice } from '../../context/VoiceContext';
 import { getRichPresenceSettings } from '../../services/api';
@@ -76,6 +77,8 @@ export default function UserProfile() {
   const avatarColor = getColorForString(user.username || 'U');
   const initial = user.username ? user.username[0].toUpperCase() : '?';
   const avatarUrl = resolveSafeAvatarUrl(user.avatar);
+  const nameAppearance = getNameAppearance(user);
+  const avatarDecoration = getAvatarDecoration(user);
   const presence = user.presenceStatus || user.status || (isPresenceReady ? 'online' : 'offline');
   const presenceLabels = { online: 'Çevrimiçi', idle: 'Boşta', dnd: 'Rahatsız etmeyin', invisible: 'Görünmez', offline: 'Çevrimdışı' };
   const presenceColor = presence === 'online' ? 'bg-[#34d399]' : presence === 'idle' ? 'bg-[#f59e0b]' : presence === 'dnd' ? 'bg-[#ef4444]' : 'bg-[#64748b]';
@@ -102,7 +105,7 @@ export default function UserProfile() {
           onClick={() => setShowMenu((prev) => !prev)}
           className="flex items-center space-x-2 p-1 hover:bg-[#313338] rounded-md cursor-pointer transition-colors max-w-[120px] select-none"
         >
-          <div className="relative shrink-0">
+          <div className={`relative shrink-0 ${avatarDecoration.className}`} style={avatarDecoration.style}>
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[14px] font-semibold overflow-hidden"
               style={{ backgroundColor: avatarColor }}
@@ -117,7 +120,7 @@ export default function UserProfile() {
           </div>
 
           <div className="flex flex-col min-w-0">
-            <span className="text-[14px] font-semibold text-[#F2F3F5] truncate block leading-tight">{user.username}</span>
+            <span className={`text-[14px] font-semibold text-[#F2F3F5] truncate block leading-tight ${nameAppearance.className}`} style={nameAppearance.style}>{user.username}</span>
             <span className="text-[12px] text-[#94a3b8] truncate block leading-tight">{primaryActivity ? activityText(primaryActivity) : user.customStatus || presenceLabels[presence] || 'Bağlanıyor…'}</span>
           </div>
         </div>
@@ -161,15 +164,17 @@ export default function UserProfile() {
           >
             <div className="p-4 border-b border-[#1E1F22] bg-[#2B2D31]">
               <div className="flex items-center space-x-3 mb-2">
-                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden" style={{ backgroundColor: avatarColor }}>
+                 <div className={`relative w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${avatarDecoration.className}`} style={{ backgroundColor: avatarColor, ...avatarDecoration.style }}>
+                  <div className="h-full w-full overflow-hidden rounded-full flex items-center justify-center">
                    {avatarUrl ? (
                      <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                    ) : (
                      initial
                    )}
+                  </div>
                  </div>
                  <div>
-                   <div className="font-bold text-[#F2F3F5] text-[16px]">{user.username}</div>
+                   <div className={`font-bold text-[#F2F3F5] text-[16px] ${nameAppearance.className}`} style={nameAppearance.style}>{user.username}</div>
                    <div className="text-[13px] text-[#949BA4]">{user.email || 'tahosapp kullanıcısı'}</div>
                  </div>
               </div>

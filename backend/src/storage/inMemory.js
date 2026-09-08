@@ -61,7 +61,33 @@ const DEFAULT_MEMBER_PERMISSIONS = Object.freeze([
 const ALL_PERMISSIONS = Object.freeze([...PERMISSIONS]);
 const PRESENCE_STATUSES = Object.freeze(['online', 'idle', 'dnd', 'invisible']);
 const SUPPORTED_LOCALES = Object.freeze(['tr', 'en']);
-const SUPPORTED_THEMES = Object.freeze(['dark', 'midnight', 'light']);
+const SUPPORTED_THEMES = Object.freeze([
+  'dark',
+  'midnight',
+  'light',
+  'ocean',
+  'forest',
+  'rose',
+  'sunset',
+  'cyber',
+  'lavender',
+  'coffee',
+]);
+const SUPPORTED_PROFILE_THEMES = Object.freeze([
+  'default',
+  'aurora',
+  'ocean',
+  'sunset',
+  'forest',
+  'rose',
+  'midnight',
+  'monochrome',
+]);
+const SUPPORTED_NAME_FONTS = Object.freeze(['default', 'rounded', 'serif', 'mono', 'handwritten', 'wide']);
+const SUPPORTED_NAME_EFFECTS = Object.freeze(['none', 'gradient', 'glow', 'shimmer']);
+const SUPPORTED_AVATAR_DECORATIONS = Object.freeze(['none', 'ring', 'sparkles', 'neon', 'orbit']);
+const SUPPORTED_PROFILE_EFFECTS = Object.freeze(['none', 'soft-glow', 'waves', 'stars']);
+const DEFAULT_PROFILE_ACCENT = '#7c5cff';
 
 function hasOwn(value, key) {
   return Object.prototype.hasOwnProperty.call(value || {}, key);
@@ -107,6 +133,12 @@ function normalizeStoredUserProfile(user) {
     presenceStatus: 'online',
     locale: 'tr',
     theme: 'dark',
+    profileTheme: 'default',
+    profileAccentColor: DEFAULT_PROFILE_ACCENT,
+    nameFont: 'default',
+    nameEffect: 'none',
+    avatarDecoration: 'none',
+    profileEffect: 'none',
     emailVerified: Boolean(user.email),
   };
 
@@ -126,6 +158,30 @@ function normalizeStoredUserProfile(user) {
   }
   if (!SUPPORTED_THEMES.includes(user.theme)) {
     user.theme = 'dark';
+    changed = true;
+  }
+  if (!SUPPORTED_PROFILE_THEMES.includes(user.profileTheme)) {
+    user.profileTheme = 'default';
+    changed = true;
+  }
+  if (!/^#[0-9a-f]{6}$/i.test(String(user.profileAccentColor || ''))) {
+    user.profileAccentColor = DEFAULT_PROFILE_ACCENT;
+    changed = true;
+  }
+  if (!SUPPORTED_NAME_FONTS.includes(user.nameFont)) {
+    user.nameFont = 'default';
+    changed = true;
+  }
+  if (!SUPPORTED_NAME_EFFECTS.includes(user.nameEffect)) {
+    user.nameEffect = 'none';
+    changed = true;
+  }
+  if (!SUPPORTED_AVATAR_DECORATIONS.includes(user.avatarDecoration)) {
+    user.avatarDecoration = 'none';
+    changed = true;
+  }
+  if (!SUPPORTED_PROFILE_EFFECTS.includes(user.profileEffect)) {
+    user.profileEffect = 'none';
     changed = true;
   }
   return changed;
@@ -461,11 +517,14 @@ class InMemoryStorage {
         }
         const nickname = typeof profile.nickname === 'string' ? profile.nickname.trim().slice(0, 32) : '';
         let serverAvatar = null;
+        let serverBanner = null;
         try {
           serverAvatar = sanitizeMediaUrl(profile.serverAvatar, 'Sunucu avatarı') || null;
+          serverBanner = sanitizeMediaUrl(profile.serverBanner, 'Sunucu afişi') || null;
         } catch (_) {
           changed = true;
         }
+        const serverBio = typeof profile.serverBio === 'string' ? profile.serverBio.trim().slice(0, 300) : '';
         const user = this.getUserById(userId);
         const joinedAt = Number(profile.joinedAt)
           || Math.max(Number(server?.createdAt) || 0, Number(user?.createdAt) || 0)
@@ -473,6 +532,8 @@ class InMemoryStorage {
         cleaned[userId] = {
           nickname: nickname || null,
           serverAvatar,
+          serverBanner,
+          serverBio,
           joinedAt,
           updatedAt: Number(profile.updatedAt) || joinedAt,
         };
@@ -757,6 +818,8 @@ class InMemoryStorage {
     profiles[userId] = {
       nickname: null,
       serverAvatar: null,
+      serverBanner: null,
+      serverBio: '',
       joinedAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -809,6 +872,8 @@ class InMemoryStorage {
       userId,
       nickname: profile.nickname || null,
       serverAvatar: profile.serverAvatar || null,
+      serverBanner: profile.serverBanner || null,
+      serverBio: profile.serverBio || '',
       joinedAt: Number(profile.joinedAt) || null,
       updatedAt: profile.updatedAt || null,
     };
@@ -832,6 +897,12 @@ class InMemoryStorage {
     }
     if (hasOwn(updates, 'serverAvatar') && updates.serverAvatar !== undefined) {
       next.serverAvatar = sanitizeMediaUrl(updates.serverAvatar, 'Sunucu avatarı');
+    }
+    if (hasOwn(updates, 'serverBanner') && updates.serverBanner !== undefined) {
+      next.serverBanner = sanitizeMediaUrl(updates.serverBanner, 'Sunucu afişi');
+    }
+    if (hasOwn(updates, 'serverBio') && updates.serverBio !== undefined) {
+      next.serverBio = sanitizeText(updates.serverBio, { field: 'Sunucu hakkında', maxLength: 300 });
     }
 
     next.joinedAt = Number(current.joinedAt) || Date.now();
@@ -1095,6 +1166,8 @@ class InMemoryStorage {
       serverProfile,
       nickname: serverProfile?.nickname || null,
       serverAvatar: serverProfile?.serverAvatar || null,
+      serverBanner: serverProfile?.serverBanner || null,
+      serverBio: serverProfile?.serverBio || '',
       roleIds,
       roles: roleIds.map(roleId => rolesById.get(roleId)).filter(Boolean),
       permissions: this.getMemberPermissions(serverId, userId),
@@ -1183,6 +1256,12 @@ class InMemoryStorage {
       presenceStatus: 'online',
       locale: 'tr',
       theme: 'dark',
+      profileTheme: 'default',
+      profileAccentColor: DEFAULT_PROFILE_ACCENT,
+      nameFont: 'default',
+      nameEffect: 'none',
+      avatarDecoration: 'none',
+      profileEffect: 'none',
       emailVerified: false,
       createdAt: Date.now(),
     };
@@ -1209,6 +1288,12 @@ class InMemoryStorage {
       presenceStatus: 'online',
       locale: 'tr',
       theme: 'dark',
+      profileTheme: 'default',
+      profileAccentColor: DEFAULT_PROFILE_ACCENT,
+      nameFont: 'default',
+      nameEffect: 'none',
+      avatarDecoration: 'none',
+      profileEffect: 'none',
       emailVerified: true,
       status: 'offline',
       createdAt: Date.now(),
@@ -1322,6 +1407,31 @@ class InMemoryStorage {
     if (hasOwn(updates, 'theme') && updates.theme !== undefined) {
       if (!SUPPORTED_THEMES.includes(updates.theme)) throw new Error('Desteklenmeyen tema seçimi.');
       next.theme = updates.theme;
+    }
+    if (hasOwn(updates, 'profileTheme') && updates.profileTheme !== undefined) {
+      if (!SUPPORTED_PROFILE_THEMES.includes(updates.profileTheme)) throw new Error('Desteklenmeyen profil teması.');
+      next.profileTheme = updates.profileTheme;
+    }
+    if (hasOwn(updates, 'profileAccentColor') && updates.profileAccentColor !== undefined) {
+      const accent = String(updates.profileAccentColor || '').trim().toLowerCase();
+      if (!/^#[0-9a-f]{6}$/.test(accent)) throw new Error('Profil vurgu rengi geçersiz.');
+      next.profileAccentColor = accent;
+    }
+    if (hasOwn(updates, 'nameFont') && updates.nameFont !== undefined) {
+      if (!SUPPORTED_NAME_FONTS.includes(updates.nameFont)) throw new Error('Desteklenmeyen isim yazı tipi.');
+      next.nameFont = updates.nameFont;
+    }
+    if (hasOwn(updates, 'nameEffect') && updates.nameEffect !== undefined) {
+      if (!SUPPORTED_NAME_EFFECTS.includes(updates.nameEffect)) throw new Error('Desteklenmeyen isim efekti.');
+      next.nameEffect = updates.nameEffect;
+    }
+    if (hasOwn(updates, 'avatarDecoration') && updates.avatarDecoration !== undefined) {
+      if (!SUPPORTED_AVATAR_DECORATIONS.includes(updates.avatarDecoration)) throw new Error('Desteklenmeyen avatar dekorasyonu.');
+      next.avatarDecoration = updates.avatarDecoration;
+    }
+    if (hasOwn(updates, 'profileEffect') && updates.profileEffect !== undefined) {
+      if (!SUPPORTED_PROFILE_EFFECTS.includes(updates.profileEffect)) throw new Error('Desteklenmeyen profil efekti.');
+      next.profileEffect = updates.profileEffect;
     }
     Object.assign(user, next, { updatedAt: Date.now() });
     this.saveData();

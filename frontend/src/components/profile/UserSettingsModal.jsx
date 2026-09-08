@@ -36,6 +36,17 @@ import { useVoice } from '../../context/VoiceContext';
 import { getColorForString } from '../../utils/colors';
 import { resolveSafeAvatarUrl, resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 import {
+  APP_THEME_OPTIONS,
+  AVATAR_DECORATION_OPTIONS,
+  NAME_EFFECT_OPTIONS,
+  NAME_FONT_OPTIONS,
+  PROFILE_EFFECT_OPTIONS,
+  PROFILE_THEME_OPTIONS,
+  getAvatarDecoration,
+  getNameAppearance,
+  getProfileSurface,
+} from '../../utils/profileAppearance';
+import {
   DEFAULT_ACCESSIBILITY_PREFERENCES,
   readAccessibilityPreferences,
   saveAccessibilityPreferences,
@@ -150,6 +161,28 @@ function SelectField({ label, value, onChange, children, icon: Icon, disabled = 
   );
 }
 
+function OptionGrid({ label, options, value, onChange, renderPreview }) {
+  return (
+    <fieldset>
+      <legend className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#B5BAC1]">{label}</legend>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {options.map(option => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
+            className={`min-w-0 rounded-xl border p-3 text-left transition ${value === option.value ? 'border-[#5865F2] bg-[#5865F2]/10' : 'border-white/[0.07] bg-[#1E1F22] hover:border-white/[0.16]'}`}
+          >
+            <span className="mb-2 block min-h-10">{renderPreview?.(option)}</span>
+            <span className="flex items-center justify-between gap-2 text-xs font-bold text-[#DBDEE1]">{option.label}{value === option.value && <Check className="h-3.5 w-3.5 shrink-0 text-[#8b93ff]" />}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const { user, updateUserData } = useAuth();
   const { socket } = useSocket();
@@ -201,6 +234,12 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const [presenceStatus, setPresenceStatus] = useState(user.presenceStatus || user.status || 'online');
   const [locale, setLocale] = useState(user.locale || localStorage.getItem('chat:locale') || 'tr');
   const [theme, setTheme] = useState(user.theme || localStorage.getItem('chat:theme') || 'dark');
+  const [profileTheme, setProfileTheme] = useState(user.profileTheme || 'default');
+  const [profileAccentColor, setProfileAccentColor] = useState(user.profileAccentColor || '#7c5cff');
+  const [nameFont, setNameFont] = useState(user.nameFont || 'default');
+  const [nameEffect, setNameEffect] = useState(user.nameEffect || 'none');
+  const [avatarDecoration, setAvatarDecoration] = useState(user.avatarDecoration || 'none');
+  const [profileEffect, setProfileEffect] = useState(user.profileEffect || 'none');
   const [accessibilityPrefs, setAccessibilityPrefs] = useState(readAccessibilityPreferences);
   const [automaticPresencePrefs, setAutomaticPresencePrefs] = useState(readAutomaticPresencePreferences);
   const [notificationPrefs, setNotificationPrefs] = useState({
@@ -251,6 +290,11 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const initial = (username || user.username || '?').slice(0, 1).toUpperCase();
   const safeAvatarUrl = resolveSafeAvatarUrl(avatarUrl);
   const safeBannerUrl = resolveSafeMediaUrl(banner);
+  const safeProfileAccentColor = /^#[0-9a-f]{6}$/i.test(profileAccentColor) ? profileAccentColor : '#7c5cff';
+  const previewProfile = { profileTheme, profileAccentColor: safeProfileAccentColor, nameFont, nameEffect, avatarDecoration, profileEffect };
+  const previewNameAppearance = getNameAppearance(previewProfile);
+  const previewSurface = getProfileSurface(previewProfile);
+  const previewAvatarDecoration = getAvatarDecoration(previewProfile);
   const isVerifyingEmail = Boolean(emailChangeTicket);
   const activeDefinition = allSettings.find(item => item.id === activeTab) || allSettings[0];
 
@@ -431,11 +475,30 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       toast.error('Kullanıcı adı boş olamaz.');
       return;
     }
+    if (!/^#[0-9a-f]{6}$/i.test(profileAccentColor)) {
+      toast.error('Profil vurgu rengi #RRGGBB biçiminde olmalıdır.');
+      return;
+    }
     setIsSaving(true);
     try {
       const result = await platformRequest('/users/me', {
         method: 'PATCH',
-        body: JSON.stringify({ username: username.trim(), avatar: avatarUrl.trim(), banner: banner.trim(), bio: bio.trim(), customStatus: customStatus.trim(), presenceStatus, locale, theme }),
+        body: JSON.stringify({
+          username: username.trim(),
+          avatar: avatarUrl.trim(),
+          banner: banner.trim(),
+          bio: bio.trim(),
+          customStatus: customStatus.trim(),
+          presenceStatus,
+          locale,
+          theme,
+          profileTheme,
+          profileAccentColor,
+          nameFont,
+          nameEffect,
+          avatarDecoration,
+          profileEffect,
+        }),
       });
       updateUserData(result.user || result);
       localStorage.setItem('chat:locale', locale);
@@ -684,8 +747,23 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   );
 
   const renderProfile = () => (
-    <SettingsSection icon={User} title="Kullanıcı Profili" description="Diğer kullanıcıların göreceği profil bilgilerini ve çevrimiçi durumunu düzenle.">
-      <div className="space-y-5">
+    <div className="space-y-5">
+      <SettingsSection icon={User} title="Kullanıcı Profili" description="Diğer kullanıcıların göreceği profil bilgilerini ve çevrimiçi durumunu düzenle.">
+       <div className="space-y-5">
+        <div className={`relative overflow-hidden rounded-2xl border border-white/[0.1] bg-[#111214] ${previewSurface.className}`} style={previewSurface.style}>
+          <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${safeProfileAccentColor}, #111214)` }}>
+            {safeBannerUrl && <img src={safeBannerUrl} alt="Profil afişi önizlemesi" className="absolute inset-0 h-full w-full object-cover" />}
+          </div>
+          <div className="relative px-5 pb-5">
+            <div className={`relative -mt-10 inline-flex ${previewAvatarDecoration.className}`} style={previewAvatarDecoration.style}>
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-[6px] border-[#111214] text-2xl font-black text-white" style={{ backgroundColor: safeAvatarUrl ? 'transparent' : avatarColor }}>
+                {safeAvatarUrl ? <img src={safeAvatarUrl} alt="Profil resmi önizlemesi" className="h-full w-full object-cover" /> : initial}
+              </div>
+            </div>
+            <h3 className={`mt-2 text-2xl font-black text-white ${previewNameAppearance.className}`} style={previewNameAppearance.style}>{username || user.username}</h3>
+            <p className="mt-1 text-sm text-[#b5bac1]">{customStatus || 'Profil kişiselleştirme önizlemesi'}</p>
+          </div>
+        </div>
         <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Kullanıcı adı <span className="text-[#DA373C]">*</span></span><input value={username} onChange={event => setUsername(event.target.value)} maxLength={50} className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Profil resmi</span><div className="flex gap-2"><input value={avatarUrl} onChange={event => setAvatarUrl(event.target.value)} placeholder="HTTPS bağlantısı veya dosya yükle" className="min-w-0 flex-1 rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /><label className={'flex shrink-0 cursor-pointer items-center gap-2 rounded-md bg-[#4E5058] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#6D6F78] ' + (isAvatarUploading ? 'pointer-events-none opacity-50' : '')}><ImagePlus className="h-4 w-4" />{isAvatarUploading ? 'Yükleniyor…' : 'Yükle'}<input type="file" accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" className="sr-only" disabled={isAvatarUploading} onChange={handleAvatarUpload} /></label></div><span className="mt-1.5 block text-xs text-[#949BA4]">JPG, PNG veya hareketli GIF · en fazla 10 MB</span></div>
@@ -696,9 +774,23 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
           <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Özel durum</span><input value={customStatus} onChange={event => setCustomStatus(event.target.value.slice(0, 128))} placeholder="Şu anda ne yapıyorsun?" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
           <SelectField label="Çevrimiçi durumu" value={presenceStatus} onChange={event => setPresenceStatus(event.target.value)}><option value="online">Çevrimiçi</option><option value="idle">Boşta</option><option value="dnd">Rahatsız etmeyin</option><option value="invisible">Görünmez</option></SelectField>
         </div>
-        <div className="flex justify-end"><button type="button" onClick={handleSaveProfile} disabled={isSaving} className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-medium text-white hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}</button></div>
-      </div>
-    </SettingsSection>
+       </div>
+      </SettingsSection>
+
+      <SettingsSection icon={Palette} title="Profil Kişiselleştirme" description="Tema, isim görünümü ve profil efektlerinin tamamı ücretsizdir.">
+        <div className="space-y-6">
+          <div><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Profil vurgu rengi</span><div className="flex items-center gap-3"><input type="color" value={profileAccentColor} onChange={event => setProfileAccentColor(event.target.value)} className="h-11 w-16 cursor-pointer rounded-lg border border-white/[0.1] bg-[#1E1F22] p-1" /><input value={profileAccentColor} onChange={event => { const value = event.target.value.slice(0, 7); setProfileAccentColor(value); }} maxLength={7} aria-label="Profil vurgu rengi kodu" className="w-32 rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 font-mono text-sm uppercase text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /><span className="text-xs text-[#949BA4]">Profil kartı, isim efekti ve dekorasyonlarda kullanılır.</span></div></div>
+
+          <OptionGrid label="Profil teması" options={PROFILE_THEME_OPTIONS} value={profileTheme} onChange={setProfileTheme} renderPreview={option => <span className="block h-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${option.colors[0]}, ${option.colors[1]})` }} />} />
+          <OptionGrid label="İsim yazı tipi" options={NAME_FONT_OPTIONS} value={nameFont} onChange={setNameFont} renderPreview={option => <span className={`block truncate text-lg font-bold text-white profile-name-font-${option.value}`}>{username || 'tahosapp'}</span>} />
+          <OptionGrid label="İsim efekti" options={NAME_EFFECT_OPTIONS} value={nameEffect} onChange={setNameEffect} renderPreview={option => <span className={`block truncate text-lg font-black profile-name-effect-${option.value}`} style={{ '--profile-accent': safeProfileAccentColor }}>{username || 'tahosapp'}</span>} />
+          <OptionGrid label="Avatar dekorasyonu" options={AVATAR_DECORATION_OPTIONS} value={avatarDecoration} onChange={setAvatarDecoration} renderPreview={option => <span className={`relative mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#334155] text-sm font-black text-white profile-avatar-decoration profile-avatar-decoration-${option.value}`} style={{ '--profile-accent': safeProfileAccentColor }}><span className="flex h-full w-full items-center justify-center rounded-full">{initial}</span></span>} />
+          <OptionGrid label="Profil efekti" options={PROFILE_EFFECT_OPTIONS} value={profileEffect} onChange={setProfileEffect} renderPreview={option => <span className={`block h-10 rounded-lg bg-[#111214] profile-surface profile-effect-${option.value}`} style={{ '--profile-accent': safeProfileAccentColor }} />} />
+        </div>
+      </SettingsSection>
+
+      <div className="flex justify-end"><button type="button" onClick={handleSaveProfile} disabled={isSaving} className="rounded-md bg-[#5865F2] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? 'Kaydediliyor…' : 'Profili ve Efektleri Kaydet'}</button></div>
+    </div>
   );
 
   const renderRichPresence = () => (
@@ -882,9 +974,9 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   );
 
   const renderAppearance = () => (
-    <SettingsSection icon={Palette} title="Uygulama Teması" description="Renk düzeni hesabına kaydedilir ve bu cihazda anında uygulanır.">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[['dark', 'Koyu', '#313338', '#1E1F22'], ['midnight', 'Gece mavisi', '#0c1220', '#050914'], ['light', 'Açık', '#ffffff', '#e8edf5']].map(([value, label, surface, background]) => <button key={value} type="button" onClick={() => { setTheme(value); document.documentElement.dataset.theme = value; }} className={'rounded-xl border p-3 text-left transition ' + (theme === value ? 'border-[#5865F2] bg-[#5865F2]/10' : 'border-white/[0.07] bg-[#1E1F22] hover:border-white/[0.16]')}><span className="mb-3 flex h-16 overflow-hidden rounded-lg border border-black/10" style={{ backgroundColor: background }}><span className="m-2 w-1/3 rounded" style={{ backgroundColor: surface }} /><span className="my-2 mr-2 flex-1 rounded" style={{ backgroundColor: surface }} /></span><span className="flex items-center justify-between text-sm font-bold text-[#DBDEE1]">{label}{theme === value && <Check className="h-4 w-4 text-[#5865F2]" />}</span></button>)}
+    <SettingsSection icon={Palette} title="Uygulama Temaları" description="On farklı renk düzeninin tamamı ücretsizdir; seçimin hesabına kaydedilir ve anında uygulanır.">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {APP_THEME_OPTIONS.map(({ value, label, surface, background }) => <button key={value} type="button" onClick={() => { setTheme(value); document.documentElement.dataset.theme = value; }} className={'rounded-xl border p-3 text-left transition ' + (theme === value ? 'border-[#5865F2] bg-[#5865F2]/10' : 'border-white/[0.07] bg-[#1E1F22] hover:border-white/[0.16]')}><span className="mb-3 flex h-16 overflow-hidden rounded-lg border border-black/10" style={{ backgroundColor: background }}><span className="m-2 w-1/3 rounded" style={{ backgroundColor: surface }} /><span className="my-2 mr-2 flex-1 rounded" style={{ backgroundColor: surface }} /></span><span className="flex items-center justify-between text-sm font-bold text-[#DBDEE1]">{label}{theme === value && <Check className="h-4 w-4 text-[#5865F2]" />}</span></button>)}
       </div>
       <div className="mt-5 flex justify-end"><button type="button" onClick={() => handleSaveInterface('Görünüm ayarları kaydedildi.')} disabled={isInterfaceSaving} className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-medium text-white hover:bg-[#4752C4] disabled:opacity-50">{isInterfaceSaving ? 'Kaydediliyor…' : 'Temayı Kaydet'}</button></div>
     </SettingsSection>

@@ -64,6 +64,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
+  useEffect(() => {
+    if (!user?.theme) return;
+    document.documentElement.dataset.theme = user.theme;
+    localStorage.setItem('chat:theme', user.theme);
+  }, [user?.theme]);
+
   return (
     <AuthContext.Provider value={{ user, login, register, logout, updateUserData }}>
       {!loading && children}

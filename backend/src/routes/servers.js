@@ -140,7 +140,7 @@ router.get('/:serverId/members/me/profile', authRateLimit, requireAuth, readRate
 
 router.patch('/:serverId/members/me/profile', authRateLimit, requireAuth, mutationRateLimit, requireServerMember, (req, res) => {
   const updates = {};
-  ['nickname', 'serverAvatar'].forEach(field => {
+  ['nickname', 'serverAvatar', 'serverBanner', 'serverBio'].forEach(field => {
     if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) updates[field] = req.body[field];
   });
 
