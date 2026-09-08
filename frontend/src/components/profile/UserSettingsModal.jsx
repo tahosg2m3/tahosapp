@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Activity,
@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Settings,
   Shield,
+  Search,
   User,
   UserX,
   Video,
@@ -82,9 +83,13 @@ const SETTING_GROUPS = [
       { id: 'updates', label: 'Güncellemeler', icon: Download, description: 'Masaüstü sürümünü güncel tut' },
     ],
   },
+  {
+    label: 'TAHOSAPP YÖNETİMİ',
+    items: [
+      { id: 'admin', label: 'Kullanıcı Yönetimi', icon: UserX, description: 'Kayıtlı kullanıcıları görüntüle ve platform banlarını yönet', adminOnly: true },
+    ],
+  },
 ];
-
-const ALL_SETTINGS = SETTING_GROUPS.flatMap(group => group.items);
 
 async function authenticatedRequest(endpoint, options = {}) {
   const response = await apiFetch(API_URL + endpoint, {
@@ -176,7 +181,14 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     setAudioQuality,
   } = voice;
 
-  const validInitialTab = ALL_SETTINGS.some(item => item.id === initialTab) ? initialTab : 'account';
+  const settingGroups = useMemo(() => SETTING_GROUPS
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => !item.adminOnly || user.isPlatformAdmin),
+    }))
+    .filter(group => group.items.length), [user.isPlatformAdmin]);
+  const allSettings = useMemo(() => settingGroups.flatMap(group => group.items), [settingGroups]);
+  const validInitialTab = allSettings.some(item => item.id === initialTab) ? initialTab : 'account';
   const [activeTab, setActiveTab] = useState(validInitialTab);
   const initialAvatar = resolveSafeAvatarUrl(user.avatar) || '';
   const [username, setUsername] = useState(user.username || '');
@@ -222,6 +234,9 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     message: 'Güncelleme bilgisi yükleniyor…',
   });
   const [desktopUpdateBusy, setDesktopUpdateBusy] = useState(false);
+  const [adminOverview, setAdminOverview] = useState(null);
+  const [adminQuery, setAdminQuery] = useState('');
+  const [adminBusy, setAdminBusy] = useState('');
   const [testPresence, setTestPresence] = useState({
     name: 'Örnek Oyun',
     type: 'playing',
@@ -235,7 +250,20 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const safeAvatarUrl = resolveSafeAvatarUrl(avatarUrl);
   const safeBannerUrl = resolveSafeMediaUrl(banner);
   const isVerifyingEmail = Boolean(emailChangeTicket);
-  const activeDefinition = ALL_SETTINGS.find(item => item.id === activeTab) || ALL_SETTINGS[0];
+  const activeDefinition = allSettings.find(item => item.id === activeTab) || allSettings[0];
+
+  const loadAdminOverview = async (query = adminQuery) => {
+    if (!user.isPlatformAdmin) return;
+    setAdminBusy('load');
+    try {
+      const payload = await authenticatedRequest(`/admin/overview?query=${encodeURIComponent(query.trim())}&limit=100`);
+      setAdminOverview(payload);
+    } catch (error) {
+      toast.error(error.message || 'Kullanıcı listesi yüklenemedi.');
+    } finally {
+      setAdminBusy('');
+    }
+  };
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -278,6 +306,12 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     bridge.getState().then(setDesktopUpdateState).catch(() => {});
     return bridge.onState(setDesktopUpdateState);
   }, []);
+
+  useEffect(() => {
+    if (user.isPlatformAdmin) loadAdminOverview('');
+    // Yönetici durumu oturum doğrulamasından gelir; yalnız açılışta yüklenir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.isPlatformAdmin]);
 
   const handleUnblock = async targetUserId => {
     try {
@@ -900,7 +934,88 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     );
   };
 
-  const tabContent = { account: renderAccount, profile: renderProfile, 'rich-presence': renderRichPresence, privacy: renderPrivacy, voice: renderVoice, notifications: renderNotifications, appearance: renderAppearance, accessibility: renderAccessibility, language: renderLanguage, updates: renderUpdates };
+  const handlePlatformBan = async target => {
+    const reason = window.prompt(`${target.username} kullanıcısının ban gerekçesini yaz:`, 'Topluluk kuralları ihlali');
+    if (reason === null) return;
+    if (reason.trim().length < 3) return toast.error('Ban gerekçesi en az 3 karakter olmalıdır.');
+    if (!window.confirm(`${target.username} tahosapp genelinde banlansın mı? Aktif oturumları hemen kapatılacak.`)) return;
+
+    setAdminBusy(target.id);
+    try {
+      await authenticatedRequest(`/admin/users/${encodeURIComponent(target.id)}/ban`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      await loadAdminOverview(adminQuery);
+      toast.success(`${target.username} tahosapp genelinde banlandı.`);
+    } catch (error) {
+      toast.error(error.message || 'Kullanıcı banlanamadı.');
+    } finally {
+      setAdminBusy('');
+    }
+  };
+
+  const handlePlatformUnban = async target => {
+    if (!window.confirm(`${target.username} kullanıcısının platform banı kaldırılsın mı?`)) return;
+    setAdminBusy(target.id);
+    try {
+      await authenticatedRequest(`/admin/users/${encodeURIComponent(target.id)}/ban`, { method: 'DELETE' });
+      await loadAdminOverview(adminQuery);
+      toast.success(`${target.username} kullanıcısının banı kaldırıldı.`);
+    } catch (error) {
+      toast.error(error.message || 'Ban kaldırılamadı.');
+    } finally {
+      setAdminBusy('');
+    }
+  };
+
+  const renderAdmin = () => (
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsSection icon={User} title="Toplam kayıtlı kullanıcı" description="Silinmemiş tüm tahosapp hesapları">
+          <p className="text-4xl font-black text-white">{adminOverview?.totalUsers ?? '—'}</p>
+        </SettingsSection>
+        <SettingsSection icon={UserX} title="Banlı kullanıcı" description="Platforma giriş yapması engellenen hesaplar">
+          <p className="text-4xl font-black text-[#F23F42]">{adminOverview?.bannedUsers ?? '—'}</p>
+        </SettingsSection>
+      </div>
+
+      <SettingsSection icon={Shield} title="Platform kullanıcı yönetimi" description="Banlanan hesapların API, mesajlaşma, arama ve ses bağlantıları hemen kesilir. İşlem geri alınabilir.">
+        <form className="mb-4 flex gap-2" onSubmit={event => { event.preventDefault(); loadAdminOverview(adminQuery); }}>
+          <label className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#949BA4]" />
+            <input value={adminQuery} onChange={event => setAdminQuery(event.target.value)} placeholder="Kullanıcı adı, e-posta veya kullanıcı kimliği ara" maxLength={100} className="w-full rounded-md border border-transparent bg-[#1E1F22] py-2.5 pl-10 pr-3 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" />
+          </label>
+          <button type="submit" disabled={adminBusy === 'load'} className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4752C4] disabled:opacity-50">Ara</button>
+        </form>
+
+        <div className="space-y-2">
+          {(adminOverview?.users || []).map(target => {
+            const avatar = resolveSafeAvatarUrl(target.avatar);
+            return (
+              <div key={target.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-white/[0.05] bg-[#1E1F22] p-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-bold text-white" style={{ backgroundColor: getColorForString(target.username || target.id) }}>
+                  {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : String(target.username || '?').slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2"><strong className="truncate text-sm text-[#F2F3F5]">{target.username}</strong>{target.isPlatformAdmin && <span className="rounded bg-[#5865F2]/20 px-2 py-0.5 text-[10px] font-bold text-[#aab4ff]">YÖNETİCİ</span>}{target.banned && <span className="rounded bg-[#F23F42]/20 px-2 py-0.5 text-[10px] font-bold text-[#ff9a9c]">BANLI</span>}</div>
+                  <p className="truncate text-xs text-[#949BA4]">{target.email} · {target.status === 'offline' ? 'Çevrimdışı' : 'Çevrimiçi'}</p>
+                  {target.ban?.reason && <p className="mt-1 text-xs text-[#ff9a9c]">Gerekçe: {target.ban.reason}</p>}
+                </div>
+                {!target.isPlatformAdmin && (target.banned
+                  ? <button type="button" disabled={adminBusy === target.id} onClick={() => handlePlatformUnban(target)} className="rounded-md bg-[#4E5058] px-3 py-2 text-xs font-bold text-white hover:bg-[#6D6F78] disabled:opacity-50">Banı kaldır</button>
+                  : <button type="button" disabled={adminBusy === target.id} onClick={() => handlePlatformBan(target)} className="rounded-md bg-[#DA373C] px-3 py-2 text-xs font-bold text-white hover:bg-[#A1282C] disabled:opacity-50">Banla</button>)}
+              </div>
+            );
+          })}
+          {adminOverview && !adminOverview.users?.length && <p className="rounded-lg bg-[#1E1F22] p-5 text-center text-sm text-[#949BA4]">Aramayla eşleşen kullanıcı bulunamadı.</p>}
+          {!adminOverview && <p className="rounded-lg bg-[#1E1F22] p-5 text-center text-sm text-[#949BA4]">Kullanıcı bilgileri yükleniyor…</p>}
+        </div>
+      </SettingsSection>
+    </div>
+  );
+
+  const tabContent = { account: renderAccount, profile: renderProfile, 'rich-presence': renderRichPresence, privacy: renderPrivacy, voice: renderVoice, notifications: renderNotifications, appearance: renderAppearance, accessibility: renderAccessibility, language: renderLanguage, updates: renderUpdates, admin: renderAdmin };
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] bg-[#313338] text-[#DBDEE1]">
@@ -908,7 +1023,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
         <aside className="hidden w-[260px] shrink-0 justify-end bg-[#2B2D31] md:flex">
           <div className="custom-scrollbar h-full w-[230px] overflow-y-auto px-3 py-8">
             <div className="mb-6 px-2"><p className="text-lg font-extrabold text-[#F2F3F5]">Ayarlar</p><p className="mt-1 truncate text-xs text-[#949BA4]">{user.username}</p></div>
-            {SETTING_GROUPS.map((group, groupIndex) => <div key={group.label} className={groupIndex ? 'mt-6' : ''}><p className="mb-2 px-2 text-[11px] font-bold tracking-wide text-[#949BA4]">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium transition ' + (activeTab === item.id ? 'bg-[#404249] text-white' : 'text-[#B5BAC1] hover:bg-[#35373C] hover:text-[#DBDEE1]')}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="truncate">{item.label}</span></button>; })}</div></div>)}
+            {settingGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? 'mt-6' : ''}><p className="mb-2 px-2 text-[11px] font-bold tracking-wide text-[#949BA4]">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium transition ' + (activeTab === item.id ? 'bg-[#404249] text-white' : 'text-[#B5BAC1] hover:bg-[#35373C] hover:text-[#DBDEE1]')}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="truncate">{item.label}</span></button>; })}</div></div>)}
           </div>
         </aside>
 
@@ -917,7 +1032,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
             <div className="custom-scrollbar min-w-0 flex-1 overflow-y-auto">
               <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#313338]/95 px-5 py-4 backdrop-blur md:px-10">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-4"><div className="min-w-0"><h1 className="truncate text-xl font-bold text-[#F2F3F5]">{activeDefinition.label}</h1><p className="mt-0.5 hidden text-xs text-[#949BA4] sm:block">{activeDefinition.description}</p></div><button type="button" onClick={onClose} aria-label="Ayarları kapat" title="Kapat (ESC)" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#72767D] text-[#B5BAC1] transition hover:border-[#DBDEE1] hover:text-white"><X className="h-5 w-5" /></button></div>
-                <select value={activeTab} onChange={event => setActiveTab(event.target.value)} className="mt-4 w-full rounded-md border border-white/[0.08] bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none md:hidden">{SETTING_GROUPS.map(group => <optgroup key={group.label} label={group.label}>{group.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select>
+                <select value={activeTab} onChange={event => setActiveTab(event.target.value)} className="mt-4 w-full rounded-md border border-white/[0.08] bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none md:hidden">{settingGroups.map(group => <optgroup key={group.label} label={group.label}>{group.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select>
               </header>
               <div className="mx-auto max-w-4xl px-5 pb-16 pt-7 md:px-10">{tabContent[activeTab]?.()}</div>
             </div>

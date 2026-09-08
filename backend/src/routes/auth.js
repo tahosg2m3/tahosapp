@@ -15,6 +15,7 @@ const {
   verifyPassword,
 } = require('../services/passwordService');
 const { requireAuth, signAuthToken } = require('../middleware/auth');
+const { isPlatformAdmin } = require('../middleware/platformAdmin');
 
 const router = express.Router();
 
@@ -258,12 +259,12 @@ const rateLimits = Object.freeze({
 });
 
 function publicUser(user) {
-  const { password, tokenVersion, ...safeUser } = user;
-  return safeUser;
+  const { password, tokenVersion, platformRole, platformBan, platformBanClearedAt, platformBanClearedBy, ...safeUser } = user;
+  return { ...safeUser, isPlatformAdmin: isPlatformAdmin(user) };
 }
 
 function publicProfile(user) {
-  const { password, email, tokenVersion, ...safeUser } = user;
+  const { password, email, tokenVersion, platformRole, platformBan, platformBanClearedAt, platformBanClearedBy, ...safeUser } = user;
   if (safeUser.presenceStatus === 'invisible') safeUser.presenceStatus = 'offline';
   return safeUser;
 }
@@ -545,6 +546,14 @@ router.post('/login', rateLimits.loginIp, rateLimits.loginAccount, async (req, r
       return res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
     }
 
+    const platformBan = storage.getUserPlatformBan(user.id);
+    if (platformBan) {
+      return res.status(403).json({
+        error: `Hesabın banlandı: ${platformBan.reason}`,
+        code: 'ACCOUNT_BANNED',
+      });
+    }
+
     const loginTicket = await sendLoginCode(storage.getUserById(user.id));
     return res.json({
       requiresTwoFactor: true,
@@ -588,6 +597,14 @@ router.post('/verify-2fa', rateLimits.verifyTwoFactorIp, rateLimits.verifyTwoFac
   }
   pendingTwoFactorLogins.delete(loginTicket);
   if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+
+  const platformBan = storage.getUserPlatformBan(user.id);
+  if (platformBan) {
+    return res.status(403).json({
+      error: `Hesabın banlandı: ${platformBan.reason}`,
+      code: 'ACCOUNT_BANNED',
+    });
+  }
 
   return res.json({ user: publicUser(user), token: signAuthToken(user) });
 });

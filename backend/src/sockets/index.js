@@ -75,7 +75,7 @@ function canViewChannel(channelId, userId) {
     && messageModerationService.hasChannelPermission(channel, userId, 'VIEW_CHANNEL');
 }
 
-module.exports = (io) => {
+module.exports = (io, options = {}) => {
   // Socket.IO bağlantısı daha event çalışmadan gerçek JWT ile doğrulanır.
   io.use((socket, next) => {
     try {
@@ -186,7 +186,7 @@ module.exports = (io) => {
     socket.on('typing:start', ensureAuthenticated(data => typingHandler.handleStart(io, socket, data)));
     socket.on('typing:stop', ensureAuthenticated(data => typingHandler.handleStop(io, socket, data)));
 
-    voiceHandler(io, socket);
+    voiceHandler(io, socket, options);
     callHandler(io, socket);
 
     socket.on('dm:send', ensureAuthenticated(data => dmHandler.handleSendDM(io, socket, data)));

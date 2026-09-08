@@ -1,5 +1,6 @@
 ﻿import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 import { SOCKET_URL } from '../config/runtimeConfig';
 
@@ -7,7 +8,7 @@ const SocketContext = createContext(null);
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [socket, setSocket] = useState(null);
   const [isPresenceReady, setIsPresenceReady] = useState(false);
 
@@ -35,6 +36,10 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('presence:ready', () => setIsPresenceReady(true));
     newSocket.on('disconnect', () => setIsPresenceReady(false));
+    newSocket.on('platform:account-banned', ({ reason } = {}) => {
+      toast.error(reason ? `Hesabın banlandı: ${reason}` : 'Hesabın tahosapp genelinde banlandı.');
+      logout();
+    });
 
     newSocket.on('connect_error', (err) => {
       console.error('🔴 Soket Hatası:', err.message);

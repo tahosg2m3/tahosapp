@@ -31,17 +31,21 @@ function createPeerCorsOrigin() {
   };
 }
 
-const startPeerServer = () => {
+const startPeerServer = ({ onPeerDisconnect } = {}) => {
   const port = normalizePort(process.env.PEER_PORT, 9000);
   const host = String(process.env.PEER_HOST || process.env.HOST || '127.0.0.1').trim() || '127.0.0.1';
   const app = express();
   const httpServer = http.createServer(app);
-  const connectedClients = new Set();
+  const connectedClients = new Map();
   const controller = {
     ready: false,
     startupError: null,
     isReady() {
       return this.ready && httpServer.listening && !this.startupError;
+    },
+    hasClient(peerId) {
+      const normalizedPeerId = String(peerId || '');
+      return normalizedPeerId ? connectedClients.has(normalizedPeerId) : false;
     },
     close(callback) {
       this.ready = false;
@@ -64,9 +68,8 @@ const startPeerServer = () => {
     },
   };
   const peerServer = ExpressPeerServer(httpServer, {
-    // ExpressPeerServer kendi yolu ile `app.use` yolu birlikte eklenir.
-    // Her ikisini de `/peerjs` yapmak istemcinin gerçekte
-    // `/peerjs/peerjs/*` adresine bağlanmasını gerektiriyordu.
+    // Uygulama yolu `/peerjs`, PeerJS'in varsayilan anahtari da `peerjs`tir.
+    // Bu nedenle HTTP kimlik endpoint'inin `/peerjs/peerjs/id` olmasi normaldir.
     path: '/',
     allow_discovery: false,
     corsOptions: {
@@ -78,12 +81,13 @@ const startPeerServer = () => {
   app.use('/peerjs', peerServer);
 
   peerServer.on('connection', client => {
-    connectedClients.add(client);
+    connectedClients.set(client.getId(), client);
     console.log(`🎤 Peer connected: ${client.getId()}`);
   });
 
   peerServer.on('disconnect', client => {
-    connectedClients.delete(client);
+    connectedClients.delete(client.getId());
+    onPeerDisconnect?.(client.getId());
     console.log(`👋 Peer disconnected: ${client.getId()}`);
   });
 

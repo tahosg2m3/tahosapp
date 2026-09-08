@@ -175,7 +175,7 @@ function copyRole(role) {
 
 function publicUser(user) {
   if (!user) return null;
-  const { password, email, tokenVersion, ...safeUser } = user;
+  const { password, email, tokenVersion, platformRole, platformBan, platformBanClearedAt, platformBanClearedBy, ...safeUser } = user;
   // Görünmezlik tercihi başka kullanıcılara sızdırılmaz.
   if (safeUser.presenceStatus === 'invisible') safeUser.presenceStatus = 'offline';
   return safeUser;
@@ -263,7 +263,10 @@ class InMemoryStorage {
       const userProfilesChanged = this.users.reduce((changed, user) => (
         normalizeStoredUserProfile(user) || changed
       ), false);
-      if (this.migrateRoleData() || this.migrateSocialData() || userProfilesChanged) this.saveData();
+      const roleDataChanged = this.migrateRoleData();
+      const socialDataChanged = this.migrateSocialData();
+      const platformOwnerChanged = this.ensurePlatformOwner();
+      if (roleDataChanged || socialDataChanged || platformOwnerChanged || userProfilesChanged) this.saveData();
     } catch (error) {
       // Şifreleme anahtarı uyuşmazlığı, bozuk authentication tag veya okunamayan
       // kalıcı veri asla "boş kurulum" sayılmaz. Aksi halde seedData mevcut
@@ -426,6 +429,16 @@ class InMemoryStorage {
     });
 
     return changed;
+  }
+
+  ensurePlatformOwner() {
+    if (this.users.some(user => user.platformRole === 'owner')) return false;
+    const firstAccount = this.users
+      .filter(user => user.email && user.password)
+      .sort((left, right) => (Number(left.createdAt) || 0) - (Number(right.createdAt) || 0))[0];
+    if (!firstAccount) return false;
+    firstAccount.platformRole = 'owner';
+    return true;
   }
 
   migrateSocialData() {
@@ -1183,6 +1196,7 @@ class InMemoryStorage {
     if (this.getUserByUsername(username)) throw new Error('Username taken');
     if (this.getUserByEmail(email)) throw new Error('Email taken');
 
+    const hasPlatformOwner = this.users.some(item => item.platformRole === 'owner');
     const user = {
       id: uuidv4(),
       username,
@@ -1199,6 +1213,7 @@ class InMemoryStorage {
       status: 'offline',
       createdAt: Date.now(),
       tokenVersion: 0,
+      platformRole: hasPlatformOwner ? null : 'owner',
     };
     this.users.push(user);
     this.userStatuses.set(user.id, 'offline');
@@ -1216,6 +1231,44 @@ class InMemoryStorage {
   getAllUsers() { return [...this.users]; }
   getPublicUserById(id) { return publicUser(this.getUserById(id)); }
   getPublicUsers() { return this.users.map(publicUser); }
+
+  getUserPlatformBan(userId) {
+    const ban = this.getUserById(userId)?.platformBan;
+    if (!ban || ban.active !== true) return null;
+    return {
+      reason: String(ban.reason || 'Topluluk kuralları ihlali').slice(0, 500),
+      bannedAt: Number(ban.bannedAt) || null,
+      bannedBy: ban.bannedBy || null,
+    };
+  }
+
+  isUserPlatformBanned(userId) { return Boolean(this.getUserPlatformBan(userId)); }
+
+  setUserPlatformBan(userId, { reason, bannedBy }) {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    user.platformBan = {
+      active: true,
+      reason: sanitizeText(reason, { field: 'Ban gerekçesi', maxLength: 500 }),
+      bannedAt: Date.now(),
+      bannedBy: String(bannedBy || '').slice(0, 100) || null,
+    };
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    this.updateUserStatus(user.id, 'offline');
+    this.saveData();
+    return this.getUserPlatformBan(user.id);
+  }
+
+  clearUserPlatformBan(userId, clearedBy = null) {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    user.platformBan = null;
+    user.platformBanClearedAt = Date.now();
+    user.platformBanClearedBy = String(clearedBy || '').slice(0, 100) || null;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    this.saveData();
+    return user;
+  }
 
   updateUserStatus(id, status) { this.userStatuses.set(id, status); }
   getUserStatus(id) { return this.userStatuses.get(id) || 'offline'; }

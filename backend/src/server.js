@@ -40,9 +40,11 @@ const richPresenceRoutes = require('./routes/richPresence');
 const turnRoutes = require('./routes/turn');
 const platformRoutes = require('./routes/platform');
 const feedbackRoutes = require('./routes/feedback');
+const adminRoutes = require('./routes/admin');
 const { richPresenceService } = require('./services/richPresenceService');
 
 const setupSocketHandlers = require('./sockets');
+const { disconnectPeerFromVoice } = require('./sockets/handlers/voiceHandler');
 const { startPeerServer } = require('./peerServer');
 const errorHandler = require('./middleware/errorHandler');
 const logger = require('./middleware/logger');
@@ -158,6 +160,7 @@ app.use('/api/gifs', gifRoutes);
 app.use('/api/rich-presence', richPresenceRoutes);
 app.use('/api/turn-credentials', turnRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 // Yeni platform özellikleri tam API yollarını kendi router'ında tanımlar.
 // Eski endpoint'ler yukarıda kalır ve geriye dönük uyumluluğunu korur.
 app.use('/api', platformRoutes);
@@ -175,7 +178,9 @@ app.get('/health', (req, res) => {
 });
 
 richPresenceService.setIo(io);
-setupSocketHandlers(io);
+setupSocketHandlers(io, {
+  isPeerAvailable: peerId => Boolean(peerServerController?.hasClient(peerId)),
+});
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
@@ -260,7 +265,9 @@ async function startServices() {
     console.log('📡 WebSocket server ready');
     console.log(`🌐 CORS enabled for ${Array.from(configuredClientOrigins).join(', ')}`);
 
-    peerServerController = startPeerServer();
+    peerServerController = startPeerServer({
+      onPeerDisconnect: peerId => disconnectPeerFromVoice(io, peerId),
+    });
   });
 }
 

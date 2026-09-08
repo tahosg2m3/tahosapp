@@ -107,6 +107,13 @@ function verifyAuthToken(token) {
       throw error;
     }
 
+    if (storage.isUserPlatformBanned(user.id)) {
+      const error = new Error('Bu hesap tahosapp genelinde banlandı.');
+      error.code = 'ACCOUNT_BANNED';
+      error.reason = storage.getUserPlatformBan(user.id)?.reason || null;
+      throw error;
+    }
+
     return { payload, user };
   } catch (error) {
     if (!error.code) error.code = 'AUTH_INVALID';
@@ -122,6 +129,12 @@ function requireAuth(req, res, next) {
     req.user = user;
     return next();
   } catch (error) {
+    if (error.code === 'ACCOUNT_BANNED') {
+      return res.status(403).json({
+        error: error.reason ? `Hesabın banlandı: ${error.reason}` : 'Hesabın tahosapp genelinde banlandı.',
+        code: error.code,
+      });
+    }
     return res.status(401).json({ error: 'Oturum geçersiz veya süresi dolmuş. Lütfen tekrar giriş yap.' });
   }
 }

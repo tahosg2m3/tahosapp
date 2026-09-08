@@ -1605,6 +1605,15 @@ export const VoiceProvider = ({ children }) => {
 
       newPeer.on('error', (error) => {
         console.error('PeerJS hatası:', error);
+        // `peer-unavailable` ses sunucusunun kapalı olduğunu değil, listede
+        // kalmış tek bir uzak PeerJS kimliğinin artık bulunamadığını anlatır.
+        // Sunucu yeni snapshot yayımlayacağı için aktif ses oturumunu yanlış bir
+        // genel bağlantı hatasıyla kapatma.
+        if (error?.type === 'peer-unavailable') {
+          const activeServerId = activeVoiceChannelRef.current?.serverId;
+          if (activeServerId) socketRef.current?.emit('voice:members-request', { serverId: activeServerId });
+          return;
+        }
         setVoiceError(`Ses sunucusuna bağlanılamadı (${error.type || 'bilinmeyen hata'}).`);
       });
     };

@@ -13,7 +13,7 @@ const mutationRateLimit = rateLimit(createRateLimitOptions('mutation', 'users'))
 
 function privateUser(user) {
   if (!user) return null;
-  const { password, tokenVersion, ...safeUser } = user;
+  const { password, tokenVersion, platformRole, platformBan, platformBanClearedAt, platformBanClearedBy, ...safeUser } = user;
   return { ...safeUser, status: storage.getUserStatus(user.id) };
 }
 

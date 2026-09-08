@@ -182,7 +182,22 @@ function disconnectUserFromServerVoice(io, serverId, userId) {
   return disconnected;
 }
 
-module.exports = (io, socket) => {
+function disconnectPeerFromVoice(io, peerId) {
+  if (!io || !peerId) return false;
+  let disconnected = false;
+  for (const channelId of [...voiceChannels.keys()]) {
+    const participants = [...(voiceChannels.get(channelId) || [])];
+    participants
+      .filter(participant => sameId(participant.peerId, peerId))
+      .forEach(participant => {
+        removeVoiceSocket(io, channelId, participant.socketId);
+        disconnected = true;
+      });
+  }
+  return disconnected;
+}
+
+module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
   let lastSoundboardPlayAt = 0;
   const fail = (message, callback, capabilities) => {
     if (capabilities) sendCapabilities(socket, capabilities);
@@ -226,6 +241,10 @@ module.exports = (io, socket) => {
       fail('Bu ses kanalına bağlanma yetkin yok.', callback, capabilities);
       return;
     }
+    if (!isPeerAvailable(peerId)) {
+      fail('Ses bağlantısı henüz hazır değil. Birkaç saniye sonra tekrar dene.', callback, capabilities);
+      return;
+    }
 
     // Aynı socket başka bir ses kanalındaysa önce temizle.
     for (const existingChannelId of [...voiceChannels.keys()]) {
@@ -233,7 +252,13 @@ module.exports = (io, socket) => {
     }
 
     if (!voiceChannels.has(channelId)) voiceChannels.set(channelId, []);
-    const users = voiceChannels.get(channelId);
+    // Socket bağlantısı açık kalsa bile kapanmış bir PeerJS kimliği ses
+    // listesinde tutulmaz. Bu temizlik, F5 veya kısa ağ kesintisinden kalan
+    // eski kimliğe çağrı yapılıp `peer-unavailable` hatası oluşmasını önler.
+    [...(voiceChannels.get(channelId) || [])]
+      .filter(member => !sameId(member.userId, userId) && !isPeerAvailable(member.peerId))
+      .forEach(member => removeVoiceSocket(io, channelId, member.socketId));
+    const users = voiceChannels.get(channelId) || [];
     const existingUser = users.find((member) => sameId(member.userId, userId));
     let peerChanged = false;
 
@@ -554,3 +579,4 @@ module.exports = (io, socket) => {
 };
 
 module.exports.disconnectUserFromServerVoice = disconnectUserFromServerVoice;
+module.exports.disconnectPeerFromVoice = disconnectPeerFromVoice;
