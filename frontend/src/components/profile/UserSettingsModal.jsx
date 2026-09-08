@@ -9,6 +9,7 @@ import {
   Download,
   Globe2,
   Headphones,
+  ImagePlus,
   KeyRound,
   Lock,
   Mail,
@@ -59,7 +60,7 @@ import {
   unblockUser,
 } from '../../services/platformApi';
 import RichPresenceCard from './RichPresenceCard';
-import { API_URL } from '../../config/runtimeConfig';
+import { API_ORIGIN, API_URL } from '../../config/runtimeConfig';
 import { apiFetch } from '../../services/httpClient';
 
 const SETTING_GROUPS = [
@@ -193,6 +194,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const initialAvatar = resolveSafeAvatarUrl(user.avatar) || '';
   const [username, setUsername] = useState(user.username || '');
   const [avatarUrl, setAvatarUrl] = useState(initialAvatar);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [banner, setBanner] = useState(user.banner || '');
   const [bio, setBio] = useState(user.bio || '');
   const [customStatus, setCustomStatus] = useState(user.customStatus || '');
@@ -470,6 +472,46 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     setAccessibilityPrefs(current => saveAccessibilityPreferences({ ...current, [key]: value }));
   };
 
+  const handleAvatarUpload = async event => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/gif']);
+    if (!allowedTypes.has(file.type)) {
+      toast.error('Avatar JPG, PNG veya GIF biçiminde olmalıdır.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Avatar dosyası en fazla 10 MB olabilir.');
+      return;
+    }
+
+    setIsAvatarUploading(true);
+    try {
+      const body = new FormData();
+      body.append('avatar', file, file.name);
+      const response = await apiFetch(`${API_URL}/upload/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('chat_token')}` },
+        body,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Avatar yüklenemedi.');
+      const uploadedUrl = String(payload.url || '');
+      if (!uploadedUrl) throw new Error('Sunucu avatar adresi döndürmedi.');
+      setAvatarUrl(uploadedUrl.startsWith('/uploads/') ? `${API_ORIGIN}${uploadedUrl}` : uploadedUrl);
+      toast.success(file.type === 'image/gif'
+        ? 'Hareketli avatar yüklendi. Değişiklikleri kaydet.'
+        : 'Avatar yüklendi. Değişiklikleri kaydet.');
+    } catch (error) {
+      toast.error(error.message || 'Avatar yüklenemedi.');
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  };
+
   const updateAutomaticPresencePreference = (key, value) => {
     setAutomaticPresencePrefs(current => saveAutomaticPresencePreferences({ ...current, [key]: value }));
   };
@@ -646,7 +688,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       <div className="space-y-5">
         <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Kullanıcı adı <span className="text-[#DA373C]">*</span></span><input value={username} onChange={event => setUsername(event.target.value)} maxLength={50} className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
         <div className="grid gap-4 lg:grid-cols-2">
-          <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Profil resmi bağlantısı</span><input value={avatarUrl} onChange={event => setAvatarUrl(event.target.value)} placeholder="https://ornek.com/resim.jpg" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
+          <div className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Profil resmi</span><div className="flex gap-2"><input value={avatarUrl} onChange={event => setAvatarUrl(event.target.value)} placeholder="HTTPS bağlantısı veya dosya yükle" className="min-w-0 flex-1 rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /><label className={'flex shrink-0 cursor-pointer items-center gap-2 rounded-md bg-[#4E5058] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#6D6F78] ' + (isAvatarUploading ? 'pointer-events-none opacity-50' : '')}><ImagePlus className="h-4 w-4" />{isAvatarUploading ? 'Yükleniyor…' : 'Yükle'}<input type="file" accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" className="sr-only" disabled={isAvatarUploading} onChange={handleAvatarUpload} /></label></div><span className="mt-1.5 block text-xs text-[#949BA4]">JPG, PNG veya hareketli GIF · en fazla 10 MB</span></div>
           <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Profil afişi bağlantısı</span><input value={banner} onChange={event => setBanner(event.target.value)} placeholder="https://ornek.com/banner.jpg" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
         </div>
         <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Hakkımda</span><textarea rows="5" value={bio} onChange={event => setBio(event.target.value.slice(0, 300))} placeholder="Kendinden bahset" className="w-full resize-none rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /><span className="mt-1 block text-right text-[11px] text-[#72767D]">{bio.length}/300</span></label>
@@ -819,7 +861,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       </SettingsSection>
 
       <SettingsSection icon={MonitorUp} title="Yayın Kalitesi" description="Ekran paylaşımında kullanılacak varsayılan çözünürlük ve kare hızını seç.">
-        <SelectField label="Varsayılan yayın ön ayarı" value={screenSharePreset} onChange={event => { if (typeof setScreenSharePreset === 'function') setScreenSharePreset(event.target.value); }}><option value="720p30">720p / 30 FPS — dengeli</option><option value="1080p30">1080p / 30 FPS — yüksek kalite</option><option value="1080p60">1080p / 60 FPS — akıcı</option></SelectField>
+        <SelectField label="Varsayılan yayın ön ayarı" value={screenSharePreset} onChange={event => { if (typeof setScreenSharePreset === 'function') setScreenSharePreset(event.target.value); }} help="4K için paylaşılan ekranın 4K olması ve güçlü bir bağlantı gerekir; WebRTC gerektiğinde kaliteyi otomatik düşürür."><option value="720p30">720p / 30 FPS — dengeli</option><option value="1080p30">1080p / 30 FPS — yüksek kalite</option><option value="1080p60">1080p / 60 FPS — akıcı</option><option value="2160p30">4K / 30 FPS — ultra net</option></SelectField>
       </SettingsSection>
     </div>
   );

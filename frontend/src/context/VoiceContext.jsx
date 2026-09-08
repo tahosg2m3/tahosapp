@@ -1204,6 +1204,7 @@ export const VoiceProvider = ({ children }) => {
         '720p30': { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } },
         '1080p30': { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 30 } },
         '1080p60': { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60, max: 60 } },
+        '2160p30': { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30, max: 30 } },
       };
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: presets[screenSharePreset] || presets['1080p30'], audio: false });
       if (!isInVoiceRef.current || !sameId(activeVoiceChannelRef.current?.id, activeChannel.id)) {
@@ -1213,7 +1214,10 @@ export const VoiceProvider = ({ children }) => {
 
       if (cameraStreamRef.current) stopCamera({ notify: false });
       const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) videoTrack.onended = () => stopScreenShare();
+      if (videoTrack) {
+        try { videoTrack.contentHint = 'detail'; } catch { /* Tarayici desteklemiyorsa WebRTC varsayilani kullanilir. */ }
+        videoTrack.onended = () => stopScreenShare();
+      }
       screenStreamRef.current = stream;
       setScreenStream(stream);
 
