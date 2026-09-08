@@ -13,7 +13,10 @@ const adminRateLimit = rateLimit({
   message: { error: 'Çok fazla yönetim isteği gönderildi. Lütfen kısa süre bekle.' },
 });
 
-router.use(requireAuth, requirePlatformAdmin, adminRateLimit);
+// Istek siniri pahali JWT, kullanici ve yonetici yetkisi kontrollerinden once
+// uygulanir. Boylece gecersiz/anonim istekler de bu kontrolleri sinirsiz
+// tetikleyerek servisi yoramaz.
+router.use(adminRateLimit, requireAuth, requirePlatformAdmin);
 
 function adminUser(user) {
   const ban = storage.getUserPlatformBan(user.id);
