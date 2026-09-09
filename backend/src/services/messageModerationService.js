@@ -25,7 +25,7 @@ function getPlatformService() {
     cachedPlatformService = platformModule.platformService || platformModule;
   } catch (error) {
     if (error.code !== 'MODULE_NOT_FOUND' || !String(error.message).includes('platformService')) {
-      console.error('Platform ayarları okunamadı:', error.message);
+      console.error('Could not read platform settings:', error.message);
     }
   }
 
@@ -226,7 +226,7 @@ function resolveAutoModSettings(server) {
       || platformService?.getServerSettings?.(server.id)?.automod
       || platformService?.getServerSettings?.(server.id)?.autoMod;
   } catch (error) {
-    console.error('Otomatik moderasyon ayarları okunamadı:', error.message);
+    console.error('Could not read auto-moderation settings:', error.message);
   }
 
   return normalizeAutoModSettings(raw || server.automod || server.autoMod || server.autoModeration);
@@ -239,7 +239,7 @@ function resolveChannelSettings(serverId, channel) {
   try {
     settings = platformService?.getChannelSettings?.(serverId, channel.id) || null;
   } catch (error) {
-    console.error('Kanal ayarları okunamadı:', error.message);
+    console.error('Could not read channel settings:', error.message);
   }
 
   const metadata = settings?.metadata || settings || channel.metadata || channel;
@@ -265,7 +265,7 @@ function isUserBanned(serverId, userId) {
       return Boolean(platformService.getServerBan(serverId, userId));
     }
   } catch (error) {
-    console.error('Sunucu yasak bilgisi okunamadı:', error.message);
+    console.error('Could not read server ban details:', error.message);
   }
 
   const server = storage.getServerById(serverId);
@@ -342,12 +342,12 @@ function isMostlyCaps(content, minimumLetters, percentage) {
 
 function violation(type, rule, overrides = {}) {
   const definitions = {
-    spam: ['AUTOMOD_SPAM', 'Çok hızlı veya tekrarlı mesaj gönderiyorsun. Biraz bekleyip tekrar dene.'],
-    profanity: ['AUTOMOD_PROFANITY', 'Bu mesaj sunucunun engellenen kelime filtresine takıldı.'],
-    links: ['AUTOMOD_LINK', 'Bu kanalda izin verilmeyen bağlantılar gönderilemez.'],
-    invite: ['AUTOMOD_INVITE', 'Bu sunucuda davet bağlantıları gönderilemez.'],
-    caps: ['AUTOMOD_CAPS', 'Mesajın çok büyük oranda büyük harf içeriyor.'],
-    mentions: ['AUTOMOD_MENTIONS', 'Mesaj çok fazla kullanıcı etiketi içeriyor.'],
+    spam: ['AUTOMOD_SPAM', 'You are sending messages too quickly or repeatedly. Wait and try again.'],
+    profanity: ['AUTOMOD_PROFANITY', 'This message was blocked by the server word filter.'],
+    links: ['AUTOMOD_LINK', 'Disallowed links cannot be sent in this channel.'],
+    invite: ['AUTOMOD_INVITE', 'Invite links cannot be sent on this server.'],
+    caps: ['AUTOMOD_CAPS', 'This message contains too many capital letters.'],
+    mentions: ['AUTOMOD_MENTIONS', 'This message contains too many user mentions.'],
   };
   const [code, message] = definitions[type];
   return {
@@ -405,7 +405,7 @@ class MessageModerationService {
     return {
       type: 'slowmode',
       code: 'SLOWMODE',
-      message: `Yavaş mod açık. ${Math.ceil(retryAfterMs / 1000)} saniye sonra tekrar deneyebilirsin.`,
+      message: `Slow mode is enabled. ${Math.ceil(retryAfterMs / 1000)} seconds before trying again.`,
       action: 'block',
       retryAfterMs,
     };
@@ -445,7 +445,7 @@ class MessageModerationService {
       return {
         type: 'length',
         code: 'MESSAGE_TOO_LONG',
-        message: `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`,
+        message: `Messages can contain at most ${MAX_MESSAGE_LENGTH} characters.`,
         action: 'block',
       };
     }

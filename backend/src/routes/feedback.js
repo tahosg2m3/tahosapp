@@ -20,7 +20,7 @@ router.post('/uninstall', feedbackRateLimit, (req, res) => {
   const version = typeof req.body?.version === 'string' ? req.body.version.trim() : '';
 
   if (!ALLOWED_REASONS.has(reason) || !/^\d{1,4}\.\d{1,4}\.\d{1,4}(?:-[0-9A-Za-z.-]{1,32})?$/.test(version)) {
-    return res.status(400).json({ error: 'Geçersiz geri bildirim.' });
+    return res.status(400).json({ error: 'Invalid feedback.' });
   }
 
   // Only aggregate counts are persisted in the encrypted application state.

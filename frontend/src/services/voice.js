@@ -19,7 +19,7 @@ export const createPeerConnection = (socket, remoteUserId, stream) => {
   return pc;
 };
 
-// PeerJS akışını kullanan mevcut VoiceContext için bu yardımcılar isteğe bağlı
+// PeerJS akışını kullanan mevcut VoiceContext has bu yardımcılar optional
 // olarak kullanılabilir; modül yüklenirken medya izni istemezler.
 export const requestMicrophoneStream = () => navigator.mediaDevices.getUserMedia({
   audio: true,

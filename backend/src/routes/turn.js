@@ -25,9 +25,9 @@ function normalizeHost(value) {
 function createCoturnRestCredential(secret, username) {
   // coturn TURN REST kimlik doğrulaması
   // base64(HMAC-SHA1(shared-secret, temporary-username)) biçimini zorunlu tutar.
-  // Buradaki SHA-1 yalnızca yüksek entropili ve süre sınırları denetlenen TURN
+  // Buradaki SHA-1 yalnızca yüksek entropili and süre sınırları denetlenen TURN
   // sırrıyla HMAC üretmek içindir; parola, dosya özeti veya dijital imza için
-  // kullanılmaz. Algoritmayı değiştirmek coturn uyumluluğunu ve sesi bozar.
+  // kullanılmaz. Algoritmayı değiştirmek coturn uyumluluğunu and sesi bozar.
   return crypto.createHmac('sha1', secret).update(username, 'utf8').digest('base64');
 }
 
@@ -37,7 +37,7 @@ router.get('/', credentialsRateLimit, requireAuth, (req, res) => {
 
   if (!host || secret.length < MIN_TURN_SECRET_BYTES || secret.length > MAX_TURN_SECRET_BYTES) {
     return res.status(503).json({
-      error: 'TURN servisi henüz yapılandırılmamış.',
+      error: 'The TURN service is not configured yet.',
       code: 'TURN_NOT_CONFIGURED',
     });
   }

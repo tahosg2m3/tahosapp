@@ -14,7 +14,7 @@ async function request(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'İşlem gerçekleştirilemedi.');
+    throw new Error(payload.error || payload.message || 'The operation could not be completed.');
   }
 
   return payload;

@@ -17,7 +17,7 @@ router.use(authRateLimit, requireAuth, readRateLimit, mutationRateLimit);
 router.get('/messages/:conversationId', (req, res) => {
   const conversation = storage.getServerById(req.params.conversationId);
   if (!conversation?.isDM || !conversation.dmUserIds?.includes(req.user.id)) {
-    return res.status(403).json({ error: 'Bu özel mesaja erişim yetkin yok.' });
+    return res.status(403).json({ error: 'You do not have access to this direct message.' });
   }
 
   const channel = storage.getChannelsByServerId(conversation.id).find(item => item.type === 'text');
@@ -28,19 +28,19 @@ router.get('/messages/:conversationId', (req, res) => {
 
 router.get('/:userId', (req, res) => {
   if (req.params.userId !== req.user.id) {
-    return res.status(403).json({ error: 'Sadece kendi özel mesajlarını görüntüleyebilirsin.' });
+    return res.status(403).json({ error: 'You can only view your own direct messages.' });
   }
   return res.json(groupDmService.listForUser(req.user.id));
 });
 
 router.post('/create', (req, res) => {
   const targetUserId = String(req.body.userId2 || req.body.targetUserId || '').trim();
-  if (!targetUserId || targetUserId === req.user.id) return res.status(400).json({ error: 'Geçerli bir kullanıcı seç.' });
-  if (!storage.getUserById(targetUserId)) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  if (!targetUserId || targetUserId === req.user.id) return res.status(400).json({ error: 'Choose a valid user.' });
+  if (!storage.getUserById(targetUserId)) return res.status(404).json({ error: 'User not found.' });
 
   if (storage.isBlockedEitherDirection?.(req.user.id, targetUserId)) {
     return res.status(403).json({
-      error: 'Engellenen bir kullanıcıyla özel mesaj başlatılamaz.',
+      error: 'You cannot start a direct message with a blocked user.',
       code: 'USER_BLOCKED',
     });
   }
@@ -72,7 +72,7 @@ router.post('/groups', (req, res) => {
 router.get('/groups/:conversationId', (req, res) => {
   const conversation = groupDmService.get(req.params.conversationId, req.user.id);
   if (!conversation || conversation.type !== 'group') {
-    return res.status(404).json({ error: 'Grup özel mesajı bulunamadı.' });
+    return res.status(404).json({ error: 'Group direct message not found.' });
   }
   return res.json(conversation);
 });
@@ -80,7 +80,7 @@ router.get('/groups/:conversationId', (req, res) => {
 router.patch('/groups/:conversationId', (req, res) => {
   try {
     const conversation = groupDmService.update(req.params.conversationId, req.user.id, req.body);
-    if (!conversation) return res.status(403).json({ error: 'Bu grubu düzenleme yetkin yok.' });
+    if (!conversation) return res.status(403).json({ error: 'You do not have permission to edit this group.' });
     conversation.memberIds.forEach(userId => {
       req.app.get('io')?.to(`user:${userId}`).emit('dm:group-updated', { conversation });
     });
@@ -96,7 +96,7 @@ router.post('/groups/:conversationId/members', (req, res) => {
     req.user.id,
     String(req.body.userId || '').trim(),
   );
-  if (!conversation) return res.status(400).json({ error: 'Üye eklenemedi; grup sahibi olmalı ve sınırı aşmamalısın.' });
+  if (!conversation) return res.status(400).json({ error: 'The member could not be added; you must own the group and stay within its member limit.' });
   conversation.memberIds.forEach(userId => {
     req.app.get('io')?.to(`user:${userId}`).emit('dm:group-updated', { conversation });
   });
@@ -105,7 +105,7 @@ router.post('/groups/:conversationId/members', (req, res) => {
 
 router.delete('/groups/:conversationId/members/:userId', (req, res) => {
   const result = groupDmService.removeMember(req.params.conversationId, req.user.id, req.params.userId);
-  if (!result) return res.status(403).json({ error: 'Bu üyeyi çıkarma yetkin yok.' });
+  if (!result) return res.status(403).json({ error: 'You do not have permission to remove this member.' });
   req.app.get('io')?.to(`user:${req.params.userId}`).emit('dm:group-removed', {
     conversationId: req.params.conversationId,
   });
@@ -119,7 +119,7 @@ router.delete('/groups/:conversationId/members/:userId', (req, res) => {
 
 router.post('/groups/:conversationId/leave', (req, res) => {
   const result = groupDmService.removeMember(req.params.conversationId, req.user.id, req.user.id);
-  if (!result) return res.status(404).json({ error: 'Grup özel mesajı bulunamadı.' });
+  if (!result) return res.status(404).json({ error: 'Group direct message not found.' });
   req.app.get('io')?.to(`user:${req.user.id}`).emit('dm:group-removed', {
     conversationId: req.params.conversationId,
   });

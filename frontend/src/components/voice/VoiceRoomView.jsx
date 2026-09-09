@@ -32,7 +32,7 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
   const tileRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState('');
-  const displayName = participant.nickname || participant.username || 'Kullanıcı';
+  const displayName = participant.nickname || participant.username || 'User';
   const hasVideo = Boolean(media?.stream?.getVideoTracks().some(track => track.readyState === 'live'));
   const announcedMode = media?.mode || participant.streamMode;
   const isWaitingForVideo = !hasVideo && (announcedMode === 'screen' || announcedMode === 'camera');
@@ -45,7 +45,7 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
     };
     const handleFullscreenError = event => {
       if (event.target === tileRef.current) {
-        setFullscreenError('Tam ekran açılamadı. Tarayıcı iznini kontrol edip tekrar deneyebilirsin.');
+        setFullscreenError('Could not enter full screen. Check browser permission and try again.');
       }
     };
 
@@ -73,7 +73,7 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
     const tile = tileRef.current;
     if (document.fullscreenElement === tile) return;
     if (!tile?.requestFullscreen) {
-      setFullscreenError('Bu tarayıcı tam ekran görünümünü desteklemiyor.');
+      setFullscreenError('This browser does not support full-screen mode.');
       return;
     }
 
@@ -83,21 +83,21 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
     } catch (error) {
       const denied = error?.name === 'NotAllowedError';
       setFullscreenError(denied
-        ? 'Tarayıcı tam ekran isteğine izin vermedi. Görüntüye tekrar tıklayabilirsin.'
-        : 'Tam ekran açılamadı. Lütfen tekrar dene.');
+        ? 'The browser denied the full-screen request. Click the video again to retry.'
+        : 'Could not enter full screen. Please try again.');
     }
   };
 
   const handleReturnToGrid = async () => {
     if (document.fullscreenElement === tileRef.current) {
       if (!document.exitFullscreen) {
-        setFullscreenError('Tam ekrandan çıkılamadı. Esc tuşunu kullanabilirsin.');
+        setFullscreenError('Could not exit full screen. You can press Esc.');
         return;
       }
       try {
         await document.exitFullscreen();
       } catch {
-        setFullscreenError('Tam ekrandan çıkılamadı. Esc tuşunu kullanabilirsin.');
+        setFullscreenError('Could not exit full screen. You can press Esc.');
         return;
       }
     }
@@ -117,9 +117,9 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
         onClick={handleMediaClick}
         disabled={!hasVideo}
         aria-label={hasVideo
-          ? focused ? `${displayName} görüntüsünü tam ekran aç` : `${displayName} görüntüsünü büyüt`
-          : `${displayName} görüntü paylaşmıyor`}
-        title={hasVideo ? focused ? 'Tam ekran aç' : 'Görüntüyü büyüt' : undefined}
+          ? focused ? `${displayName} Open video in full screen for` : `${displayName} Enlarge video for`
+          : `${displayName} is not sharing video`}
+        title={hasVideo ? focused ? 'Enter full screen' : 'Enlarge video' : undefined}
         className={`absolute inset-0 block h-full w-full overflow-hidden rounded-[inherit] text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#60a5fa] ${hasVideo && !isFullscreen ? 'cursor-zoom-in' : 'cursor-default'}`}
       >
         {hasVideo ? (
@@ -132,7 +132,7 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
             >
               {displayName[0]?.toUpperCase() || '?'}
             </div>
-            {isWaitingForVideo && <span className="mt-4 text-xs font-semibold text-[#94a3b8]">Görüntü bağlanıyor…</span>}
+            {isWaitingForVideo && <span className="mt-4 text-xs font-semibold text-[#94a3b8]">Connecting video…</span>}
           </div>
         )}
 
@@ -145,14 +145,14 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
             {hasVideo && (
               <span className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-[#cbd5e1]">
                 {media.mode === 'screen' ? <MonitorUp className="h-3 w-3" /> : <Video className="h-3 w-3" />}
-                {media.mode === 'screen' ? 'Ekran yayını' : 'Kamera'}
+                {media.mode === 'screen' ? 'Screen share' : 'Camera'}
               </span>
             )}
           </div>
           {hasVideo && (
             <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-black/35 px-2 py-1 text-[11px] font-bold text-white/90 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
               <Maximize2 className="h-4 w-4" />
-              {focused ? 'Tam ekran' : 'Büyüt'}
+              {focused ? 'Full screen' : 'Enlarge'}
             </span>
           )}
         </div>
@@ -163,11 +163,11 @@ function ParticipantTile({ participant, media, speaking, focused, onFocus, onUnf
           type="button"
           onClick={handleReturnToGrid}
           className="absolute right-3 top-3 z-20 flex items-center gap-2 rounded-lg border border-white/15 bg-black/70 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition-colors hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#60a5fa]"
-          aria-label="Izgara görünümüne dön"
-          title="Izgara görünümüne dön"
+          aria-label="Return to grid view"
+          title="Return to grid view"
         >
           <Minimize2 className="h-4 w-4" />
-          <span>Izgaraya dön</span>
+          <span>Back to grid</span>
         </button>
       )}
 
@@ -250,10 +250,10 @@ export default function VoiceRoomView() {
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1220]">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] px-5">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-bold text-white">{activeVoiceChannel?.name || 'Sesli sohbet'}</h2>
-          <p className="text-[11px] text-[#64748b]">{participants.length} kişi · İlk tıklama büyütür, ikinci tıklama tam ekran açar</p>
+          <h2 className="truncate text-sm font-bold text-white">{activeVoiceChannel?.name || 'Voiceli sohbet'}</h2>
+          <p className="text-[11px] text-[#64748b]">{participants.length} people · Click once to enlarge and again for full screen</p>
         </div>
-        <div className="rounded-full bg-[#22c55e]/10 px-3 py-1 text-[11px] font-bold text-[#4ade80]">Bağlı</div>
+        <div className="rounded-full bg-[#22c55e]/10 px-3 py-1 text-[11px] font-bold text-[#4ade80]">Connected</div>
       </header>
 
       <div className={`min-h-0 flex-1 p-4 ${focusedParticipant && hasFocusedVideo ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>

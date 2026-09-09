@@ -2,7 +2,7 @@ const storage = require('../../storage/inMemory');
 const { MAX_MESSAGE_LENGTH, messageService } = require('../../services/messageService');
 const { platformService } = require('../../services/platformService');
 
-// Eski dm:send event'i için güvenli geriye dönük destek. Yeni arayüz normal
+// Eski dm:send event'i has güvenli geriye dönük destek. Yeni arayüz normal
 // message:send + DM kanalını kullanır; burada da kimlik yalnızca socket JWT'den gelir.
 exports.handleSendDM = async (io, socket, data = {}) => {
   const senderId = socket.authUser?.id;
@@ -15,7 +15,7 @@ exports.handleSendDM = async (io, socket, data = {}) => {
   if (content.length > MAX_MESSAGE_LENGTH) {
     socket.emit('message:error', {
       code: 'MESSAGE_TOO_LONG',
-      message: `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`,
+      message: `Messages can contain at most ${MAX_MESSAGE_LENGTH} characters.`,
     });
     return;
   }
@@ -24,7 +24,7 @@ exports.handleSendDM = async (io, socket, data = {}) => {
   if (storage.isBlockedEitherDirection(senderId, receiverId)) {
     socket.emit('message:error', {
       code: 'USER_BLOCKED',
-      message: 'Engellenen bir kullanıcıyla özel mesajlaşamazsın.',
+      message: 'You cannot message a blocked user.',
     });
     return;
   }
@@ -47,7 +47,7 @@ exports.handleSendDM = async (io, socket, data = {}) => {
     }
     io.to(`user:${receiverId}`).emit('dm:receive', { conversationId: conversation.id, message });
   } catch (error) {
-    console.error('Özel mesaj gönderilemedi:', error.message);
-    socket.emit('message:error', { message: 'Özel mesaj gönderilemedi.' });
+    console.error('Could not send the direct message:', error.message);
+    socket.emit('message:error', { message: 'The direct message could not be sent.' });
   }
 };

@@ -16,7 +16,7 @@ export async function applyAudioOutputDevice(target, deviceId = selectedOutputDe
   if (typeof target.setSinkId !== 'function') {
     if (nextDeviceId && !warnedAboutUnsupportedRouting) {
       warnedAboutUnsupportedRouting = true;
-      console.warn('Bu ortam uygulama seslerinin çıkış aygıtını değiştirmeyi desteklemiyor.');
+      console.warn('This environment does not support changing the output device for app audio.');
     }
     return !nextDeviceId;
   }
@@ -26,7 +26,7 @@ export async function applyAudioOutputDevice(target, deviceId = selectedOutputDe
     return true;
   } catch (error) {
     if (error?.name !== 'NotAllowedError') {
-      console.warn('Ses çıkış aygıtı uygulanamadı:', error);
+      console.warn('Could not apply the audio output device:', error);
     }
     return false;
   }

@@ -19,6 +19,7 @@ It includes servers, channels, direct messages, voice/video communication, scree
 * 🔍 Message search
 * 🤖 AutoMod and custom slash commands
 * 📅 Server events and RSVP system
+* 🎵 Spotify listening invites with synchronized playback
 * 🌙 Light, Dark and Midnight themes
 * 🖥️ Windows, macOS and Linux desktop application
 
@@ -86,6 +87,18 @@ Frontend   http://localhost:5173
 Backend    http://localhost:3001
 PeerJS     http://localhost:9000
 ```
+
+### Spotify listening invites
+
+Create an app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard), add your backend callback URL (for example, `http://127.0.0.1:3001/api/spotify/callback` for local development), and set these values in `backend/.env`:
+
+```text
+SPOTIFY_CLIENT_ID=your-client-id
+SPOTIFY_CLIENT_SECRET=your-client-secret
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:3001/api/spotify/callback
+```
+
+Without any Spotify credentials, users can paste a Spotify track URL from the music button and send a rich invitation powered by Spotify oEmbed. Every recipient opens the track in their own Spotify app, and no Premium subscription is required for link invitations. If OAuth is configured, each user connects their own account to share the currently playing track; Spotify Premium and an active device are required only for automatic “Listen Along” playback at the shared position.
 
 ## 📦 Build
 

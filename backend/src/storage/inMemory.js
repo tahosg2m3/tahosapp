@@ -60,7 +60,7 @@ const DEFAULT_MEMBER_PERMISSIONS = Object.freeze([
 
 const ALL_PERMISSIONS = Object.freeze([...PERMISSIONS]);
 const PRESENCE_STATUSES = Object.freeze(['online', 'idle', 'dnd', 'invisible']);
-const SUPPORTED_LOCALES = Object.freeze(['tr', 'en']);
+const SUPPORTED_LOCALES = Object.freeze(['en']);
 const SUPPORTED_THEMES = Object.freeze([
   'dark',
   'midnight',
@@ -95,12 +95,12 @@ function hasOwn(value, key) {
 
 function sanitizeText(value, { field, maxLength, nullable = false } = {}) {
   if (value === null && nullable) return null;
-  if (typeof value !== 'string') throw new Error(`${field || 'Alan'} metin olmalıdır.`);
+  if (typeof value !== 'string') throw new Error(`${field || 'Field'} must be text.`);
 
-  // NUL ve diğer kontrol karakterleri JSON, log ve istemci işleme akışlarında
-  // beklenmeyen davranışlara yol açabilir. Satır sonu ve sekmeye izin verilir.
+  // NUL and diğer kontrol karakterleri JSON, log and istemci actione akışlarında
+  // beklenmeyen davranışlara yol açabilir. Satır sonu and sekmeye izin verilir.
   const clean = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
-  if (clean.length > maxLength) throw new Error(`${field || 'Alan'} en fazla ${maxLength} karakter olabilir.`);
+  if (clean.length > maxLength) throw new Error(`${field || 'Field'} can contain at most ${maxLength} characters.`);
   return clean || (nullable ? null : '');
 }
 
@@ -108,7 +108,7 @@ function sanitizeMediaUrl(value, field) {
   if (value === undefined) return undefined;
   const clean = sanitizeText(value, { field, maxLength: 2048, nullable: true });
   if (!clean) return null;
-  if (/[\r\n\t]/.test(clean)) throw new Error(`${field} geçerli bir adres olmalıdır.`);
+  if (/[\r\n\t]/.test(clean)) throw new Error(`${field} must be a valid address.`);
 
   // Yerel yüklemeler sadece uygulamanın uploads dizininden, uzaktaki görseller ise
   // yalnızca HTTP(S) üzerinden gelebilir. javascript:/file:/data: gibi şemalar reddedilir.
@@ -121,7 +121,7 @@ function sanitizeMediaUrl(value, field) {
   } catch (_) {
     // Aşağıdaki ortak doğrulama hatası döndürülür.
   }
-  throw new Error(`${field} geçerli bir HTTP(S) veya yükleme adresi olmalıdır.`);
+  throw new Error(`${field} must be a valid HTTP(S) or upload address.`);
 }
 
 function normalizeStoredUserProfile(user) {
@@ -131,7 +131,7 @@ function normalizeStoredUserProfile(user) {
     bio: '',
     customStatus: '',
     presenceStatus: 'online',
-    locale: 'tr',
+    locale: 'en',
     theme: 'dark',
     profileTheme: 'default',
     profileAccentColor: DEFAULT_PROFILE_ACCENT,
@@ -153,7 +153,7 @@ function normalizeStoredUserProfile(user) {
     changed = true;
   }
   if (!SUPPORTED_LOCALES.includes(user.locale)) {
-    user.locale = 'tr';
+    user.locale = 'en';
     changed = true;
   }
   if (!SUPPORTED_THEMES.includes(user.theme)) {
@@ -232,7 +232,7 @@ function copyRole(role) {
 function publicUser(user) {
   if (!user) return null;
   const { password, email, tokenVersion, platformRole, platformBan, platformBanClearedAt, platformBanClearedBy, ...safeUser } = user;
-  // Görünmezlik tercihi başka kullanıcılara sızdırılmaz.
+  // Invisiblelik tercihi başka kullanıcılara sızdırılmaz.
   if (safeUser.presenceStatus === 'invisible') safeUser.presenceStatus = 'offline';
   return safeUser;
 }
@@ -253,8 +253,8 @@ class InMemoryStorage {
     this.serverMemberProfiles = new Map();
     this.userBlocks = new Map();
     // Notlar yalnızca notu yazan kullanıcıya aittir. Anahtar biçimi
-    // `viewerUserId:targetUserId` olduğu için başka bir kullanıcı aynı profil
-    // için yazılan notu okuyamaz.
+    // `viewerUserId:targetUserId` olduğu has başka bir kullanıcı aynı profil
+    // has yazılan notu okuyamaz.
     this.profileNotes = new Map();
     // Platform özellikleri kendi sürümlü alanında tutulur.
     // Düz obje kullanmak eski JSON/SQLite snapshot biçimiyle geriye uyumludur;
@@ -292,7 +292,7 @@ class InMemoryStorage {
       this.friendRequests = Array.isArray(data.friendRequests) ? data.friendRequests : [];
       this.friendships = Array.isArray(data.friendships) ? data.friendships : [];
       this.channelMessages = parsePersistedMap(data.channelMessages);
-      // Çevrimiçi durumu kalıcı değildir: uygulama yeniden açıldığında herkes offline başlar.
+      // Online status kalıcı değildir: uygulama yeniden açıldığında herkes offline başlar.
       this.userStatuses = new Map(this.users.map(user => [user.id, 'offline']));
       this.serverMembers = parsePersistedMap(data.serverMembers);
       this.serverRoles = parsePersistedMap(data.serverRoles);
@@ -324,10 +324,10 @@ class InMemoryStorage {
       const platformOwnerChanged = this.ensurePlatformOwner();
       if (roleDataChanged || socialDataChanged || platformOwnerChanged || userProfilesChanged) this.saveData();
     } catch (error) {
-      // Şifreleme anahtarı uyuşmazlığı, bozuk authentication tag veya okunamayan
+      // Passwordleme anahtarı uyuşmazlığı, bozuk authentication tag veya okunamayan
       // kalıcı veri asla "boş kurulum" sayılmaz. Aksi halde seedData mevcut
       // verinin üzerine yazıp gerçek kaybı gizleyebilirdi. Başlangıcı fail-closed
-      // durdurur ve operatöre asıl hatayı açıkça gösteririz.
+      // durdurur and operatöre asıl hatayı açıkça gösteririz.
       console.error('Kalıcı uygulama verisi güvenli biçimde yüklenemedi; veri sıfırlanmadı:', error.message);
       throw error;
     }
@@ -344,7 +344,7 @@ class InMemoryStorage {
       try {
         const persisted = this.stateStore.save(this.createPersistedSnapshot());
         if (!persisted) {
-          console.error('Veriler kaydedilemedi: kalıcı depolama yazma işlemi başarısız oldu.');
+          console.error('Veriler kaydedilemedi: kalıcı depolama yazma action başarısız oldu.');
         }
       } catch (error) {
         console.error('Veriler kaydedilemedi:', error.message);
@@ -370,7 +370,7 @@ class InMemoryStorage {
     try {
       const persisted = this.stateStore.save(this.createPersistedSnapshot());
       if (!persisted) {
-        console.error('Veriler kapatılırken kaydedilemedi: kalıcı depolama yazma işlemi başarısız oldu.');
+        console.error('Veriler kapatılırken kaydedilemedi: kalıcı depolama yazma action başarısız oldu.');
       }
       return persisted;
     } catch (error) {
@@ -471,8 +471,8 @@ class InMemoryStorage {
         changed = true;
       }
 
-      // Eski demo sunucusunda sahip "system" idi ve gerçek bir hesap olmadığı için
-      // ayarlar/roller kilitli kalıyordu. İlk geçerli üyeyi sahip yaparak eski veriyi taşırız.
+      // Eski demo sunucusunda sahip "system" idi and gerçek bir hesap olmadığı için
+      // ayarlar/roller kilitli kalıyordu. İlk geçerli memberyi sahip yaparak eski veriyi taşırız.
       if (server.id === 'default-server' && server.creatorId === 'system') {
         const firstRealMember = (this.serverMembers.get(server.id) || []).find(userId => this.getUserById(userId));
         if (firstRealMember) {
@@ -519,8 +519,8 @@ class InMemoryStorage {
         let serverAvatar = null;
         let serverBanner = null;
         try {
-          serverAvatar = sanitizeMediaUrl(profile.serverAvatar, 'Sunucu avatarı') || null;
-          serverBanner = sanitizeMediaUrl(profile.serverBanner, 'Sunucu afişi') || null;
+          serverAvatar = sanitizeMediaUrl(profile.serverAvatar, 'Server avatar') || null;
+          serverBanner = sanitizeMediaUrl(profile.serverBanner, 'Server banner') || null;
         } catch (_) {
           changed = true;
         }
@@ -601,7 +601,7 @@ class InMemoryStorage {
       const normalized = {
         id: isDefault ? defaultRoleId : role.id,
         serverId,
-        name: isDefault ? '@everyone' : String(role.name || 'Yeni rol').trim().slice(0, 100) || 'Yeni rol',
+        name: isDefault ? '@everyone' : String(role.name || 'Yeni roles').trim().slice(0, 100) || 'Yeni roles',
         color: typeof role.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(role.color) ? role.color : null,
         icon: isDefault ? null : (role.icon ? String(role.icon).slice(0, 1000) : null),
         hoist: isDefault ? false : Boolean(role.hoist),
@@ -715,14 +715,14 @@ class InMemoryStorage {
   }
 
   createUniqueServerInviteCode() {
-    // Varsayılan davet kodu bir erişim anahtarıdır. Math.random hem tahmin
+    // Default davet kodu bir erişim anahtarıdır. Math.random hem tahmin
     // edilebilir hem de kısa kodlarda çakışma riski taşır. 80 bitlik CSPRNG
-    // çıktı ve benzersizlik kontrolü bu iki riski de ortadan kaldırır.
+    // çıktı and benzersizlik kontrolü bu iki riski de ortadan kaldırır.
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const code = crypto.randomBytes(10).toString('hex').toUpperCase();
       if (!this.getServerByInviteCode(code)) return code;
     }
-    throw new Error('Benzersiz sunucu davet kodu oluşturulamadı.');
+    throw new Error('Benzersiz sunucu davet kodu could not be created.');
   }
 
   createServer(name, creatorId) {
@@ -824,8 +824,8 @@ class InMemoryStorage {
       updatedAt: Date.now(),
     };
     this.serverMemberProfiles.set(serverId, profiles);
-    // Eski/temiz kurulumdaki Genel Sunucu sahipsiz kalmasın: ilk gerçek üye
-    // sahibi olur. Böylece rol ve kanal ayarları kilitlenmez.
+    // Eski/temiz kurulumdaki Genel Sunucu sahipsiz kalmasın: ilk gerçek member
+    // sahibi olur. Böylece roles and kanal ayarları kilitlenmez.
     if (server.id === 'default-server' && server.creatorId === 'system') {
       server.creatorId = userId;
     }
@@ -887,22 +887,22 @@ class InMemoryStorage {
 
     if (hasOwn(updates, 'nickname') && updates.nickname !== undefined) {
       next.nickname = sanitizeText(updates.nickname, {
-        field: 'Sunucu takma adı',
+        field: 'Server nickname',
         maxLength: 32,
         nullable: true,
       });
       if (next.nickname && /[\r\n\t]/.test(next.nickname)) {
-        throw new Error('Sunucu takma adı tek satır olmalıdır.');
+        throw new Error('The server nickname must be a single line.');
       }
     }
     if (hasOwn(updates, 'serverAvatar') && updates.serverAvatar !== undefined) {
-      next.serverAvatar = sanitizeMediaUrl(updates.serverAvatar, 'Sunucu avatarı');
+      next.serverAvatar = sanitizeMediaUrl(updates.serverAvatar, 'Server avatar');
     }
     if (hasOwn(updates, 'serverBanner') && updates.serverBanner !== undefined) {
-      next.serverBanner = sanitizeMediaUrl(updates.serverBanner, 'Sunucu afişi');
+      next.serverBanner = sanitizeMediaUrl(updates.serverBanner, 'Server banner');
     }
     if (hasOwn(updates, 'serverBio') && updates.serverBio !== undefined) {
-      next.serverBio = sanitizeText(updates.serverBio, { field: 'Sunucu hakkında', maxLength: 300 });
+      next.serverBio = sanitizeText(updates.serverBio, { field: 'About this server', maxLength: 300 });
     }
 
     next.joinedAt = Number(current.joinedAt) || Date.now();
@@ -1228,7 +1228,7 @@ class InMemoryStorage {
     if (message.content !== newContent) {
       message.editHistory = Array.isArray(message.editHistory) ? message.editHistory : [];
       message.editHistory.push({ content: message.content, editedAt: Date.now() });
-      // Mesaj geÃ§miÅŸi denetim iÃ§in tutulur fakat tek mesajÄ±n veriyi sÄ±nÄ±rsÄ±z bÃ¼yÃ¼tmesi engellenir.
+      // Message geÃ§miÅŸi denetim iÃ§in tutulur fakat tek mesajÄ±n veriyi sÄ±nÄ±rsÄ±z bÃ¼yÃ¼tmesi engellenir.
       if (message.editHistory.length > 25) message.editHistory = message.editHistory.slice(-25);
     }
     message.content = newContent;
@@ -1254,7 +1254,7 @@ class InMemoryStorage {
       bio: '',
       customStatus: '',
       presenceStatus: 'online',
-      locale: 'tr',
+      locale: 'en',
       theme: 'dark',
       profileTheme: 'default',
       profileAccentColor: DEFAULT_PROFILE_ACCENT,
@@ -1286,7 +1286,7 @@ class InMemoryStorage {
       bio: '',
       customStatus: '',
       presenceStatus: 'online',
-      locale: 'tr',
+      locale: 'en',
       theme: 'dark',
       profileTheme: 'default',
       profileAccentColor: DEFAULT_PROFILE_ACCENT,
@@ -1321,7 +1321,7 @@ class InMemoryStorage {
     const ban = this.getUserById(userId)?.platformBan;
     if (!ban || ban.active !== true) return null;
     return {
-      reason: String(ban.reason || 'Topluluk kuralları ihlali').slice(0, 500),
+      reason: String(ban.reason || 'Community Guidelines violation').slice(0, 500),
       bannedAt: Number(ban.bannedAt) || null,
       bannedBy: ban.bannedBy || null,
     };
@@ -1334,7 +1334,7 @@ class InMemoryStorage {
     if (!user) return null;
     user.platformBan = {
       active: true,
-      reason: sanitizeText(reason, { field: 'Ban gerekçesi', maxLength: 500 }),
+      reason: sanitizeText(reason, { field: 'Ban reason', maxLength: 500 }),
       bannedAt: Date.now(),
       bannedBy: String(bannedBy || '').slice(0, 100) || null,
     };
@@ -1358,11 +1358,11 @@ class InMemoryStorage {
   updateUserStatus(id, status) { this.userStatuses.set(id, status); }
   getUserStatus(id) { return this.userStatuses.get(id) || 'offline'; }
 
-  updateUserPassword(userId, passwordHash, { invalidateSessions = true } = {}) {
+  updateUserPassword(userId, passwordHash, { invalidateVoicesions = true } = {}) {
     const user = this.getUserById(userId);
     if (!user) return null;
     user.password = passwordHash;
-    if (invalidateSessions) user.tokenVersion = (user.tokenVersion || 0) + 1;
+    if (invalidateVoicesions) user.tokenVersion = (user.tokenVersion || 0) + 1;
     this.saveData();
     return user;
   }
@@ -1382,43 +1382,43 @@ class InMemoryStorage {
     const next = {};
 
     if (hasOwn(updates, 'username') && updates.username !== undefined) {
-      const nextUsername = sanitizeText(updates.username, { field: 'Kullanıcı adı', maxLength: 50 });
-      if (nextUsername.length < 2) throw new Error('Kullanıcı adı en az 2 karakter olmalıdır.');
-      if (/[\r\n\t]/.test(nextUsername)) throw new Error('Kullanıcı adı tek satır olmalıdır.');
+      const nextUsername = sanitizeText(updates.username, { field: 'Username', maxLength: 50 });
+      if (nextUsername.length < 2) throw new Error('Username must be at least 2 characters.');
+      if (/[\r\n\t]/.test(nextUsername)) throw new Error('Username must be a single line.');
       const existing = this.getUserByUsername(nextUsername);
       if (existing && existing.id !== userId) throw new Error('Username taken');
       next.username = nextUsername;
     }
-    if (hasOwn(updates, 'avatar') && updates.avatar !== undefined) next.avatar = sanitizeMediaUrl(updates.avatar, 'Profil resmi');
-    if (hasOwn(updates, 'banner') && updates.banner !== undefined) next.banner = sanitizeMediaUrl(updates.banner, 'Profil afişi');
-    if (hasOwn(updates, 'bio') && updates.bio !== undefined) next.bio = sanitizeText(updates.bio, { field: 'Hakkımda', maxLength: 300 });
+    if (hasOwn(updates, 'avatar') && updates.avatar !== undefined) next.avatar = sanitizeMediaUrl(updates.avatar, 'Profile picture');
+    if (hasOwn(updates, 'banner') && updates.banner !== undefined) next.banner = sanitizeMediaUrl(updates.banner, 'Profile banner');
+    if (hasOwn(updates, 'bio') && updates.bio !== undefined) next.bio = sanitizeText(updates.bio, { field: 'About Me', maxLength: 300 });
     if (hasOwn(updates, 'customStatus') && updates.customStatus !== undefined) {
-      next.customStatus = sanitizeText(updates.customStatus, { field: 'Özel durum', maxLength: 128 });
-      if (/[\r\n\t]/.test(next.customStatus)) throw new Error('Özel durum tek satır olmalıdır.');
+      next.customStatus = sanitizeText(updates.customStatus, { field: 'Custom status', maxLength: 128 });
+      if (/[\r\n\t]/.test(next.customStatus)) throw new Error('The custom status must be a single line.');
     }
     if (hasOwn(updates, 'presenceStatus') && updates.presenceStatus !== undefined) {
-      if (!PRESENCE_STATUSES.includes(updates.presenceStatus)) throw new Error('Geçersiz çevrimiçi durumu.');
+      if (!PRESENCE_STATUSES.includes(updates.presenceStatus)) throw new Error('Invalid online status.');
       next.presenceStatus = updates.presenceStatus;
     }
     if (hasOwn(updates, 'locale') && updates.locale !== undefined) {
-      if (!SUPPORTED_LOCALES.includes(updates.locale)) throw new Error('Desteklenmeyen dil seçimi.');
+      if (!SUPPORTED_LOCALES.includes(updates.locale)) throw new Error('Unsupported language selection.');
       next.locale = updates.locale;
     }
     if (hasOwn(updates, 'theme') && updates.theme !== undefined) {
-      if (!SUPPORTED_THEMES.includes(updates.theme)) throw new Error('Desteklenmeyen tema seçimi.');
+      if (!SUPPORTED_THEMES.includes(updates.theme)) throw new Error('Unsupported theme selection.');
       next.theme = updates.theme;
     }
     if (hasOwn(updates, 'profileTheme') && updates.profileTheme !== undefined) {
-      if (!SUPPORTED_PROFILE_THEMES.includes(updates.profileTheme)) throw new Error('Desteklenmeyen profil teması.');
+      if (!SUPPORTED_PROFILE_THEMES.includes(updates.profileTheme)) throw new Error('Unsupported profile theme.');
       next.profileTheme = updates.profileTheme;
     }
     if (hasOwn(updates, 'profileAccentColor') && updates.profileAccentColor !== undefined) {
       const accent = String(updates.profileAccentColor || '').trim().toLowerCase();
-      if (!/^#[0-9a-f]{6}$/.test(accent)) throw new Error('Profil vurgu rengi geçersiz.');
+      if (!/^#[0-9a-f]{6}$/.test(accent)) throw new Error('The profile accent color is invalid.');
       next.profileAccentColor = accent;
     }
     if (hasOwn(updates, 'nameFont') && updates.nameFont !== undefined) {
-      if (!SUPPORTED_NAME_FONTS.includes(updates.nameFont)) throw new Error('Desteklenmeyen isim yazı tipi.');
+      if (!SUPPORTED_NAME_FONTS.includes(updates.nameFont)) throw new Error('Unsupported display name font.');
       next.nameFont = updates.nameFont;
     }
     if (hasOwn(updates, 'nameEffect') && updates.nameEffect !== undefined) {
@@ -1448,7 +1448,7 @@ class InMemoryStorage {
       this.userBlocks.set(userId, blocks);
     }
 
-    // Engelleme mevcut arkadaşlığı ve iki yöndeki
+    // Engelleme mevcut arkadaşlığı and iki yöndeki
     // bekleyen arkadaşlık isteklerini kaldırır.
     const [id1, id2] = [userId, blockedUserId].sort();
     this.friendships = this.friendships.filter(item => !(item.user1Id === id1 && item.user2Id === id2));

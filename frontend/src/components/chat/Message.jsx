@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { CornerUpLeft, FileText, Flag, History, Pencil, Pin, SmilePlus, Trash2, X } from 'lucide-react';
+import { CornerUpLeft, ExternalLink, FileText, Flag, History, Music2, Pencil, Pin, Play, SmilePlus, Trash2, X } from 'lucide-react';
 import { formatTime } from '../../utils/formatTime';
 import { getColorForString } from '../../utils/colors';
 import { useSocket } from '../../context/SocketContext';
@@ -13,6 +13,7 @@ import { registerAudioOutputTarget } from '../../services/audioOutputService';
 import { API_ORIGIN } from '../../config/runtimeConfig';
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 import { getNameAppearance } from '../../utils/profileAppearance';
+import { playSpotifyInvite } from '../../services/api';
 
 const QUICK_REACTIONS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F525}'];
 const COUNTRY_FLAG_PATTERN = /(\p{Regional_Indicator}{2})/gu;
@@ -91,6 +92,7 @@ export default function Message({
   const [editHistory, setEditHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [reactionBurst, setReactionBurst] = useState('');
+  const [spotifyJoining, setSpotifyJoining] = useState(false);
 
   useEffect(() => {
     if (!isEditing) setEditContent(message.content || '');
@@ -101,7 +103,7 @@ export default function Message({
   const hasMention = Boolean(
     currentUsername
     && (message.mentions?.includes?.(userId)
-      || message.content?.toLocaleLowerCase('tr-TR').includes(`@${currentUsername}`.toLocaleLowerCase('tr-TR')))
+      || message.content?.toLocaleLowerCase('en-US').includes(`@${currentUsername}`.toLocaleLowerCase('en-US')))
   );
 
   if (message.type === 'system') {
@@ -115,7 +117,7 @@ export default function Message({
   }
 
   const handleDelete = () => {
-    if (window.confirm('Bu mesajı silmek istediğine emin misin?')) {
+    if (window.confirm('Are you sure you want to delete this message?')) {
       socket?.emit('message:delete', {
         messageId: message.id,
         channelId: message.channelId,
@@ -137,7 +139,7 @@ export default function Message({
       userId,
     });
     setIsEditing(false);
-    toast.success('Mesaj güncellendi');
+    toast.success('Message updated');
   };
 
   const handleReaction = (emoji) => {
@@ -162,7 +164,7 @@ export default function Message({
 
   const handleReport = async () => {
     if (!currentServer?.id) return;
-    const reason = window.prompt('Bu mesajı neden şikâyet ediyorsun?');
+    const reason = window.prompt('Why are you reporting this message?');
     if (!reason?.trim()) return;
     try {
       await createReport(currentServer.id, {
@@ -172,14 +174,34 @@ export default function Message({
         targetUserId: message.userId,
         reason: reason.trim(),
       });
-      toast.success('Şikâyetin moderatörlere gönderildi.');
+      toast.success('Your report was sent to the moderators.');
     } catch (error) { toast.error(error.message); }
+  };
+
+  const handleJoinSpotify = async () => {
+    if (!spotifyInvite || spotifyJoining) return;
+    setSpotifyJoining(true);
+    try {
+      await playSpotifyInvite(spotifyInvite);
+      toast.success('Spotify started this track at the shared position.');
+    } catch (error) {
+      if (error.code === 'SPOTIFY_PREMIUM_REQUIRED') {
+        toast.error('Automatic Listen Along requires Spotify Premium. Use “Open in Spotify” instead.');
+      } else {
+        toast.error(error.code === 'SPOTIFY_NOT_CONNECTED'
+          ? 'Connect Spotify in User Settings → Rich Presence first.'
+          : error.message || 'Could not join the Spotify listening session.');
+      }
+    } finally {
+      setSpotifyJoining(false);
+    }
   };
 
   const avatarColor = getColorForString(message.username || '?');
   const initial = (message.username || '?')[0].toUpperCase();
   const messageUser = { id: message.userId, username: message.username };
   const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+  const spotifyInvite = message.spotifyInvite || null;
   const quote = message.replyTo || message.reply || null;
 
   let metadataHostname = '';
@@ -197,14 +219,14 @@ export default function Message({
           <section className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#151d2c] p-5 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-white">Düzenleme geçmişi</h3>
-                <p className="text-xs text-[#94a3b8]">Mesajın önceki sürümleri</p>
+                <h3 className="font-bold text-white">Edit history</h3>
+                <p className="text-xs text-[#94a3b8]">Previous versions of the message</p>
               </div>
               <button type="button" onClick={() => setEditHistory(null)} className="rounded-lg p-2 text-[#94a3b8] hover:bg-white/[0.06] hover:text-white"><X className="h-4 w-4" /></button>
             </div>
             <div className="max-h-[55vh] space-y-2 overflow-y-auto">
               {(editHistory.history || []).length === 0 ? (
-                <p className="rounded-xl bg-[#0f172a] p-4 text-sm text-[#94a3b8]">Kayıtlı eski sürüm yok.</p>
+                <p className="rounded-xl bg-[#0f172a] p-4 text-sm text-[#94a3b8]">No previous versions saved.</p>
               ) : (editHistory.history || []).slice().reverse().map((entry, index) => (
                 <article key={`${entry.editedAt || entry.timestamp || index}-${index}`} className="rounded-xl bg-[#0f172a] p-3">
                   <time className="text-[11px] text-[#64748b]">{formatTime(entry.editedAt || entry.timestamp)}</time>
@@ -218,11 +240,11 @@ export default function Message({
 
       <div className={`group relative border-l-2 px-4 py-0.5 transition-colors hover:bg-white/[0.035] ${hasMention ? 'border-[#fbbf24] bg-[#f59e0b]/[0.08]' : 'border-transparent'} ${grouped ? '' : 'mt-[17px]'}`}>
         <div className="absolute right-4 -top-4 z-20 flex overflow-visible rounded-md border border-[#111827] bg-[#1e293b] shadow-lg opacity-0 transition-opacity group-hover:opacity-100">
-          <button onClick={() => onReply?.(message)} className="rounded-l-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Yanıtla" aria-label="Yanıtla">
+          <button onClick={() => onReply?.(message)} className="rounded-l-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Reply" aria-label="Reply">
             <CornerUpLeft className="h-4 w-4" />
           </button>
           <div className="relative">
-            <button onClick={() => setShowReactionPicker((show) => !show)} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Tepki ekle" aria-label="Tepki ekle">
+            <button onClick={() => setShowReactionPicker((show) => !show)} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Add reaction" aria-label="Add reaction">
               <SmilePlus className="h-4 w-4" />
             </button>
             {showReactionPicker && (
@@ -235,22 +257,22 @@ export default function Message({
               </div>
             )}
           </div>
-          {canPinMessages && <button onClick={handlePin} className={`p-2 transition-colors hover:bg-[#334155] ${message.isPinned ? 'text-[#fbbf24]' : 'text-[#B5BAC1] hover:text-[#DBDEE1]'}`} title={message.isPinned ? 'Sabitlemeyi kaldır' : 'Mesajı sabitle'} aria-label={message.isPinned ? 'Sabitlemeyi kaldır' : 'Mesajı sabitle'}>
+          {canPinMessages && <button onClick={handlePin} className={`p-2 transition-colors hover:bg-[#334155] ${message.isPinned ? 'text-[#fbbf24]' : 'text-[#B5BAC1] hover:text-[#DBDEE1]'}`} title={message.isPinned ? 'Unpin message' : 'Pin message'} aria-label={message.isPinned ? 'Unpin message' : 'Pin message'}>
             <Pin className="h-4 w-4" />
           </button>}
           {message.isEdited && (isOwn || canManageMessages) && (
-            <button type="button" disabled={historyLoading} onClick={handleShowHistory} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1] disabled:opacity-50" title="Düzenleme geçmişi" aria-label="Düzenleme geçmişi">
+            <button type="button" disabled={historyLoading} onClick={handleShowHistory} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1] disabled:opacity-50" title="Edit history" aria-label="Edit history">
               <History className="h-4 w-4" />
             </button>
           )}
-          {isOwn && !isEditing && <button onClick={() => setIsEditing(true)} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Düzenle" aria-label="Düzenle">
+          {isOwn && !isEditing && <button onClick={() => setIsEditing(true)} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Edit" aria-label="Edit">
             <Pencil className="h-4 w-4" />
           </button>}
           {(isOwn || canManageMessages) && !isEditing && <button onClick={handleDelete} className="rounded-r-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#fb7185]" title="Sil" aria-label="Sil">
             <Trash2 className="h-4 w-4" />
           </button>}
           {!isOwn && currentServer?.id && (
-            <button onClick={handleReport} className="rounded-r-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#fb7185]" title="Mesajı şikâyet et" aria-label="Mesajı şikâyet et"><Flag className="h-4 w-4" /></button>
+            <button onClick={handleReport} className="rounded-r-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#fb7185]" title="Report message" aria-label="Report message"><Flag className="h-4 w-4" /></button>
           )}
         </div>
 
@@ -285,15 +307,15 @@ export default function Message({
                 </span>
                 {(message.bot || message.type === 'bot' || message.author?.bot) && <span className="rounded bg-[#5865F2] px-1 py-0.5 text-[9px] font-bold uppercase leading-none text-white">Bot</span>}
                 <span className="select-none text-[0.75rem] font-medium text-[#64748b]">{formatTime(message.timestamp)}</span>
-                {message.isPinned && <Pin className="h-3.5 w-3.5 text-[#fbbf24]" aria-label="Sabitlenmiş mesaj" />}
+                {message.isPinned && <Pin className="h-3.5 w-3.5 text-[#fbbf24]" aria-label="Pinned message" />}
               </div>
             )}
 
             {quote && (
               <button type="button" onClick={() => onReply?.(quote)} className="mb-1.5 flex max-w-full items-center gap-2 overflow-hidden border-l-2 border-[#64748b] pl-2 text-left text-xs text-[#94a3b8] transition-colors hover:border-[#60a5fa] hover:text-[#cbd5e1]">
                 <CornerUpLeft className="h-3.5 w-3.5 shrink-0" />
-                <span className="shrink-0 font-semibold text-[#93c5fd]">{quote.username || quote.authorUsername || 'Bilinmeyen kullanıcı'}</span>
-                <span className="truncate">{quote.content || 'Ekli mesaj'}</span>
+                <span className="shrink-0 font-semibold text-[#93c5fd]">{quote.username || quote.authorUsername || 'Unknown user'}</span>
+                <span className="truncate">{quote.content || 'Message with an attachment'}</span>
               </button>
             )}
 
@@ -310,7 +332,7 @@ export default function Message({
                   }}
                 />
                 <div className="mt-2 text-[11px] font-medium text-[#64748b]">
-                  İptal için <span className="cursor-pointer text-[#60a5fa] hover:underline" onClick={() => setIsEditing(false)}>escape</span> • Kaydetmek için <span className="cursor-pointer text-[#60a5fa] hover:underline" onClick={handleEdit}>enter</span>
+                  Press <span className="cursor-pointer text-[#60a5fa] hover:underline" onClick={() => setIsEditing(false)}>Escape</span> to cancel • <span className="cursor-pointer text-[#60a5fa] hover:underline" onClick={handleEdit}>Enter</span> to save
                 </div>
               </div>
             ) : (
@@ -329,15 +351,33 @@ export default function Message({
                     >
                       {renderCountryFlagsWithTwemoji(message.content)}
                     </ReactMarkdown>
-                    {message.isEdited && <span className="ml-1 select-none text-[10px] text-[#64748b]">(düzenlendi)</span>}
+                    {message.isEdited && <span className="ml-1 select-none text-[10px] text-[#64748b]">(edited)</span>}
                   </div>
+                )}
+
+                {spotifyInvite && (
+                  <section className="mt-2 max-w-lg overflow-hidden rounded-xl border border-[#1ed760]/30 bg-gradient-to-br from-[#173d27] to-[#121b18] p-4 shadow-lg shadow-black/15">
+                    <div className="flex items-center gap-3">
+                      {spotifyInvite.imageUrl ? <img src={spotifyInvite.imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" loading="lazy" /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-[#1ed760]/15 text-[#1ed760]"><Music2 className="h-8 w-8" /></span>}
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#1ed760]"><Music2 className="h-3.5 w-3.5" /> Spotify listening invite</p>
+                        <h4 className="mt-1 truncate font-bold text-white">{spotifyInvite.name}</h4>
+                        {spotifyInvite.artist && <p className="truncate text-sm text-[#b8c8bf]">{spotifyInvite.artist}</p>}
+                        {spotifyInvite.album && <p className="truncate text-xs text-[#799184]">{spotifyInvite.album}</p>}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {spotifyInvite.canListenAlong && <button type="button" onClick={handleJoinSpotify} disabled={spotifyJoining} title="Requires Spotify Premium" className="flex items-center justify-center gap-2 rounded-lg bg-[#1ed760] px-3 py-2 text-sm font-extrabold text-[#07130b] transition hover:bg-[#3be477] disabled:opacity-50"><Play className="h-4 w-4 fill-current" /> {spotifyJoining ? 'Joining…' : 'Listen along'}</button>}
+                      <a href={spotifyInvite.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/15">Open in Spotify <ExternalLink className="h-3.5 w-3.5" /></a>
+                    </div>
+                  </section>
                 )}
 
                 {attachments.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {attachments.map((attachment, index) => {
                       const url = asAbsoluteUrl(attachment.url);
-                      const label = attachment.filename || attachment.name || 'Dosya';
+                      const label = attachment.filename || attachment.name || 'File';
                       const isAudio = attachment?.type === 'audio' || attachment?.mimetype?.startsWith('audio/');
                       return attachmentIsImage(attachment) ? (
                         <a key={`${url}-${index}`} href={url} target="_blank" rel="noopener noreferrer" className="block max-w-[min(520px,100%)] overflow-hidden rounded-xl border border-white/[0.08] bg-[#111827]">
@@ -367,7 +407,7 @@ export default function Message({
                   {message.metadata.title}
                 </a>
                 {message.metadata.description && <p className="mb-3 line-clamp-3 text-[14px] text-[#DBDEE1]">{message.metadata.description}</p>}
-                {message.metadata.image && <img src={message.metadata.image} alt="Önizleme" className="max-h-64 w-auto rounded-[4px] object-cover" />}
+                {message.metadata.image && <img src={message.metadata.image} alt="Preview" className="max-h-64 w-auto rounded-[4px] object-cover" />}
               </div>
             )}
 

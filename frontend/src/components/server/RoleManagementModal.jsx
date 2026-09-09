@@ -21,47 +21,47 @@ import {
 
 const PERMISSION_GROUPS = [
   {
-    title: 'GENEL SUNUCU İZİNLERİ',
+    title: 'GENERAL SERVER PERMISSIONS',
     items: [
-      ['ADMINISTRATOR', 'Yönetici', 'Tüm izinleri verir. Bu rolü dikkatli kullanın.'],
-      ['MANAGE_SERVER', 'Sunucuyu Yönet', 'Sunucu adını ve genel ayarlarını düzenleyebilir.'],
-      ['MANAGE_ROLES', 'Rolleri Yönet', 'Roller oluşturabilir, düzenleyebilir ve üyelere verebilir.'],
-      ['MANAGE_CHANNELS', 'Kanalları Yönet', 'Metin ve ses kanallarını oluşturabilir veya silebilir.'],
-      ['CREATE_INSTANT_INVITE', 'Davet Oluştur', 'Sunucu için davet bağlantısı oluşturabilir.'],
-      ['VIEW_AUDIT_LOG', 'Denetim Kaydını Gör', 'Sunucudaki yönetim işlemlerini inceleyebilir.'],
-      ['MANAGE_EVENTS', 'Etkinlikleri Yönet', 'Etkinlik oluşturabilir ve düzenleyebilir.'],
-      ['MANAGE_WEBHOOKS', 'Webhook’ları Yönet', 'Webhook ve entegrasyonları yönetebilir.'],
-      ['MANAGE_EMOJIS_AND_STICKERS', 'Emoji ve Sticker Yönet', 'Sunucu emoji ve sticker’larını yönetebilir.'],
+      ['ADMINISTRATOR', 'Administrator', 'Grants every permission. Use this role carefully.'],
+      ['MANAGE_SERVER', 'Manage Server', 'Can edit the server name and general settings.'],
+      ['MANAGE_ROLES', 'Manage Roles', 'Can create, edit, and assign roles to members.'],
+      ['MANAGE_CHANNELS', 'Manage Channels', 'Can create or delete text and voice channels.'],
+      ['CREATE_INSTANT_INVITE', 'Create Invites', 'Can create invite links for the server.'],
+      ['VIEW_AUDIT_LOG', 'View Audit Log', 'Can review administrative actions on the server.'],
+      ['MANAGE_EVENTS', 'Manage Events', 'Can create and edit events.'],
+      ['MANAGE_WEBHOOKS', 'Manage Webhooks', 'Can manage webhooks and integrations.'],
+      ['MANAGE_EMOJIS_AND_STICKERS', 'Manage Emojis and Stickers', 'Can manage server emojis and stickers.'],
     ],
   },
   {
-    title: 'ÜYE YÖNETİMİ',
+    title: 'MEMBER MANAGEMENT',
     items: [
-      ['KICK_MEMBERS', 'Üyeleri At', 'Üyeleri sunucudan çıkarabilir.'],
-      ['BAN_MEMBERS', 'Üyeleri Yasakla', 'Üyeleri sunucudan kalıcı olarak yasaklayabilir.'],
-      ['MODERATE_MEMBERS', 'Üyeleri Sustur', 'Üyelerin metin kanallarına yazmasını geçici olarak engelleyebilir.'],
-      ['MANAGE_MESSAGES', 'Mesajları Yönet', 'Başkalarının mesajlarını silebilir.'],
+      ['KICK_MEMBERS', 'Kick Members', 'Can remove members from the server.'],
+      ['BAN_MEMBERS', 'Ban Members', 'Can permanently ban members from the server.'],
+      ['MODERATE_MEMBERS', 'Timeout Members', 'Can temporarily prevent members from posting in text channels.'],
+      ['MANAGE_MESSAGES', 'Manage Messages', 'Can delete messages sent by others.'],
     ],
   },
   {
-    title: 'METİN KANALI İZİNLERİ',
+    title: 'TEXT CHANNEL PERMISSIONS',
     items: [
-      ['VIEW_CHANNEL', 'Kanalı Gör', 'İzin verilen kanalları görüntüleyebilir.'],
-      ['SEND_MESSAGES', 'Mesaj Gönder', 'Metin kanallarına mesaj gönderebilir.'],
-      ['MENTION_EVERYONE', '@everyone Kullan', '@everyone ve rolleri etiketleyebilir.'],
-      ['CREATE_PUBLIC_THREADS', 'Mesaj Dizisi Aç', 'Kanallarda herkese açık mesaj dizileri oluşturabilir.'],
-      ['SEND_MESSAGES_IN_THREADS', 'Dizilerde Yaz', 'Mesaj dizilerinde mesaj gönderebilir.'],
+      ['VIEW_CHANNEL', 'View Channel', 'Can view permitted channels.'],
+      ['SEND_MESSAGES', 'Send Messages', 'Can send messages in text channels.'],
+      ['MENTION_EVERYONE', 'Mention @everyone', 'Can mention @everyone and roles.'],
+      ['CREATE_PUBLIC_THREADS', 'Create Threads', 'Can create public threads in channels.'],
+      ['SEND_MESSAGES_IN_THREADS', 'Send Messages in Threads', 'Can send messages in threads.'],
     ],
   },
   {
-    title: 'SESLİ KANAL İZİNLERİ',
+    title: 'VOICE CHANNEL PERMISSIONS',
     items: [
-      ['CONNECT', 'Bağlan', 'Ses kanallarına katılabilir.'],
-      ['SPEAK', 'Konuş', 'Ses kanallarında konuşabilir.'],
-      ['STREAM', 'Yayın Aç', 'Ses kanalında ekran paylaşımı yapabilir.'],
-      ['MUTE_MEMBERS', 'Üyeleri Sustur', 'Ses kanalındaki üyelerin mikrofonunu kapatabilir.'],
-      ['DEAFEN_MEMBERS', 'Üyeleri Sağırlaştır', 'Ses kanalındaki üyelerin sesini kapatabilir.'],
-      ['MOVE_MEMBERS', 'Üyeleri Kanaldan Çıkar', 'Üyeleri ses kanalından çıkarabilir.'],
+      ['CONNECT', 'Connect', 'Can join voice channels.'],
+      ['SPEAK', 'Speak', 'Can speak in voice channels.'],
+      ['STREAM', 'Stream', 'Can share their screen in voice channels.'],
+      ['MUTE_MEMBERS', 'Mute Members', 'Can server-mute members in voice channels.'],
+      ['DEAFEN_MEMBERS', 'Deafen Members', 'Can server-deafen members in voice channels.'],
+      ['MOVE_MEMBERS', 'Disconnect Members', 'Can disconnect members from voice channels.'],
     ],
   },
 ];
@@ -120,7 +120,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
     try {
       const response = await createServerRole(serverId, {
         actorId,
-        name: 'yeni-rol',
+        name: 'new-role',
         color: '#5865F2',
         permissions: [],
         icon: '',
@@ -128,13 +128,13 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
         mentionable: false,
       });
       const role = normalizeRole(response);
-      if (!role?.id) throw new Error('Rol oluşturulamadı.');
+      if (!role?.id) throw new Error('The role could not be created.');
 
       onRolesChange([...normalizedRoles, role]);
       selectRole(role);
-      toast.success('Yeni rol oluşturuldu.');
+      toast.success('New role created.');
     } catch (error) {
-      toast.error(error.message || 'Rol oluşturulamadı.');
+      toast.error(error.message || 'The role could not be created.');
     } finally {
       setIsSaving(false);
     }
@@ -156,9 +156,9 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
       });
       const updatedRole = normalizeRole(response) || draft;
       replaceRole({ ...draft, ...updatedRole, permissions: normalizePermissions(updatedRole.permissions || draft.permissions) });
-      toast.success('Rol kaydedildi.');
+      toast.success('Role saved.');
     } catch (error) {
-      toast.error(error.message || 'Rol kaydedilemedi.');
+      toast.error(error.message || 'The role could not be saved.');
     } finally {
       setIsSaving(false);
     }
@@ -166,7 +166,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
 
   const handleDelete = async () => {
     if (!draft || !isOwner || draft.isDefault || draft.managed) return;
-    if (!window.confirm(`“${draft.name}” rolünü silmek istediğine emin misin?`)) return;
+    if (!window.confirm(`Delete the “${draft.name}” role? This action cannot be undone.`)) return;
 
     setIsSaving(true);
     try {
@@ -174,9 +174,9 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
       const nextRoles = normalizedRoles.filter((role) => role.id !== draft.id);
       onRolesChange(nextRoles);
       setSelectedRoleId(nextRoles[0]?.id || null);
-      toast.success('Rol silindi.');
+      toast.success('Role deleted.');
     } catch (error) {
-      toast.error(error.message || 'Rol silinemedi.');
+      toast.error(error.message || 'The role could not be deleted.');
     } finally {
       setIsSaving(false);
     }
@@ -204,10 +204,10 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
     try {
       const response = await reorderServerRoles(serverId, nextRoles.map((role) => role.id));
       if (Array.isArray(response?.roles)) onRolesChange(response.roles);
-      toast.success('Rol sırası güncellendi.');
+      toast.success('Role order updated.');
     } catch (error) {
       onRolesChange(normalizedRoles);
-      toast.error(error.message || 'Rol sırası güncellenemedi.');
+      toast.error(error.message || 'The role order could not be updated.');
     } finally {
       setIsSaving(false);
     }
@@ -218,7 +218,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
       <div className="flex flex-1 items-center justify-center px-8 text-center text-[#949BA4]">
         <div>
           <Shield className="mx-auto mb-3 h-10 w-10 opacity-40" />
-          <p>Bu sunucuda henüz düzenlenebilir bir rol yok.</p>
+          <p>There are no editable roles on this server yet.</p>
         </div>
       </div>
     );
@@ -228,13 +228,13 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <aside className="w-[220px] shrink-0 overflow-y-auto border-r border-black/30 bg-[#2B2D31] px-2 py-4 custom-scrollbar">
         <div className="mb-2 flex items-center justify-between px-2">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-[#949BA4]">Roller</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-[#949BA4]">Roles</span>
           {isOwner && (
             <button
               type="button"
               onClick={handleCreate}
               disabled={isSaving}
-              title="Rol oluştur"
+              title="Create role"
               className="rounded p-1 text-[#B5BAC1] transition hover:bg-[#404249] hover:text-white disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
@@ -266,18 +266,18 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
 
       <section className="min-w-0 flex-1 overflow-y-auto bg-[#313338] px-6 py-7 custom-scrollbar md:px-9">
         <div className="mx-auto max-w-[680px] pb-24">
-          <h2 className="text-xl font-bold text-[#F2F3F5]">Rolü Düzenle</h2>
-          <p className="mt-1 text-sm text-[#B5BAC1]">Bu rolün adını, rengini ve sunucudaki yetkilerini belirle.</p>
+          <h2 className="text-xl font-bold text-[#F2F3F5]">Edit Role</h2>
+          <p className="mt-1 text-sm text-[#B5BAC1]">Set this role’s name, color, and server permissions.</p>
 
           {isOwner && (
             <div className="mt-5 flex items-center justify-between rounded-lg border border-black/25 bg-[#2B2D31] px-4 py-3">
               <div>
-                <span className="block text-sm font-medium text-[#F2F3F5]">Rol sırası</span>
-                <span className="mt-0.5 block text-xs text-[#949BA4]">Üstteki roller üyelik listesinde önce görünür.</span>
+                <span className="block text-sm font-medium text-[#F2F3F5]">Role order</span>
+                <span className="mt-0.5 block text-xs text-[#949BA4]">Roles near the top appear first in the member list.</span>
               </div>
               <div className="flex gap-1.5">
-                <button type="button" onClick={() => handleMoveRole(-1)} disabled={isSaving || normalizedRoles.findIndex((role) => role.id === draft.id) <= 0} title="Rolü yukarı taşı" className="rounded bg-[#1E1F22] p-2 text-[#B5BAC1] transition hover:bg-[#404249] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><ArrowUp className="h-4 w-4" /></button>
-                <button type="button" onClick={() => handleMoveRole(1)} disabled={isSaving || normalizedRoles.findIndex((role) => role.id === draft.id) >= normalizedRoles.length - 1} title="Rolü aşağı taşı" className="rounded bg-[#1E1F22] p-2 text-[#B5BAC1] transition hover:bg-[#404249] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><ArrowDown className="h-4 w-4" /></button>
+                <button type="button" onClick={() => handleMoveRole(-1)} disabled={isSaving || normalizedRoles.findIndex((role) => role.id === draft.id) <= 0} title="Move role up" className="rounded bg-[#1E1F22] p-2 text-[#B5BAC1] transition hover:bg-[#404249] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><ArrowUp className="h-4 w-4" /></button>
+                <button type="button" onClick={() => handleMoveRole(1)} disabled={isSaving || normalizedRoles.findIndex((role) => role.id === draft.id) >= normalizedRoles.length - 1} title="Move role down" className="rounded bg-[#1E1F22] p-2 text-[#B5BAC1] transition hover:bg-[#404249] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><ArrowDown className="h-4 w-4" /></button>
               </div>
             </div>
           )}
@@ -288,7 +288,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
                 {draft.icon ? <img src={draft.icon} alt="" className="h-full w-full rounded-full object-cover" /> : roleInitial(draft)}
               </div>
               <div className="min-w-0 flex-1">
-                <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Rol Adı</label>
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Role Name</label>
                 <input
                   value={draft.name || ''}
                   onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
@@ -300,7 +300,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
             </div>
 
             <div className="mt-5">
-              <span className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Rol Rengi</span>
+              <span className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Role Color</span>
               <div className="flex flex-wrap items-center gap-2">
                 {ROLE_COLORS.map((color) => (
                   <button
@@ -315,7 +315,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
                     {draft.color === color && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
                   </button>
                 ))}
-                <label className="relative ml-1 flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[#4E5058] bg-[#1E1F22] text-xs text-[#B5BAC1]" title="Özel renk">
+                <label className="relative ml-1 flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[#4E5058] bg-[#1E1F22] text-xs text-[#B5BAC1]" title="Custom renk">
                   <span>+</span>
                   <input
                     type="color"
@@ -327,8 +327,8 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
                 </label>
               </div>
             </div>
-            <label className="mt-5 block"><span className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Rol ikonu bağlantısı</span><input value={draft.icon || ''} onChange={(event) => setDraft((current) => ({ ...current, icon: event.target.value }))} disabled={!isOwner || draft.managed} placeholder="https://ornek.com/rol-ikonu.png" className="w-full rounded-[3px] border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#F2F3F5] outline-none transition focus:border-[#00A8FC] disabled:opacity-60" /></label>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2"><label className="flex items-center justify-between rounded-lg bg-[#1E1F22] px-3 py-2.5 text-sm text-[#B5BAC1]"><span>Üyeleri ayrı göster</span><input type="checkbox" checked={Boolean(draft.hoist)} onChange={(event) => setDraft((current) => ({ ...current, hoist: event.target.checked }))} disabled={!isOwner || draft.managed} /></label><label className="flex items-center justify-between rounded-lg bg-[#1E1F22] px-3 py-2.5 text-sm text-[#B5BAC1]"><span>Herkes bu rolü etiketleyebilir</span><input type="checkbox" checked={Boolean(draft.mentionable)} onChange={(event) => setDraft((current) => ({ ...current, mentionable: event.target.checked }))} disabled={!isOwner || draft.managed} /></label></div>
+            <label className="mt-5 block"><span className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Role icon URL</span><input value={draft.icon || ''} onChange={(event) => setDraft((current) => ({ ...current, icon: event.target.value }))} disabled={!isOwner || draft.managed} placeholder="https://example.com/role-icon.png" className="w-full rounded-[3px] border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#F2F3F5] outline-none transition focus:border-[#00A8FC] disabled:opacity-60" /></label>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2"><label className="flex items-center justify-between rounded-lg bg-[#1E1F22] px-3 py-2.5 text-sm text-[#B5BAC1]"><span>Display members separately</span><input type="checkbox" checked={Boolean(draft.hoist)} onChange={(event) => setDraft((current) => ({ ...current, hoist: event.target.checked }))} disabled={!isOwner || draft.managed} /></label><label className="flex items-center justify-between rounded-lg bg-[#1E1F22] px-3 py-2.5 text-sm text-[#B5BAC1]"><span>Allow anyone to mention this role</span><input type="checkbox" checked={Boolean(draft.mentionable)} onChange={(event) => setDraft((current) => ({ ...current, mentionable: event.target.checked }))} disabled={!isOwner || draft.managed} /></label></div>
           </div>
 
           {PERMISSION_GROUPS.map((group) => (
@@ -373,7 +373,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
             disabled={isSaving || draft.isDefault || draft.managed}
             className="flex items-center gap-2 rounded px-3 py-2 text-sm font-medium text-[#F23F42] transition hover:bg-[#F23F42]/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Trash2 className="h-4 w-4" /> Rolü Sil
+            <Trash2 className="h-4 w-4" /> Delete Role
           </button>
           <button
             type="button"
@@ -381,7 +381,7 @@ export default function RoleManagementModal({ serverId, actorId, roles = [], onR
             disabled={isSaving || !draft.name?.trim()}
             className="rounded bg-[#23A559] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1D8046] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSaving ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
+            {isSaving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       )}

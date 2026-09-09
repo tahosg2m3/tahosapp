@@ -21,7 +21,7 @@ function notifyMembersChanged(req, serverId) {
 function getTrashServer(req, res) {
   const server = storage.getServerById(req.params.id);
   if (!server || server.isDM) {
-    res.status(404).json({ error: 'Sunucu bulunamadı.' });
+    res.status(404).json({ error: 'Server not found.' });
     return null;
   }
   const allowed = storage.isServerMember(server.id, req.user.id)
@@ -29,7 +29,7 @@ function getTrashServer(req, res) {
       || storage.hasPermission(server.id, req.user.id, 'ADMINISTRATOR')
       || storage.hasPermission(server.id, req.user.id, 'MANAGE_CHANNELS'));
   if (!allowed) {
-    res.status(403).json({ error: 'Kanal çöp kutusunu yönetme yetkin yok.' });
+    res.status(403).json({ error: 'You do not have permission to manage the channel trash.' });
     return null;
   }
   return server;
@@ -50,7 +50,7 @@ function normalizeInviteCode(value) {
   return raw.slice(0, 128);
 }
 
-// Sadece giriş yapan kullanıcının gerçekten üye olduğu normal sunucular gösterilir.
+// Sadece giriş yapan kullanıcının gerçekten member olduğu normal sunucular gösterilir.
 router.get('/', authRateLimit, requireAuth, readRateLimit, (req, res) => {
   const servers = storage.getAllServers().filter(server => (
     !server.isDM && storage.isServerMember(server.id, req.user.id)
@@ -64,10 +64,10 @@ router.post('/join', authRateLimit, requireAuth, mutationRateLimit, (req, res) =
   const server = managedInvite
     ? storage.getServerById(managedInvite.serverId)
     : storage.getServerByInviteCode(inviteCode);
-  if (!server || server.isDM) return res.status(404).json({ error: 'Geçersiz davet kodu.' });
+  if (!server || server.isDM) return res.status(404).json({ error: 'Invalid invite code.' });
 
   if (platformService.isBanned(server.id, req.user.id)) {
-    return res.status(403).json({ error: 'Bu sunucudan yasaklandın.' });
+    return res.status(403).json({ error: 'You have been banned from this server.' });
   }
 
   if (storage.isServerMember(server.id, req.user.id)) {
@@ -75,7 +75,7 @@ router.post('/join', authRateLimit, requireAuth, mutationRateLimit, (req, res) =
   }
 
   if (managedInvite && !platformService.consumeInvite(inviteCode, req.user.id)) {
-    return res.status(410).json({ error: 'Bu davetin süresi dolmuş veya kullanım sınırına ulaşmış.' });
+    return res.status(410).json({ error: 'This invite has expired or reached its use limit.' });
   }
 
   storage.addServerMember(server.id, req.user.id);
@@ -88,7 +88,7 @@ router.post('/join', authRateLimit, requireAuth, mutationRateLimit, (req, res) =
     targetId: req.user.id,
     metadata: { inviteCode: managedInvite?.code || inviteCode },
   });
-  // Kullanıcının açık tüm sekmelerini anında sunucunun Socket.IO odasına al.
+  // Usernın açık tüm sekmelerini anında sunucunun Socket.IO odasına al.
   req.app.get('io')?.in(`user:${req.user.id}`).socketsJoin(`server:${server.id}`);
   notifyMembersChanged(req, server.id);
   emitAudit(req.app.get('io'), server.id, joinEntry);
@@ -97,7 +97,7 @@ router.post('/join', authRateLimit, requireAuth, mutationRateLimit, (req, res) =
 
 router.post('/', authRateLimit, requireAuth, mutationRateLimit, (req, res) => {
   const name = String(req.body.name || '').trim();
-  if (!name || name.length > 100) return res.status(400).json({ error: 'Geçerli bir sunucu adı gerekli.' });
+  if (!name || name.length > 100) return res.status(400).json({ error: 'A valid server name is required.' });
 
   const server = storage.createServer(name, req.user.id);
   platformService.getServerSettings(server.id);
@@ -115,7 +115,7 @@ router.post('/', authRateLimit, requireAuth, mutationRateLimit, (req, res) => {
 router.post('/:id/transfer-ownership', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const newOwnerId = String(req.body.userId || '').trim();
   if (!newOwnerId || !storage.isServerMember(req.params.id, newOwnerId)) {
-    return res.status(400).json({ error: 'Yeni sahip sunucunun bir üyesi olmalıdır.' });
+    return res.status(400).json({ error: 'The new owner must be a member of the server.' });
   }
 
   const previousOwnerId = req.user.id;
@@ -146,7 +146,7 @@ router.patch('/:serverId/members/me/profile', authRateLimit, requireAuth, mutati
 
   try {
     const profile = storage.updateServerMemberProfile(req.params.serverId, req.user.id, updates);
-    if (!profile) return res.status(404).json({ error: 'Sunucu üyeliği bulunamadı.' });
+    if (!profile) return res.status(404).json({ error: 'Server membership not found.' });
     const member = storage.getServerMemberDetails(req.params.serverId, req.user.id);
     notifyMembersChanged(req, req.params.serverId);
     req.app.get('io')?.to(`server:${req.params.serverId}`).emit('server:member-profile-updated', {
@@ -157,7 +157,7 @@ router.patch('/:serverId/members/me/profile', authRateLimit, requireAuth, mutati
     });
     return res.json({ profile, member });
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Sunucu profili güncellenemedi.' });
+    return res.status(400).json({ error: error.message || 'The server profile could not be updated.' });
   }
 });
 
@@ -173,7 +173,7 @@ router.get('/:id', authRateLimit, requireAuth, readRateLimit, requireServerMembe
 router.patch('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const name = req.body.name === undefined ? undefined : String(req.body.name).trim();
   if (name !== undefined && (!name || name.length > 100)) {
-    return res.status(400).json({ error: 'Geçerli bir sunucu adı gerekli.' });
+    return res.status(400).json({ error: 'A valid server name is required.' });
   }
 
   const updated = storage.updateServer(req.params.id, {
@@ -185,7 +185,7 @@ router.patch('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServe
     vanityCode: req.body.vanityCode,
     defaultNotificationMode: req.body.defaultNotificationMode,
   });
-  if (!updated) return res.status(400).json({ error: 'Vanity kodu geçersiz veya başka bir sunucu tarafından kullanılıyor.' });
+  if (!updated) return res.status(400).json({ error: 'The vanity code is invalid or already used by another server.' });
   if (req.body.discoveryEnabled !== undefined || req.body.description !== undefined || req.body.banner !== undefined) {
     platformService.updateDiscoverySettings(req.params.id, {
       enabled: req.body.discoveryEnabled,
@@ -211,7 +211,7 @@ router.patch('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServe
 router.put('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const name = req.body.name === undefined ? undefined : String(req.body.name).trim();
   if (name !== undefined && (!name || name.length > 100)) {
-    return res.status(400).json({ error: 'Geçerli bir sunucu adı gerekli.' });
+    return res.status(400).json({ error: 'A valid server name is required.' });
   }
   const updated = storage.updateServer(req.params.id, {
     name,
@@ -222,7 +222,7 @@ router.put('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServerO
     vanityCode: req.body.vanityCode,
     defaultNotificationMode: req.body.defaultNotificationMode,
   });
-  if (!updated) return res.status(400).json({ error: 'Vanity kodu geçersiz veya başka bir sunucu tarafından kullanılıyor.' });
+  if (!updated) return res.status(400).json({ error: 'The vanity code is invalid or already used by another server.' });
   platformService.updateDiscoverySettings(req.params.id, {
     enabled: req.body.discoveryEnabled,
     description: req.body.description,
@@ -243,7 +243,7 @@ router.put('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServerO
 
 router.post('/:id/leave', authRateLimit, requireAuth, mutationRateLimit, requireServerMember, (req, res) => {
   if (req.server.creatorId === req.user.id) {
-    return res.status(400).json({ error: 'Sunucu sahibi sunucudan ayrılamaz. Önce sahipliği devret.' });
+    return res.status(400).json({ error: 'The server owner cannot leave. Transfer ownership first.' });
   }
 
   storage.removeServerMember(req.params.id, req.user.id);
@@ -272,7 +272,7 @@ router.post('/:id/trash/:trashId/restore', authRateLimit, requireAuth, mutationR
   const server = getTrashServer(req, res);
   if (!server) return undefined;
   const result = platformService.restoreTrash(server.id, req.params.trashId);
-  if (!result) return res.status(404).json({ error: 'Çöp kutusu kaydı bulunamadı veya süresi dolmuş.' });
+  if (!result) return res.status(404).json({ error: 'The trash entry was not found or has expired.' });
   const entry = platformService.addAuditLog(server.id, {
     action: 'CHANNEL_RESTORE',
     actorId: req.user.id,
@@ -298,7 +298,7 @@ router.delete('/:id/trash/:trashId', authRateLimit, requireAuth, mutationRateLim
   const server = getTrashServer(req, res);
   if (!server) return undefined;
   if (!platformService.purgeTrash(server.id, req.params.trashId)) {
-    return res.status(404).json({ error: 'Çöp kutusu kaydı bulunamadı.' });
+    return res.status(404).json({ error: 'Trash entry not found.' });
   }
   const entry = platformService.addAuditLog(server.id, {
     action: 'TRASH_PURGE',
@@ -321,7 +321,7 @@ router.delete('/:id/trash/:trashId', authRateLimit, requireAuth, mutationRateLim
 router.delete('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const serverId = req.params.id;
   platformService.deleteServerData(serverId);
-  if (!storage.deleteServer(serverId)) return res.status(404).json({ error: 'Sunucu bulunamadı.' });
+  if (!storage.deleteServer(serverId)) return res.status(404).json({ error: 'Server not found.' });
 
   req.app.get('io')?.to(`server:${serverId}`).emit('server:deleted', { serverId });
   return res.json({ message: 'Sunucu silindi.' });

@@ -1,8 +1,8 @@
 {
   "name": "tahosapp",
   "short_name": "tahosapp",
-  "description": "Mesajlaşma, Sesli Sohbet ve Topluluk | tahosapp bağımsız iletişim platformu.",
-  "lang": "tr-TR",
+  "description": "Messaging, Voice Chat and Communities | The independent tahosapp communication platform.",
+  "lang": "en-US",
   "start_url": "/app/",
   "scope": "/app/",
   "display": "standalone",

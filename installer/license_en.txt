@@ -1,0 +1,35 @@
+TAHOSAPP END USER LICENSE AGREEMENT AND PRIVACY NOTICE
+Version 1.1 — Last updated: August 22, 2026
+
+PLEASE READ THIS DOCUMENT BEFORE INSTALLATION.
+
+By selecting “I Agree,” you agree to install and use tahosapp under these terms. If you do not agree, cancel the installation.
+
+1. LICENSE TO USE
+tahosapp grants you a limited, non-transferable, non-exclusive right to use the application for personal or internal organizational communication. You may not use the application for unlawful activity, harassment, unauthorized access, malware distribution, or infringement of others’ rights.
+
+2. ACCOUNT AND SECURITY
+You are responsible for the security of your account, email address, and verification codes. If you suspect unauthorized use, change your password and notify the application administrator.
+
+3. DATA PROCESSED
+The application may process account details, server and channel memberships, messages, friendship data, roles and permissions, and uploaded files in order to operate. Local application data is stored in encrypted form. Email addresses may be used for registration, sign-in verification, password resets, and email changes.
+
+4. VOICE, VIDEO, AND SCREEN SHARING
+Microphone, camera, and screen capture features are used only with your permission and when you start the related action. Voice and video may be sent to other participants through real-time connections. You are responsible for ensuring that your screen contains no personal or confidential information before sharing it.
+
+5. RICH PRESENCE AND MEDIA INFORMATION
+When automatic activity detection is enabled, the current game and media information supplied by Windows may be shared on your profile. Sharing controls for games, Spotify, YouTube Music, other media apps, titles, artists, albums, duration, and progress are available separately in application settings.
+
+6. THIRD-PARTY SERVICES
+Optional features such as GIF search, email delivery, link previews, and Spotify integration may use third-party services. Their own terms and privacy practices may apply. Open-source component licenses are listed in THIRD_PARTY_NOTICES.md.
+
+7. UPDATES AND STARTUP OPTIONS
+During installation, you can choose to create a desktop shortcut and start tahosapp automatically with Windows. These options can be changed later. New releases may provide security, compatibility, and feature improvements.
+
+8. CONTENT AND LIABILITY
+You are responsible for messages, files, streams, and other content you submit. To the extent permitted by law, the application is provided as-is. Nothing in this section limits mandatory consumer rights.
+
+9. UNINSTALLATION AND LOCAL DATA
+The application can be removed from Windows Settings > Apps. Account and local data files may be retained after uninstalling to prevent accidental data loss. Create any required backups before deleting them separately.
+
+Continuing with installation confirms that you have read and accepted this document.

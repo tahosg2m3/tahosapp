@@ -4,6 +4,7 @@ const {
   normalizeAttachments,
   normalizeVoiceMessage,
 } = require('../../services/messageService');
+const { normalizeSpotifyInvite } = require('../../services/spotifyService');
 const { messageModerationService } = require('../../services/messageModerationService');
 const { platformService } = require('../../services/platformService');
 const storage = require('../../storage/inMemory');
@@ -70,18 +71,18 @@ function getChannelAccess(channelId, userId, permission = 'VIEW_CHANNEL') {
 
 function emitAccessError(socket, access, fallbackMessage) {
   const definitions = {
-    BANNED: 'Bu sunucudan yasaklandığın için mesaj gönderemezsin.',
-    TIMEOUT: 'Bu sunucuda geçici olarak susturuldun.',
-    NOT_A_MEMBER: 'Bu sunucunun üyesi değilsin.',
-    CHANNEL_NOT_FOUND: 'Kanal bulunamadı.',
-    SERVER_NOT_FOUND: 'Sunucu bulunamadı.',
-    MISSING_PERMISSION: fallbackMessage || 'Bu işlem için gerekli yetkin yok.',
-    USER_BLOCKED: 'Engellenen bir kullanıcıyla özel mesajlaşamazsın.',
-    VERIFICATION_REQUIRED: 'Mesaj göndermeden önce sunucu kurallarını kabul etmelisin.',
+    BANNED: 'You cannot send messages because you are banned from this server.',
+    TIMEOUT: 'You are temporarily timed out on this server.',
+    NOT_A_MEMBER: 'You are not a member of this server.',
+    CHANNEL_NOT_FOUND: 'Channel not found.',
+    SERVER_NOT_FOUND: 'Server not found.',
+    MISSING_PERMISSION: fallbackMessage || 'You do not have permission to perform this action.',
+    USER_BLOCKED: 'You cannot message a blocked user.',
+    VERIFICATION_REQUIRED: 'You must accept the server rules before sending messages.',
   };
 
   socket.emit('message:error', {
-    message: definitions[access.code] || fallbackMessage || 'Bu işlem gerçekleştirilemedi.',
+    message: definitions[access.code] || fallbackMessage || 'This action could not be completed.',
     code: access.code || 'MISSING_PERMISSION',
     retryAfterMs: access.retryAfterMs,
   });
@@ -128,7 +129,7 @@ function notifyRecipients(io, message, server, senderId) {
   const recipientIds = server.isDM
     ? (server.dmUserIds || [])
     : (storage.serverMembers.get(server.id) || []);
-  const body = message.content || (message.attachments?.length ? 'Bir dosya gönderdi.' : 'Yeni mesaj');
+  const body = message.content || (message.attachments?.length ? 'Sent a file.' : 'New message');
 
   recipientIds.forEach(recipientId => {
     if (recipientId === senderId) return;
@@ -136,7 +137,7 @@ function notifyRecipients(io, message, server, senderId) {
     const recipient = storage.getUserById(recipientId);
     const mentioned = Boolean(
       recipient?.username
-      && message.content?.toLocaleLowerCase('tr-TR').includes(`@${recipient.username}`.toLocaleLowerCase('tr-TR')),
+      && message.content?.toLocaleLowerCase('en-US').includes(`@${recipient.username}`.toLocaleLowerCase('en-US')),
     );
     const decision = notificationDecision(recipientId, message, server, mentioned);
     if (!decision.allowed) return;
@@ -145,7 +146,7 @@ function notifyRecipients(io, message, server, senderId) {
       id: `message-${message.id}-${recipientId}`,
       messageId: message.id,
       channelId: message.channelId,
-      title: mentioned ? `${message.username} senden bahsetti` : `${message.username} yeni mesaj gönderdi`,
+      title: mentioned ? `${message.username} mentioned you` : `${message.username} sent a new message`,
       body: body.slice(0, 180),
       timestamp: message.timestamp,
       isMention: mentioned,
@@ -169,6 +170,7 @@ async function forwardAnnouncement(io, message, channel) {
       channelId: targetChannel.id,
       attachments: message.attachments || [],
       voiceMessage: message.voiceMessage || null,
+      spotifyInvite: message.spotifyInvite || null,
     });
     forwarded.forwardedFrom = {
       serverId: channel.serverId,
@@ -199,13 +201,13 @@ async function executeSlashCommand(io, socket, access, user, content) {
   if (access.server.isDM || !content.startsWith('/')) return false;
   const match = content.match(/^\/([a-z0-9_-]{1,32})(?:\s+([\s\S]*))?$/i);
   if (!match) {
-    socket.emit('message:error', { message: 'Slash komutu biçimi geçersiz.', code: 'INVALID_COMMAND' });
+    socket.emit('message:error', { message: 'The slash command format is invalid.', code: 'INVALID_COMMAND' });
     return true;
   }
   const [, commandName, rawArgs = ''] = match;
   const command = platformService.getCommand(access.server.id, commandName.toLowerCase());
   if (!command || !command.enabled) {
-    socket.emit('message:error', { message: `/${commandName} komutu bulunamadı.`, code: 'UNKNOWN_COMMAND' });
+    socket.emit('message:error', { message: `/${commandName} commandu not found.`, code: 'UNKNOWN_COMMAND' });
     return true;
   }
   const missingPermission = (command.requiredPermissions || []).find(permission => (
@@ -213,7 +215,7 @@ async function executeSlashCommand(io, socket, access, user, content) {
   ));
   if (missingPermission) {
     socket.emit('message:error', {
-      message: 'Bu komutu kullanmak için gerekli yetkin yok.',
+      message: 'You do not have permission to use this command.',
       code: 'COMMAND_MISSING_PERMISSION',
       permission: missingPermission,
     });
@@ -223,7 +225,7 @@ async function executeSlashCommand(io, socket, access, user, content) {
   const template = String(command.response || '').trim();
   if (!template) {
     socket.emit('message:error', {
-      message: `/${command.name} komutunun yanıtı henüz ayarlanmamış.`,
+      message: `/${command.name} command does not have a response configured yet.`,
       code: 'COMMAND_NO_RESPONSE',
     });
     return true;
@@ -284,38 +286,47 @@ async function executeSlashCommand(io, socket, access, user, content) {
 
 exports.handleSend = async (io, socket, data = {}) => {
   try {
-    const { content, channelId, attachments, replyTo } = data;
+    const { content, channelId, attachments, replyTo, spotifyInvite } = data;
     const finalUserId = socket.authUser?.id;
     const authenticatedUser = finalUserId ? storage.getUserById(finalUserId) : null;
     const finalUsername = authenticatedUser?.username;
     const cleanContent = String(content || '').trim();
     const safeAttachments = normalizeAttachments(attachments);
     const voiceMessage = normalizeVoiceMessage(data.voiceMessage);
+    const safeSpotifyInvite = normalizeSpotifyInvite(spotifyInvite);
 
     if (cleanContent.length > MAX_MESSAGE_LENGTH) {
       socket.emit('message:error', {
-        message: `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`,
+        message: `Messages can contain at most ${MAX_MESSAGE_LENGTH} characters.`,
         code: 'MESSAGE_TOO_LONG',
       });
       return;
     }
 
     if (Array.isArray(attachments) && attachments.length > 0 && safeAttachments.length === 0) {
-      socket.emit('message:error', { message: 'Ek dosya bağlantısı geçersiz.', code: 'INVALID_ATTACHMENT' });
+      socket.emit('message:error', { message: 'The attachment URL is invalid.', code: 'INVALID_ATTACHMENT' });
       return;
     }
 
     if (data.voiceMessage != null && !voiceMessage) {
       socket.emit('message:error', {
-        message: 'Sesli mesaj verisi geçersiz.',
+        message: 'The voice message data is invalid.',
         code: 'INVALID_VOICE_MESSAGE',
+      });
+      return;
+    }
+
+    if (spotifyInvite != null && !safeSpotifyInvite) {
+      socket.emit('message:error', {
+        message: 'The Spotify listening invite is invalid.',
+        code: 'INVALID_SPOTIFY_INVITE',
       });
       return;
     }
 
     if ((!cleanContent && safeAttachments.length === 0 && !voiceMessage) || !finalUsername || !channelId) {
       socket.emit('message:error', {
-        message: 'Gönderilecek geçerli bir mesaj veya dosya bulunamadı.',
+        message: 'No valid message or file was provided.',
         code: 'INVALID_MESSAGE',
       });
       return;
@@ -323,7 +334,7 @@ exports.handleSend = async (io, socket, data = {}) => {
 
     const access = getChannelAccess(channelId, finalUserId, 'SEND_MESSAGES');
     if (!access.allowed) {
-      emitAccessError(socket, access, 'Bu kanala mesaj gönderme yetkin yok.');
+      emitAccessError(socket, access, 'You do not have permission to send messages in this channel.');
       return;
     }
 
@@ -362,6 +373,7 @@ exports.handleSend = async (io, socket, data = {}) => {
       attachments: safeAttachments,
       replyTo: safeReply,
       voiceMessage,
+      spotifyInvite: safeSpotifyInvite,
     });
 
     if (!access.server.isDM) {
@@ -385,8 +397,8 @@ exports.handleSend = async (io, socket, data = {}) => {
           const recipient = storage.getUserById(recipientId);
           const mentioned = Boolean(
             recipient?.username
-            && message.content?.toLocaleLowerCase('tr-TR')
-              .includes(`@${recipient.username}`.toLocaleLowerCase('tr-TR')),
+            && message.content?.toLocaleLowerCase('en-US')
+              .includes(`@${recipient.username}`.toLocaleLowerCase('en-US')),
           );
           if (notificationDecision(recipientId, message, access.server, mentioned).allowed) {
             io.to(`user:${recipientId}`).emit('dm:notification', { channelId, message });
@@ -395,8 +407,8 @@ exports.handleSend = async (io, socket, data = {}) => {
       });
     }
   } catch (error) {
-    console.error('Mesaj gönderilirken sunucuda hata oluştu:', error);
-    socket.emit('message:error', { message: 'Mesaj gönderilemedi.', code: 'MESSAGE_SEND_FAILED' });
+    console.error('Send messagesilirken sunucuda hata oluştu:', error);
+    socket.emit('message:error', { message: 'Message could not be sent.', code: 'MESSAGE_SEND_FAILED' });
   }
 };
 
@@ -407,7 +419,7 @@ exports.handleEdit = (io, socket, data = {}) => {
     const cleanContent = String(content || '').trim();
     if (cleanContent.length > MAX_MESSAGE_LENGTH) {
       socket.emit('message:error', {
-        message: `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`,
+        message: `Messages can contain at most ${MAX_MESSAGE_LENGTH} characters.`,
         code: 'MESSAGE_TOO_LONG',
       });
       return;
@@ -415,15 +427,15 @@ exports.handleEdit = (io, socket, data = {}) => {
     const access = getChannelAccess(channelId, userId, 'SEND_MESSAGES');
     const originalMessage = findMessage(channelId, messageId);
     if (!access.allowed) {
-      emitAccessError(socket, access, 'Bu kanalda mesaj düzenleme yetkin yok.');
+      emitAccessError(socket, access, 'You do not have permission to edit messages in this channel.');
       return;
     }
     if (!originalMessage || originalMessage.userId !== userId) {
-      socket.emit('message:error', { message: 'Düzenlenecek mesaj bulunamadı.', code: 'MESSAGE_NOT_FOUND' });
+      socket.emit('message:error', { message: 'Editnecek mesaj not found.', code: 'MESSAGE_NOT_FOUND' });
       return;
     }
     if (!cleanContent && !(originalMessage.attachments || []).length) {
-      socket.emit('message:error', { message: 'Mesaj içeriği boş olamaz.', code: 'INVALID_MESSAGE' });
+      socket.emit('message:error', { message: 'Message content cannot be empty.', code: 'INVALID_MESSAGE' });
       return;
     }
 
@@ -459,8 +471,8 @@ exports.handleEdit = (io, socket, data = {}) => {
       }
     }
   } catch (error) {
-    console.error('Mesaj düzenleme hatası:', error);
-    socket.emit('message:error', { message: 'Mesaj düzenlenemedi.', code: 'MESSAGE_EDIT_FAILED' });
+    console.error('Message düzenleme hatası:', error);
+    socket.emit('message:error', { message: 'The message could not be edited.', code: 'MESSAGE_EDIT_FAILED' });
   }
 };
 
@@ -490,7 +502,7 @@ exports.handleDelete = (io, socket, data = {}) => {
       }
     }
   } catch (error) {
-    console.error('Mesaj silme hatası:', error);
+    console.error('Message silme hatası:', error);
   }
 };
 
@@ -522,7 +534,7 @@ exports.handleReactionToggle = (io, socket, data = {}) => {
       reactions: message.reactions,
     });
   } catch (error) {
-    console.error('Mesaj tepkisi güncellenemedi:', error);
+    console.error('Message tepkisi güncellenemedi:', error);
   }
 };
 
@@ -532,7 +544,7 @@ exports.handlePinToggle = (io, socket, data = {}) => {
     const userId = socket.userData?.userId;
     const access = getChannelAccess(channelId, userId, 'MANAGE_MESSAGES');
     if (!access.allowed) {
-      socket.emit('message:error', { message: 'Mesaj sabitleme yetkin yok.' });
+      socket.emit('message:error', { message: 'You do not have permission to pin messages.' });
       return;
     }
 
@@ -551,7 +563,7 @@ exports.handlePinToggle = (io, socket, data = {}) => {
       pinnedAt: message.pinnedAt,
     });
   } catch (error) {
-    console.error('Mesaj sabitleme güncellenemedi:', error);
+    console.error('Message sabitleme güncellenemedi:', error);
   }
 };
 
@@ -559,19 +571,19 @@ exports.handleSearch = (io, socket, data = {}, callback) => {
   try {
     const { channelId } = data;
     const userId = socket.userData?.userId;
-    const query = String(data.query || '').trim().toLocaleLowerCase('tr-TR');
+    const query = String(data.query || '').trim().toLocaleLowerCase('en-US');
     const access = getChannelAccess(channelId, userId, 'VIEW_CHANNEL');
     if (!access.allowed) return;
 
     const messages = query
       ? storage.getChannelMessages(channelId)
-        .filter(message => `${message.username || ''} ${message.content || ''} ${(message.attachments || []).map(file => file.filename || file.name || '').join(' ')}`.toLocaleLowerCase('tr-TR').includes(query))
+        .filter(message => `${message.username || ''} ${message.content || ''} ${(message.attachments || []).map(file => file.filename || file.name || '').join(' ')}`.toLocaleLowerCase('en-US').includes(query))
         .slice(-100)
       : [];
     const payload = { channelId, messages };
     if (typeof callback === 'function') callback(payload);
     socket.emit('message:search:results', payload);
   } catch (error) {
-    console.error('Mesaj araması başarısız:', error);
+    console.error('Message araması başarısız:', error);
   }
 };

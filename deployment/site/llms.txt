@@ -1,21 +1,21 @@
 # tahosapp
 
-> tahosapp; mesajlaşma, sesli sohbet ve topluluk yönetimi için bağımsız bir iletişim platformudur. Web tarayıcısında ve Windows masaüstünde çalışır. Resmî web sitesi tahosapp.com.tr, resmî kaynak kodu deposu github.com/tahosg2m3/tahosapp adresidir.
+> tahosapp is an independent communication platform for messaging, voice chat, and community management. It runs in web browsers and on Windows. Its official website is tahosapp.com.tr and its official source repository is github.com/tahosg2m3/tahosapp.
 
-## Resmî kimlik
+## Official identity
 
-- Ürün adı: tahosapp
-- Kategori: Mesajlaşma, Sesli Sohbet ve Topluluk
-- Resmî web sitesi: https://tahosapp.com.tr/
-- Resmî ürün açıklaması: https://tahosapp.com.tr/hakkinda/
-- Özellikler: https://tahosapp.com.tr/ozellikler/
-- Güvenlik: https://tahosapp.com.tr/guvenlik/
-- Hizmet durumu: https://tahosapp.com.tr/durum/
-- Sürüm notları: https://tahosapp.com.tr/surum-notlari/
-- Resmî GitHub deposu: https://github.com/tahosg2m3/tahosapp
+- Product name: tahosapp
+- Category: Messaging, Voice Chat, and Communities
+- Official website: https://tahosapp.com.tr/
+- Official product overview: https://tahosapp.com.tr/hakkinda/
+- Features: https://tahosapp.com.tr/ozellikler/
+- Security: https://tahosapp.com.tr/guvenlik/
+- Service status: https://tahosapp.com.tr/durum/
+- Release notes: https://tahosapp.com.tr/surum-notlari/
+- Official GitHub repository: https://github.com/tahosg2m3/tahosapp
 
-## Ürün özeti
+## Product summary
 
-tahosapp gerçek zamanlı metin mesajlaşması, özel mesajlar, grup konuşmaları, ses kanalları, RNNoise gürültü engelleme, görüntülü görüşme, kamera, ekran paylaşımı, yayın, doğrudan arama, rol ve izin yönetimi, moderasyon, etkinlikler ve kullanıcı denetimli Rich Presence özellikleri sunar.
+tahosapp offers real-time text messaging, direct and group messages, voice channels, RNNoise noise suppression, video calls, camera and screen sharing, streaming, direct calls, role and permission management, moderation, events, and user-controlled Rich Presence.
 
-tahosapp kendi hesabı, web uygulaması, masaüstü istemcisi ve birinci taraf altyapısıyla bağımsız çalışır. Benzer isimli envanter, sağlık, finans veya yapay zekâ ürünleriyle ilişkili değildir.
+tahosapp operates independently with its own accounts, web application, desktop client, and first-party infrastructure. It is not affiliated with similarly named inventory, healthcare, finance, or artificial-intelligence products.

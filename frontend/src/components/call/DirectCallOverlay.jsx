@@ -58,7 +58,7 @@ export default function DirectCallOverlay() {
 
   if (!call) return null;
   const otherUser = call.otherUser || (call.direction === 'incoming' ? call.caller : call.callee) || {};
-  const name = otherUser.username || 'Bilinmeyen kullanıcı';
+  const name = otherUser.username || 'Unknown user';
   const initial = name[0]?.toUpperCase() || '?';
   const avatarColor = getColorForString(name);
   const avatarUrl = resolveSafeAvatarUrl(otherUser.avatar);
@@ -82,7 +82,7 @@ export default function DirectCallOverlay() {
             <h2 className={`${ringing ? 'text-2xl' : 'truncate text-base'} font-bold text-white`}>{name}</h2>
             <div className={`mt-1 flex items-center ${ringing ? 'justify-center' : ''} gap-2 text-sm text-[#94a3b8]`}>
               {ringing ? (incoming ? <PhoneIncoming className="h-4 w-4" /> : <PhoneOutgoing className="h-4 w-4" />) : active ? <Phone className="h-4 w-4 text-[#34d399]" /> : <Loader2 className="h-4 w-4 animate-spin" />}
-              <span>{ringing ? (incoming ? 'Gelen çağrı' : 'Aranıyor…') : active ? 'Arama bağlı' : 'Bağlanıyor…'}</span>
+              <span>{ringing ? (incoming ? 'Incoming call' : 'Calling…') : active ? 'Call connected' : 'Connecting…'}</span>
               {ringing && <span className="font-mono text-xs text-[#64748b]">{remainingSeconds}s</span>}
             </div>
             {callError && <p className="mt-2 text-xs text-[#fca5a5]">{callError}</p>}
@@ -91,14 +91,14 @@ export default function DirectCallOverlay() {
           {ringing ? (
             <div className="mt-7 flex items-center justify-center gap-5">
               {incoming && (
-                <button type="button" onClick={acceptCall} className="flex h-14 w-14 items-center justify-center rounded-full bg-[#23a559] text-white shadow-lg transition hover:bg-[#1a7f43]" title="Çağrıyı kabul et" aria-label="Çağrıyı kabul et"><Phone className="h-6 w-6" /></button>
+                <button type="button" onClick={acceptCall} className="flex h-14 w-14 items-center justify-center rounded-full bg-[#23a559] text-white shadow-lg transition hover:bg-[#1a7f43]" title="Accept call" aria-label="Accept call"><Phone className="h-6 w-6" /></button>
               )}
-              <button type="button" onClick={incoming ? rejectCall : cancelCall} className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ef4444] text-white shadow-lg transition hover:bg-[#dc2626]" title={incoming ? 'Çağrıyı reddet' : 'Aramayı iptal et'} aria-label={incoming ? 'Çağrıyı reddet' : 'Aramayı iptal et'}><PhoneOff className="h-6 w-6" /></button>
+              <button type="button" onClick={incoming ? rejectCall : cancelCall} className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ef4444] text-white shadow-lg transition hover:bg-[#dc2626]" title={incoming ? 'Decline call' : 'Cancel call'} aria-label={incoming ? 'Decline call' : 'Cancel call'}><PhoneOff className="h-6 w-6" /></button>
             </div>
           ) : (
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <button type="button" onClick={toggleCallMute} className={`flex h-10 w-10 items-center justify-center rounded-full transition ${isMuted ? 'bg-[#ef4444] text-white' : 'bg-white/[0.08] text-[#cbd5e1] hover:bg-white/[0.14]'}`} title={isMuted ? 'Mikrofonu aç' : 'Mikrofonu kapat'}>{isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</button>
-              <button type="button" onClick={endCall} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white transition hover:bg-[#dc2626]" title="Aramayı sonlandır"><PhoneOff className="h-4 w-4" /></button>
+              <button type="button" onClick={toggleCallMute} className={`flex h-10 w-10 items-center justify-center rounded-full transition ${isMuted ? 'bg-[#ef4444] text-white' : 'bg-white/[0.08] text-[#cbd5e1] hover:bg-white/[0.14]'}`} title={isMuted ? 'Unmute microphone' : 'Mute microphone'}>{isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</button>
+              <button type="button" onClick={endCall} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white transition hover:bg-[#dc2626]" title="End call"><PhoneOff className="h-4 w-4" /></button>
             </div>
           )}
         </div>

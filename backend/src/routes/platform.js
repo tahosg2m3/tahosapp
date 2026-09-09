@@ -58,19 +58,19 @@ function getServer(req, res, { permission = null, ownerOnly = false } = {}) {
   const serverId = text(req.params.serverId, 100);
   const server = storage.getServerById(serverId);
   if (!server || server.isDM) {
-    res.status(404).json({ error: 'Sunucu bulunamadı.' });
+    res.status(404).json({ error: 'Server not found.' });
     return null;
   }
   if (!storage.isServerMember(serverId, req.user.id)) {
-    res.status(403).json({ error: 'Bu sunucuya erişim yetkin yok.' });
+    res.status(403).json({ error: 'You do not have access to this server.' });
     return null;
   }
   if (ownerOnly && server.creatorId !== req.user.id) {
-    res.status(403).json({ error: 'Bu işlem yalnızca sunucu sahibine açıktır.' });
+    res.status(403).json({ error: 'Only the server owner can perform this action.' });
     return null;
   }
   if (permission && server.creatorId !== req.user.id && !storage.hasPermission(serverId, req.user.id, permission)) {
-    res.status(403).json({ error: 'Bu işlem için gerekli yetkin yok.' });
+    res.status(403).json({ error: 'You do not have permission to perform this action.' });
     return null;
   }
   return server;
@@ -80,19 +80,19 @@ function getChannel(req, res, permission = 'VIEW_CHANNEL') {
   const channelId = text(req.params.channelId, 100);
   const channel = storage.getChannelById(channelId);
   if (!channel) {
-    res.status(404).json({ error: 'Kanal bulunamadı.' });
+    res.status(404).json({ error: 'Channel not found.' });
     return null;
   }
   const server = storage.getServerById(channel.serverId);
   if (!server || server.isDM || !storage.isServerMember(server.id, req.user.id)) {
-    res.status(403).json({ error: 'Bu kanala erişim yetkin yok.' });
+    res.status(403).json({ error: 'You do not have access to this channel.' });
     return null;
   }
   const allowed = typeof platformService.hasChannelPermission === 'function'
     ? platformService.hasChannelPermission(channel.id, req.user.id, permission)
     : storage.hasPermission(server.id, req.user.id, permission);
   if (!allowed) {
-    res.status(403).json({ error: 'Bu işlem için kanal yetkin yok.' });
+    res.status(403).json({ error: 'You do not have the required channel permission.' });
     return null;
   }
   if (CHANNEL_WRITE_PERMISSIONS.has(permission)) {
@@ -100,14 +100,14 @@ function getChannel(req, res, permission = 'VIEW_CHANNEL') {
       || storage.hasPermission(server.id, req.user.id, 'ADMINISTRATOR');
     if (platformService.isMemberTimedOut(server.id, req.user.id)) {
       res.status(403).json({
-        error: 'Zaman aşımındayken bu kanala içerik gönderemezsin.',
+        error: 'You cannot post in this channel while timed out.',
         code: 'TIMEOUT',
       });
       return null;
     }
     if (!bypassScreening && !platformService.isMemberVerified(server.id, req.user.id)) {
       res.status(403).json({
-        error: 'İçerik göndermeden önce sunucu kurallarını kabul etmelisin.',
+        error: 'You must accept the server rules before posting.',
         code: 'RULES_NOT_ACCEPTED',
       });
       return null;
@@ -165,7 +165,7 @@ function audit(req, serverId, action, targetType, targetId, metadata = {}) {
 
 function serviceError(res, error) {
   const status = Number(error?.statusCode) || 400;
-  return res.status(status).json({ error: error?.message || 'İşlem tamamlanamadı.' });
+  return res.status(status).json({ error: error?.message || 'The action could not be completed.' });
 }
 
 function withWebhookEndpoint(webhook) {
@@ -213,10 +213,10 @@ function publicTemplate(template) {
 router.get('/invites/:code', publicReadRateLimit, (req, res) => {
   const invite = platformService.getInviteByCode(text(req.params.code, 64));
   if (!invite || invite.revokedAt || (invite.expiresAt && invite.expiresAt <= Date.now())) {
-    return res.status(404).json({ error: 'Davet geçersiz veya süresi dolmuş.' });
+    return res.status(404).json({ error: 'The invite is invalid or expired.' });
   }
   const server = storage.getServerById(invite.serverId);
-  if (!server || server.isDM) return res.status(404).json({ error: 'Sunucu bulunamadı.' });
+  if (!server || server.isDM) return res.status(404).json({ error: 'Server not found.' });
   return res.json({
     code: invite.code,
     server: { id: server.id, name: server.name, icon: server.icon || null },
@@ -239,10 +239,10 @@ router.post('/webhooks/:webhookId/:token/messages', webhookRateLimit, async (req
   try {
     const webhook = platformService.getWebhookByToken(text(req.params.token, 200));
     if (!webhook || webhook.id !== text(req.params.webhookId, 100)) {
-      return res.status(404).json({ error: 'Webhook bulunamadı.' });
+      return res.status(404).json({ error: 'Webhook not found.' });
     }
     const content = text(req.body.content, 2000);
-    if (!content) return res.status(400).json({ error: 'Mesaj içeriği gerekli.' });
+    if (!content) return res.status(400).json({ error: 'Message content is required.' });
     const replyTargetId = text(req.body.replyToMessageId || req.body.replyTo?.id, 128);
     const replyTarget = replyTargetId
       ? storage.getChannelMessages(webhook.channelId).find(item => item.id === replyTargetId)
@@ -304,7 +304,7 @@ router.delete('/servers/:serverId/invites/:inviteId', (req, res) => {
   const server = getServer(req, res, { permission: 'MANAGE_SERVER' });
   if (!server) return undefined;
   const removed = platformService.revokeInvite(server.id, text(req.params.inviteId, 100));
-  if (!removed) return res.status(404).json({ error: 'Davet bulunamadı.' });
+  if (!removed) return res.status(404).json({ error: 'Invite not found.' });
   audit(req, server.id, 'INVITE_REVOKE', 'invite', req.params.inviteId);
   emitUpdate(req, server.id, 'invites', 'deleted', { id: req.params.inviteId });
   return res.json({ success: true });
@@ -371,7 +371,7 @@ router.post('/servers/:serverId/reports', (req, res) => {
   const server = getServer(req, res);
   if (!server) return undefined;
   const reason = text(req.body.reason, 1000);
-  if (!reason) return res.status(400).json({ error: 'Şikâyet nedeni gerekli.' });
+  if (!reason) return res.status(400).json({ error: 'A report reason is required.' });
   try {
     const report = platformService.createReport(server.id, req.user.id, {
       targetUserId: text(req.body.targetUserId, 100) || null,
@@ -404,7 +404,7 @@ router.patch('/servers/:serverId/reports/:reportId', (req, res) => {
     resolution: text(req.body.resolution, 1000) || null,
     moderatorId: req.user.id,
   });
-  if (!report) return res.status(404).json({ error: 'Şikâyet bulunamadı.' });
+  if (!report) return res.status(404).json({ error: 'Report not found.' });
   audit(req, server.id, 'REPORT_UPDATE', 'report', report.id, { status: report.status });
   emitUpdate(req, server.id, 'reports', 'updated', report);
   return res.json(report);
@@ -414,7 +414,7 @@ router.delete('/servers/:serverId/reports/:reportId', (req, res) => {
   const server = getServer(req, res, { permission: 'MODERATE_MEMBERS' });
   if (!server) return undefined;
   if (!platformService.deleteReport(server.id, text(req.params.reportId, 100))) {
-    return res.status(404).json({ error: 'Şikâyet bulunamadı.' });
+    return res.status(404).json({ error: 'Report not found.' });
   }
   audit(req, server.id, 'REPORT_DELETE', 'report', req.params.reportId);
   emitUpdate(req, server.id, 'reports', 'deleted', { id: req.params.reportId });
@@ -433,14 +433,14 @@ router.put('/servers/:serverId/bans/:userId', (req, res) => {
   const targetUserId = text(req.params.userId, 100);
   if (targetUserId === server.creatorId || (storage.isServerMember(server.id, targetUserId)
     && !storage.canManageMember(server.id, req.user.id, targetUserId))) {
-    return res.status(403).json({ error: 'Bu üyeyi yasaklamak için rol hiyerarşin yeterli değil.' });
+    return res.status(403).json({ error: 'Your role hierarchy is not high enough to ban this member.' });
   }
   const ban = platformService.banUser(server.id, targetUserId, {
     createdBy: req.user.id,
     reason: text(req.body.reason, 500) || null,
     deleteMessageSeconds: integer(req.body.deleteMessageSeconds, 0, 0, 604800),
   });
-  if (!ban) return res.status(400).json({ error: 'Kullanıcı zaten yasaklı veya yasak kaydı oluşturulamadı.' });
+  if (!ban) return res.status(400).json({ error: 'The user is already banned or the ban could not be created.' });
   platformService.revokeRulesAcknowledgement(server.id, targetUserId);
   disconnectUserFromServerVoice(req.app.get('io'), server.id, targetUserId);
   storage.removeServerMember(server.id, targetUserId);
@@ -456,7 +456,7 @@ router.delete('/servers/:serverId/bans/:userId', (req, res) => {
   const server = getServer(req, res, { permission: 'BAN_MEMBERS' });
   if (!server) return undefined;
   if (!platformService.unbanUser(server.id, text(req.params.userId, 100))) {
-    return res.status(404).json({ error: 'Yasak kaydı bulunamadı.' });
+    return res.status(404).json({ error: 'Ban record not found.' });
   }
   audit(req, server.id, 'MEMBER_UNBAN', 'user', req.params.userId);
   emitUpdate(req, server.id, 'bans', 'deleted', { userId: req.params.userId });
@@ -513,7 +513,7 @@ router.post('/servers/:serverId/onboarding/acknowledge', (req, res) => {
     onboardingResponses: req.body.answers && typeof req.body.answers === 'object' ? req.body.answers : {},
     emailVerified: Boolean(req.user.emailVerified),
   });
-  if (!verification) return res.status(400).json({ error: 'Kuralların tamamı kabul edilmelidir.' });
+  if (!verification) return res.status(400).json({ error: 'All rules must be accepted.' });
   emitUpdate(req, server.id, 'onboarding', 'member-verified', { userId: req.user.id });
   return res.json(verification);
 });
@@ -534,7 +534,7 @@ router.post('/servers/:serverId/events', (req, res) => {
   try {
     const startsAt = Number(req.body.scheduledStartAt ?? req.body.startsAt);
     if (!Number.isFinite(startsAt) || startsAt <= Date.now()) {
-      return res.status(400).json({ error: 'Etkinlik başlangıcı gelecekte geçerli bir tarih olmalıdır.' });
+      return res.status(400).json({ error: 'The event must have a valid future start date.' });
     }
     const event = platformService.createEvent(server.id, req.user.id, {
       name: text(req.body.name, 100),
@@ -547,7 +547,7 @@ router.post('/servers/:serverId/events', (req, res) => {
       image: text(req.body.image, 1000) || null,
     });
     if (!event) {
-      return res.status(400).json({ error: 'Etkinlik bilgileri geçersiz. Başlangıç ve bitiş saatlerini kontrol et.' });
+      return res.status(400).json({ error: 'The event details are invalid. Check the start and end times.' });
     }
     audit(req, server.id, 'EVENT_CREATE', 'event', event.id);
     emitUpdate(req, server.id, 'events', 'created', event);
@@ -565,7 +565,7 @@ router.patch('/servers/:serverId/events/:eventId', (req, res) => {
     startsAt: req.body.scheduledStartAt ?? req.body.startsAt,
     endsAt: req.body.scheduledEndAt ?? req.body.endsAt,
   });
-  if (!event) return res.status(404).json({ error: 'Etkinlik bulunamadı.' });
+  if (!event) return res.status(404).json({ error: 'Event not found.' });
   audit(req, server.id, 'EVENT_UPDATE', 'event', event.id);
   emitUpdate(req, server.id, 'events', 'updated', event);
   return res.json(event);
@@ -575,7 +575,7 @@ router.delete('/servers/:serverId/events/:eventId', (req, res) => {
   const server = getServer(req, res, { permission: 'MANAGE_EVENTS' });
   if (!server) return undefined;
   if (!platformService.deleteEvent(server.id, text(req.params.eventId, 100))) {
-    return res.status(404).json({ error: 'Etkinlik bulunamadı.' });
+    return res.status(404).json({ error: 'Event not found.' });
   }
   audit(req, server.id, 'EVENT_DELETE', 'event', req.params.eventId);
   emitUpdate(req, server.id, 'events', 'deleted', { id: req.params.eventId });
@@ -591,7 +591,7 @@ router.put('/servers/:serverId/events/:eventId/rsvp', (req, res) => {
     req.user.id,
     text(req.body.status, 20) || 'interested',
   );
-  if (!event) return res.status(404).json({ error: 'Etkinlik bulunamadı.' });
+  if (!event) return res.status(404).json({ error: 'Event not found.' });
   emitUpdate(req, server.id, 'events', 'rsvp', { eventId: event.id, userId: req.user.id, status: req.body.status });
   return res.json(event);
 });
@@ -644,7 +644,7 @@ router.post('/servers/:serverId/backups', (req, res) => {
   const server = getServer(req, res, { ownerOnly: true });
   if (!server) return undefined;
   const backup = platformService.createBackup(server.id, req.user.id, { name: text(req.body.name, 100) });
-  if (!backup) return res.status(400).json({ error: 'Yedek oluşturulamadı.' });
+  if (!backup) return res.status(400).json({ error: 'The backup could not be created.' });
   audit(req, server.id, 'BACKUP_CREATE', 'backup', backup.id);
   return res.status(201).json(backup);
 });
@@ -654,9 +654,9 @@ router.post('/servers/:serverId/backups/:backupId/restore', (req, res) => {
   if (!server) return undefined;
   const backupId = text(req.params.backupId, 100);
   const backup = platformService.getBackup(backupId);
-  if (!backup || backup.serverId !== server.id) return res.status(404).json({ error: 'Yedek bulunamadı.' });
+  if (!backup || backup.serverId !== server.id) return res.status(404).json({ error: 'Backup not found.' });
   const result = platformService.restoreBackup(server.id, backupId);
-  if (!result) return res.status(404).json({ error: 'Yedek bulunamadı.' });
+  if (!result) return res.status(404).json({ error: 'Backup not found.' });
   audit(req, server.id, 'BACKUP_RESTORE', 'backup', req.params.backupId);
   emitUpdate(req, server.id, 'server', 'restored', { backupId: req.params.backupId });
   req.app.get('io')?.to(`server:${server.id}`).emit('channels:changed', { serverId: server.id });
@@ -668,7 +668,7 @@ router.delete('/servers/:serverId/backups/:backupId', (req, res) => {
   if (!server) return undefined;
   const backup = platformService.getBackup(text(req.params.backupId, 100));
   if (!backup || backup.serverId !== server.id || !platformService.deleteBackup(backup.id)) {
-    return res.status(404).json({ error: 'Yedek bulunamadı.' });
+    return res.status(404).json({ error: 'Backup not found.' });
   }
   audit(req, server.id, 'BACKUP_DELETE', 'backup', backup.id);
   return res.json({ success: true });
@@ -686,7 +686,7 @@ router.post('/servers/:serverId/templates', (req, res) => {
     description: text(req.body.description, 1000),
     public: Boolean(req.body.isPublic ?? req.body.public),
   });
-  if (!template) return res.status(400).json({ error: 'Şablon oluşturulamadı; geçerli bir ad gerekli.' });
+  if (!template) return res.status(400).json({ error: 'The template could not be created; a valid name is required.' });
   audit(req, server.id, 'TEMPLATE_CREATE', 'template', template.id);
   return res.status(201).json(template);
 });
@@ -703,7 +703,7 @@ router.patch('/servers/:serverId/templates/:templateId', (req, res) => {
   if (!server) return undefined;
   const current = platformService.getServerTemplate(text(req.params.templateId, 100));
   if (!current || current.sourceServerId !== server.id || current.creatorId !== req.user.id) {
-    return res.status(404).json({ error: 'Şablon bulunamadı.' });
+    return res.status(404).json({ error: 'Template not found.' });
   }
   const template = platformService.updateServerTemplate(current.id, {
     name: req.body.name,
@@ -719,7 +719,7 @@ router.delete('/servers/:serverId/templates/:templateId', (req, res) => {
   const current = platformService.getServerTemplate(text(req.params.templateId, 100));
   if (!current || current.sourceServerId !== server.id || current.creatorId !== req.user.id
     || !platformService.deleteServerTemplate(current.id)) {
-    return res.status(404).json({ error: 'Şablon bulunamadı.' });
+    return res.status(404).json({ error: 'Template not found.' });
   }
   audit(req, server.id, 'TEMPLATE_DELETE', 'template', current.id);
   return res.json({ success: true });
@@ -727,10 +727,10 @@ router.delete('/servers/:serverId/templates/:templateId', (req, res) => {
 
 router.post('/templates/:templateId/apply', (req, res) => {
   const name = text(req.body.name, 100);
-  if (!name) return res.status(400).json({ error: 'Sunucu adı gerekli.' });
+  if (!name) return res.status(400).json({ error: 'A server name is required.' });
   const template = platformService.getServerTemplate(text(req.params.templateId, 100));
   if (!template || (!template.public && template.creatorId !== req.user.id)) {
-    return res.status(404).json({ error: 'Şablon bulunamadı.' });
+    return res.status(404).json({ error: 'Template not found.' });
   }
   try {
     const server = platformService.createServerFromTemplate(template.id, {
@@ -782,13 +782,13 @@ router.post('/servers/:serverId/webhooks', (req, res) => {
   if (!server) return undefined;
   const channelId = text(req.body.channelId, 100);
   const channel = storage.getChannelById(channelId);
-  if (!channel || channel.serverId !== server.id) return res.status(400).json({ error: 'Kanal geçersiz.' });
+  if (!channel || channel.serverId !== server.id) return res.status(400).json({ error: 'Invalid channel.' });
   const webhook = platformService.createWebhook(server.id, req.user.id, {
     name: text(req.body.name, 80),
     channelId,
     avatar: text(req.body.avatar, 1000) || null,
   });
-  if (!webhook) return res.status(400).json({ error: 'Webhook oluşturulamadı.' });
+  if (!webhook) return res.status(400).json({ error: 'The webhook could not be created.' });
   audit(req, server.id, 'WEBHOOK_CREATE', 'webhook', webhook.id, { channelId });
   emitUpdate(req, server.id, 'webhooks', 'created', { ...webhook, token: undefined });
   return res.status(201).json(withWebhookEndpoint(webhook));
@@ -799,10 +799,10 @@ router.patch('/servers/:serverId/webhooks/:webhookId', (req, res) => {
   if (!server) return undefined;
   if (req.body.channelId) {
     const channel = storage.getChannelById(text(req.body.channelId, 100));
-    if (!channel || channel.serverId !== server.id) return res.status(400).json({ error: 'Kanal geçersiz.' });
+    if (!channel || channel.serverId !== server.id) return res.status(400).json({ error: 'Invalid channel.' });
   }
   const webhook = platformService.updateWebhook(server.id, text(req.params.webhookId, 100), req.body);
-  if (!webhook) return res.status(404).json({ error: 'Webhook bulunamadı.' });
+  if (!webhook) return res.status(404).json({ error: 'Webhook not found.' });
   audit(req, server.id, 'WEBHOOK_UPDATE', 'webhook', webhook.id);
   emitUpdate(req, server.id, 'webhooks', 'updated', webhook);
   return res.json(webhook);
@@ -812,7 +812,7 @@ router.post('/servers/:serverId/webhooks/:webhookId/rotate-token', (req, res) =>
   const server = getServer(req, res, { permission: 'MANAGE_WEBHOOKS' });
   if (!server) return undefined;
   const webhook = platformService.rotateWebhookToken(server.id, text(req.params.webhookId, 100));
-  if (!webhook) return res.status(404).json({ error: 'Webhook bulunamadı.' });
+  if (!webhook) return res.status(404).json({ error: 'Webhook not found.' });
   audit(req, server.id, 'WEBHOOK_TOKEN_ROTATE', 'webhook', webhook.id);
   return res.json(withWebhookEndpoint(webhook));
 });
@@ -821,7 +821,7 @@ router.delete('/servers/:serverId/webhooks/:webhookId', (req, res) => {
   const server = getServer(req, res, { permission: 'MANAGE_WEBHOOKS' });
   if (!server) return undefined;
   if (!platformService.deleteWebhook(server.id, text(req.params.webhookId, 100))) {
-    return res.status(404).json({ error: 'Webhook bulunamadı.' });
+    return res.status(404).json({ error: 'Webhook not found.' });
   }
   audit(req, server.id, 'WEBHOOK_DELETE', 'webhook', req.params.webhookId);
   emitUpdate(req, server.id, 'webhooks', 'deleted', { id: req.params.webhookId });
@@ -849,7 +849,7 @@ router.post('/servers/:serverId/commands', (req, res) => {
     webhookId: req.body.webhookId,
     enabled: req.body.enabled !== false,
   });
-  if (!command) return res.status(400).json({ error: 'Komut adı geçersiz veya zaten kullanılıyor.' });
+  if (!command) return res.status(400).json({ error: 'The command name is invalid or already in use.' });
   audit(req, server.id, 'COMMAND_CREATE', 'command', command.id);
   emitUpdate(req, server.id, 'commands', 'created', command);
   return res.status(201).json(command);
@@ -862,7 +862,7 @@ router.patch('/servers/:serverId/commands/:commandId', (req, res) => {
     ...req.body,
     requiredPermissions: req.body.requiredPermissions ?? req.body.permissions,
   });
-  if (!command) return res.status(404).json({ error: 'Komut bulunamadı.' });
+  if (!command) return res.status(404).json({ error: 'Command not found.' });
   audit(req, server.id, 'COMMAND_UPDATE', 'command', command.id);
   emitUpdate(req, server.id, 'commands', 'updated', command);
   return res.json(command);
@@ -872,7 +872,7 @@ router.delete('/servers/:serverId/commands/:commandId', (req, res) => {
   const server = getServer(req, res, { ownerOnly: true });
   if (!server) return undefined;
   if (!platformService.deleteCommand(server.id, text(req.params.commandId, 100))) {
-    return res.status(404).json({ error: 'Komut bulunamadı.' });
+    return res.status(404).json({ error: 'Command not found.' });
   }
   audit(req, server.id, 'COMMAND_DELETE', 'command', req.params.commandId);
   emitUpdate(req, server.id, 'commands', 'deleted', { id: req.params.commandId });
@@ -883,10 +883,10 @@ router.post('/servers/:serverId/commands/:name/execute', (req, res) => {
   const server = getServer(req, res);
   if (!server) return undefined;
   const command = platformService.getCommand(server.id, text(req.params.name, 32));
-  if (!command || !command.enabled) return res.status(404).json({ error: 'Komut bulunamadı veya kapalı.' });
+  if (!command || !command.enabled) return res.status(404).json({ error: 'The command was not found or is disabled.' });
   const required = Array.isArray(command.requiredPermissions) ? command.requiredPermissions : [];
   if (required.some(permission => !storage.hasPermission(server.id, req.user.id, permission))) {
-    return res.status(403).json({ error: 'Bu komutu kullanmak için gerekli yetkin yok.' });
+    return res.status(403).json({ error: 'You do not have permission to use this command.' });
   }
   const channelId = text(req.body.channelId, 100) || null;
   if (channelId) {
@@ -895,15 +895,15 @@ router.post('/servers/:serverId/commands/:name/execute', (req, res) => {
       && platformService.hasChannelPermission(channelId, req.user.id, 'VIEW_CHANNEL')
       && platformService.hasChannelPermission(channelId, req.user.id, 'SEND_MESSAGES');
     if (!canUseChannel) {
-      return res.status(403).json({ error: 'Bu kanalda komut kullanma yetkin yok.', code: 'MISSING_PERMISSION' });
+      return res.status(403).json({ error: 'You do not have permission to use commands in this channel.', code: 'MISSING_PERMISSION' });
     }
     const bypassScreening = server.creatorId === req.user.id
       || storage.hasPermission(server.id, req.user.id, 'ADMINISTRATOR');
     if (platformService.isMemberTimedOut(server.id, req.user.id)) {
-      return res.status(403).json({ error: 'Zaman aşımındayken komut kullanamazsın.', code: 'TIMEOUT' });
+      return res.status(403).json({ error: 'You cannot use commands while timed out.', code: 'TIMEOUT' });
     }
     if (!bypassScreening && !platformService.isMemberVerified(server.id, req.user.id)) {
-      return res.status(403).json({ error: 'Önce sunucu kurallarını kabul etmelisin.', code: 'RULES_NOT_ACCEPTED' });
+      return res.status(403).json({ error: 'You must accept the server rules first.', code: 'RULES_NOT_ACCEPTED' });
     }
   }
   const result = {
@@ -934,7 +934,7 @@ for (const kind of ['emojis', 'stickers']) {
     const value = kind === 'emojis'
       ? platformService.createEmoji(server.id, req.user.id, req.body)
       : platformService.createSticker(server.id, req.user.id, req.body);
-    if (!value) return res.status(400).json({ error: `${singular} oluşturulamadı.` });
+    if (!value) return res.status(400).json({ error: `${singular} could not be created.` });
     audit(req, server.id, `${singular.toUpperCase()}_CREATE`, singular.toLowerCase(), value.id);
     emitUpdate(req, server.id, kind, 'created', value);
     return res.status(201).json(value);
@@ -945,7 +945,7 @@ for (const kind of ['emojis', 'stickers']) {
     const value = kind === 'emojis'
       ? platformService.updateEmoji(server.id, text(req.params.assetId, 100), req.body)
       : platformService.updateSticker(server.id, text(req.params.assetId, 100), req.body);
-    if (!value) return res.status(404).json({ error: `${singular} bulunamadı.` });
+    if (!value) return res.status(404).json({ error: `${singular} not found.` });
     audit(req, server.id, `${singular.toUpperCase()}_UPDATE`, singular.toLowerCase(), value.id);
     emitUpdate(req, server.id, kind, 'updated', value);
     return res.json(value);
@@ -956,7 +956,7 @@ for (const kind of ['emojis', 'stickers']) {
     const removed = kind === 'emojis'
       ? platformService.deleteEmoji(server.id, text(req.params.assetId, 100))
       : platformService.deleteSticker(server.id, text(req.params.assetId, 100));
-    if (!removed) return res.status(404).json({ error: `${singular} bulunamadı.` });
+    if (!removed) return res.status(404).json({ error: `${singular} not found.` });
     audit(req, server.id, `${singular.toUpperCase()}_DELETE`, singular.toLowerCase(), req.params.assetId);
     emitUpdate(req, server.id, kind, 'deleted', { id: req.params.assetId });
     return res.json({ success: true });
@@ -969,10 +969,10 @@ router.get('/channels/:channelId/messages/:messageId/edit-history', (req, res) =
   if (!access) return undefined;
   const message = storage.getChannelMessages(access.channel.id)
     .find(item => item.id === text(req.params.messageId, 100));
-  if (!message) return res.status(404).json({ error: 'Mesaj bulunamadı.' });
+  if (!message) return res.status(404).json({ error: 'Message not found.' });
   const canView = message.userId === req.user.id
     || platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES');
-  if (!canView) return res.status(403).json({ error: 'Mesaj düzenleme geçmişini görme yetkin yok.' });
+  if (!canView) return res.status(403).json({ error: 'You do not have permission to view message edit history.' });
   return res.json({
     messageId: message.id,
     currentContent: message.content,
@@ -985,11 +985,11 @@ router.patch('/channels/:channelId/metadata', (req, res) => {
   const access = getChannel(req, res, 'MANAGE_CHANNELS');
   if (!access) return undefined;
   if (req.body.type !== undefined && !CHANNEL_TYPES.has(req.body.type)) {
-    return res.status(400).json({ error: 'Kanal türü geçersiz.' });
+    return res.status(400).json({ error: 'Invalid channel type.' });
   }
   if (req.body.name !== undefined) {
     const name = text(req.body.name, 100);
-    if (!name) return res.status(400).json({ error: 'Kanal adı boş olamaz.' });
+    if (!name) return res.status(400).json({ error: 'The channel name cannot be empty.' });
     access.channel.name = name;
   }
   if (req.body.type !== undefined) access.channel.type = req.body.type;
@@ -1027,7 +1027,7 @@ router.put('/channels/:channelId/permissions/:targetType/:targetId', (req, res) 
   const access = getChannel(req, res, 'MANAGE_CHANNELS');
   if (!access) return undefined;
   const targetType = text(req.params.targetType, 20);
-  if (!['role', 'member'].includes(targetType)) return res.status(400).json({ error: 'Hedef türü role veya member olmalı.' });
+  if (!['role', 'member'].includes(targetType)) return res.status(400).json({ error: 'The target type must be role or member.' });
   const override = platformService.setChannelPermissionOverride(access.channel.id, {
     targetType,
     targetId: text(req.params.targetId, 100),
@@ -1035,7 +1035,7 @@ router.put('/channels/:channelId/permissions/:targetType/:targetId', (req, res) 
     deny: Array.isArray(req.body.deny) ? req.body.deny : [],
     updatedBy: req.user.id,
   });
-  if (!override) return res.status(400).json({ error: 'Kanal izin kaydı oluşturulamadı.' });
+  if (!override) return res.status(400).json({ error: 'The channel permission override could not be created.' });
   audit(req, access.server.id, 'CHANNEL_OVERRIDE_UPDATE', targetType, req.params.targetId, { channelId: access.channel.id });
   emitUpdate(req, access.server.id, 'channel-permissions', 'updated', override, access.channel.id);
   emitChannelPermissionRefresh(req, access.server.id, access.channel.id);
@@ -1050,7 +1050,7 @@ router.delete('/channels/:channelId/permissions/:targetType/:targetId', (req, re
     text(req.params.targetType, 20),
     text(req.params.targetId, 100),
   );
-  if (!removed) return res.status(404).json({ error: 'Kanal izin kaydı bulunamadı.' });
+  if (!removed) return res.status(404).json({ error: 'Channel permission override not found.' });
   audit(req, access.server.id, 'CHANNEL_OVERRIDE_DELETE', req.params.targetType, req.params.targetId, { channelId: access.channel.id });
   emitUpdate(req, access.server.id, 'channel-permissions', 'deleted', {
     targetType: req.params.targetType,
@@ -1064,28 +1064,28 @@ router.delete('/channels/:channelId/permissions/:targetType/:targetId', (req, re
 router.get('/channels/:channelId/followers', (req, res) => {
   const access = getChannel(req, res, 'MANAGE_CHANNELS');
   if (!access) return undefined;
-  if (access.channel.type !== 'announcement') return res.status(400).json({ error: 'Bu kanal bir duyuru kanalı değil.' });
+  if (access.channel.type !== 'announcement') return res.status(400).json({ error: 'This is not an announcement channel.' });
   return res.json(platformService.listAnnouncementFollows(access.channel.id));
 });
 
 router.post('/channels/:channelId/followers', (req, res) => {
   const sourceAccess = getChannel(req, res, 'VIEW_CHANNEL');
   if (!sourceAccess) return undefined;
-  if (sourceAccess.channel.type !== 'announcement') return res.status(400).json({ error: 'Bu kanal bir duyuru kanalı değil.' });
+  if (sourceAccess.channel.type !== 'announcement') return res.status(400).json({ error: 'This is not an announcement channel.' });
   const targetChannel = storage.getChannelById(text(req.body.targetChannelId, 100));
   const targetServer = targetChannel && storage.getServerById(targetChannel.serverId);
   if (!targetChannel || !targetServer || targetServer.isDM || !storage.isServerMember(targetServer.id, req.user.id)) {
-    return res.status(404).json({ error: 'Hedef kanal bulunamadı.' });
+    return res.status(404).json({ error: 'Target channel not found.' });
   }
   const canManageTarget = platformService.hasChannelPermission(targetChannel.id, req.user.id, 'MANAGE_CHANNELS')
     || platformService.hasChannelPermission(targetChannel.id, req.user.id, 'MANAGE_WEBHOOKS');
-  if (!canManageTarget) return res.status(403).json({ error: 'Hedef kanalda duyuru takibi oluşturma yetkin yok.' });
+  if (!canManageTarget) return res.status(403).json({ error: 'You do not have permission to create an announcement follow in the target channel.' });
   const follow = platformService.createAnnouncementFollow(
     sourceAccess.channel.id,
     targetChannel.id,
     req.user.id,
   );
-  if (!follow) return res.status(400).json({ error: 'Duyuru takibi oluşturulamadı.' });
+  if (!follow) return res.status(400).json({ error: 'The announcement follow could not be created.' });
   audit(req, sourceAccess.server.id, 'ANNOUNCEMENT_FOLLOW_CREATE', 'channel', sourceAccess.channel.id, {
     targetServerId: targetServer.id,
     targetChannelId: targetChannel.id,
@@ -1099,7 +1099,7 @@ router.delete('/channels/:channelId/followers/:followId', (req, res) => {
   const access = getChannel(req, res, 'MANAGE_CHANNELS');
   if (!access) return undefined;
   if (!platformService.deleteAnnouncementFollow(access.channel.id, text(req.params.followId, 100))) {
-    return res.status(404).json({ error: 'Duyuru takibi bulunamadı.' });
+    return res.status(404).json({ error: 'Announcement follow not found.' });
   }
   audit(req, access.server.id, 'ANNOUNCEMENT_FOLLOW_DELETE', 'channel', access.channel.id, {
     followId: req.params.followId,
@@ -1125,7 +1125,7 @@ router.post('/channels/:channelId/forum-tags', (req, res) => {
     emoji: text(req.body.emoji, 64) || null,
     moderated: Boolean(req.body.moderated),
   });
-  if (!tag) return res.status(400).json({ error: 'Forum etiketi oluşturulamadı.' });
+  if (!tag) return res.status(400).json({ error: 'The forum tag could not be created.' });
   audit(req, access.server.id, 'FORUM_TAG_CREATE', 'forum-tag', tag.id, { channelId: access.channel.id });
   emitUpdate(req, access.server.id, 'forum-tags', 'created', tag, access.channel.id);
   return res.status(201).json(tag);
@@ -1137,7 +1137,7 @@ router.patch('/channels/:channelId/forum-tags/:tagId', (req, res) => {
   const current = platformService.listForumTags(access.server.id, access.channel.id)
     .find(tag => tag.id === text(req.params.tagId, 100));
   if (!current) {
-    return res.status(404).json({ error: 'Forum etiketi bulunamadı.' });
+    return res.status(404).json({ error: 'Forum tag not found.' });
   }
   const tag = platformService.updateForumTag(access.channel.id, current.id, req.body);
   audit(req, access.server.id, 'FORUM_TAG_UPDATE', 'forum-tag', tag.id, { channelId: access.channel.id });
@@ -1151,7 +1151,7 @@ router.delete('/channels/:channelId/forum-tags/:tagId', (req, res) => {
   const current = platformService.listForumTags(access.server.id, access.channel.id)
     .find(tag => tag.id === text(req.params.tagId, 100));
   if (!current || !platformService.deleteForumTag(access.channel.id, current.id)) {
-    return res.status(404).json({ error: 'Forum etiketi bulunamadı.' });
+    return res.status(404).json({ error: 'Forum tag not found.' });
   }
   audit(req, access.server.id, 'FORUM_TAG_DELETE', 'forum-tag', current.id, { channelId: access.channel.id });
   emitUpdate(req, access.server.id, 'forum-tags', 'deleted', { id: current.id }, access.channel.id);
@@ -1179,7 +1179,7 @@ router.post('/channels/:channelId/forum-posts', (req, res) => {
       .some(tag => tag.moderated && requestedTagIds.includes(tag.id));
     if (moderatedTagSelected
       && !platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES')) {
-      return res.status(403).json({ error: 'Bu forum etiketini yalnızca moderatörler kullanabilir.' });
+      return res.status(403).json({ error: 'Only moderators can use this forum tag.' });
     }
     const post = platformService.createForumPost(access.server.id, {
       channelId: access.channel.id,
@@ -1200,17 +1200,17 @@ router.patch('/channels/:channelId/forum-posts/:postId', (req, res) => {
   const access = getChannel(req, res, 'SEND_MESSAGES');
   if (!access) return undefined;
   const post = platformService.getForumPost(access.channel.id, text(req.params.postId, 100));
-  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum topic not found.' });
   const canManage = post.authorId === req.user.id
     || platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES');
-  if (!canManage) return res.status(403).json({ error: 'Bu forum konusunu yönetme yetkin yok.' });
+  if (!canManage) return res.status(403).json({ error: 'You do not have permission to manage this forum topic.' });
   if (Array.isArray(req.body.tagIds)) {
     const requestedTagIds = req.body.tagIds.slice(0, 5);
     const moderatedTagSelected = platformService.listForumTags(access.server.id, access.channel.id)
       .some(tag => tag.moderated && requestedTagIds.includes(tag.id));
     if (moderatedTagSelected
       && !platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES')) {
-      return res.status(403).json({ error: 'Bu forum etiketini yalnızca moderatörler kullanabilir.' });
+      return res.status(403).json({ error: 'Only moderators can use this forum tag.' });
     }
   }
   const updated = platformService.updateForumPost(access.channel.id, post.id, req.body);
@@ -1223,10 +1223,10 @@ router.delete('/channels/:channelId/forum-posts/:postId', (req, res) => {
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const post = platformService.getForumPost(access.channel.id, text(req.params.postId, 100));
-  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum topic not found.' });
   const canManage = post.authorId === req.user.id
     || platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES');
-  if (!canManage) return res.status(403).json({ error: 'Bu forum konusunu silme yetkin yok.' });
+  if (!canManage) return res.status(403).json({ error: 'You do not have permission to delete this forum topic.' });
   platformService.deleteForumPost(access.channel.id, post.id);
   audit(req, access.server.id, 'FORUM_POST_DELETE', 'forum-post', post.id);
   emitUpdate(req, access.server.id, 'forum-posts', 'deleted', { id: post.id }, access.channel.id);
@@ -1237,14 +1237,14 @@ router.post('/channels/:channelId/forum-posts/:postId/replies', (req, res) => {
   const access = getChannel(req, res, 'SEND_MESSAGES');
   if (!access) return undefined;
   const content = text(req.body.content, 10000);
-  if (!content) return res.status(400).json({ error: 'Yanıt içeriği gerekli.' });
+  if (!content) return res.status(400).json({ error: 'Reply content is required.' });
   const post = platformService.getForumPost(access.channel.id, text(req.params.postId, 100));
-  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum topic not found.' });
   const reply = platformService.addForumReply(access.channel.id, post.id, {
     authorId: req.user.id,
     content,
   });
-  if (!reply) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!reply) return res.status(404).json({ error: 'Forum topic not found.' });
   emitUpdate(req, access.server.id, 'forum-posts', 'reply-created', {
     postId: req.params.postId,
     reply,
@@ -1256,7 +1256,7 @@ router.get('/channels/:channelId/forum-posts/:postId/replies', (req, res) => {
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const post = platformService.getForumPost(access.channel.id, text(req.params.postId, 100));
-  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum topic not found.' });
   return res.json(platformService.listForumReplies(access.channel.id, post.id));
 });
 
@@ -1264,7 +1264,7 @@ router.patch('/channels/:channelId/forum-posts/:postId/replies/:replyId', (req, 
   const access = getChannel(req, res, 'SEND_MESSAGES');
   if (!access) return undefined;
   const post = platformService.getForumPost(access.channel.id, text(req.params.postId, 100));
-  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum topic not found.' });
   const reply = platformService.updateForumReply(
     access.channel.id,
     post.id,
@@ -1272,7 +1272,7 @@ router.patch('/channels/:channelId/forum-posts/:postId/replies/:replyId', (req, 
     req.user.id,
     text(req.body.content, 10000),
   );
-  if (!reply) return res.status(404).json({ error: 'Yanıt bulunamadı veya sana ait değil.' });
+  if (!reply) return res.status(404).json({ error: 'The reply was not found or does not belong to you.' });
   emitUpdate(req, access.server.id, 'forum-posts', 'reply-updated', {
     postId: req.params.postId,
     reply,
@@ -1284,7 +1284,7 @@ router.delete('/channels/:channelId/forum-posts/:postId/replies/:replyId', (req,
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const post = platformService.getForumPost(access.channel.id, text(req.params.postId, 100));
-  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum konusu bulunamadı.' });
+  if (!post || post.channelId !== access.channel.id) return res.status(404).json({ error: 'Forum topic not found.' });
   const canModerate = platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES');
   const removed = platformService.deleteForumReply(
     access.channel.id,
@@ -1293,7 +1293,7 @@ router.delete('/channels/:channelId/forum-posts/:postId/replies/:replyId', (req,
     req.user.id,
     canModerate,
   );
-  if (!removed) return res.status(404).json({ error: 'Yanıt bulunamadı veya silme yetkin yok.' });
+  if (!removed) return res.status(404).json({ error: 'The reply was not found or you do not have permission to delete it.' });
   emitUpdate(req, access.server.id, 'forum-posts', 'reply-deleted', {
     postId: req.params.postId,
     replyId: req.params.replyId,
@@ -1321,7 +1321,7 @@ router.post('/channels/:channelId/threads', (req, res) => {
     parentMessageId: text(req.body.parentMessageId, 100) || null,
     autoArchiveDuration: req.body.autoArchiveDuration,
   });
-  if (!thread) return res.status(400).json({ error: 'Mesaj dizisi oluşturulamadı.' });
+  if (!thread) return res.status(400).json({ error: 'The thread could not be created.' });
   audit(req, access.server.id, 'THREAD_CREATE', 'thread', thread.id, { channelId: access.channel.id });
   emitUpdate(req, access.server.id, 'threads', 'created', thread, access.channel.id);
   return res.status(201).json(thread);
@@ -1331,10 +1331,10 @@ router.patch('/channels/:channelId/threads/:threadId', (req, res) => {
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const current = platformService.getThread(access.server.id, text(req.params.threadId, 100));
-  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Mesaj dizisi bulunamadı.' });
+  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Thread not found.' });
   const canManage = current.ownerId === req.user.id
     || platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES');
-  if (!canManage) return res.status(403).json({ error: 'Bu mesaj dizisini yönetme yetkin yok.' });
+  if (!canManage) return res.status(403).json({ error: 'You do not have permission to manage this thread.' });
   const thread = platformService.updateThread(access.server.id, current.id, req.body);
   emitUpdate(req, access.server.id, 'threads', 'updated', thread, access.channel.id);
   return res.json(thread);
@@ -1344,7 +1344,7 @@ router.get('/channels/:channelId/threads/:threadId/messages', (req, res) => {
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const thread = platformService.getThread(access.server.id, text(req.params.threadId, 100));
-  if (!thread || thread.channelId !== access.channel.id) return res.status(404).json({ error: 'Mesaj dizisi bulunamadı.' });
+  if (!thread || thread.channelId !== access.channel.id) return res.status(404).json({ error: 'Thread not found.' });
   const messages = platformService.listThreadMessages(access.server.id, thread.id);
   const limit = integer(req.query.limit, 100, 1, 200);
   const before = Number(req.query.before) || null;
@@ -1357,13 +1357,13 @@ router.post('/channels/:channelId/threads/:threadId/messages', (req, res) => {
   const access = getChannel(req, res, 'SEND_MESSAGES_IN_THREADS');
   if (!access) return undefined;
   const thread = platformService.getThread(access.server.id, text(req.params.threadId, 100));
-  if (!thread || thread.channelId !== access.channel.id) return res.status(404).json({ error: 'Mesaj dizisi bulunamadı.' });
+  if (!thread || thread.channelId !== access.channel.id) return res.status(404).json({ error: 'Thread not found.' });
   const message = platformService.addThreadMessage(access.server.id, thread.id, {
     authorId: req.user.id,
     content: text(req.body.content, 10000),
     attachments: Array.isArray(req.body.attachments) ? req.body.attachments : [],
   });
-  if (!message) return res.status(400).json({ error: 'Mesaj dizisi kilitli, arşivlenmiş veya içerik geçersiz.' });
+  if (!message) return res.status(400).json({ error: 'The thread is locked or archived, or the content is invalid.' });
   emitUpdate(req, access.server.id, 'threads', 'message-created', {
     channelId: access.channel.id,
     threadId: thread.id,
@@ -1381,10 +1381,10 @@ router.delete('/channels/:channelId/threads/:threadId', (req, res) => {
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const current = platformService.getThread(access.server.id, text(req.params.threadId, 100));
-  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Mesaj dizisi bulunamadı.' });
+  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Thread not found.' });
   const canManage = current.ownerId === req.user.id
     || platformService.hasChannelPermission(access.channel.id, req.user.id, 'MANAGE_MESSAGES');
-  if (!canManage) return res.status(403).json({ error: 'Bu mesaj dizisini silme yetkin yok.' });
+  if (!canManage) return res.status(403).json({ error: 'You do not have permission to delete this thread.' });
   platformService.deleteThread(access.server.id, current.id);
   audit(req, access.server.id, 'THREAD_DELETE', 'thread', current.id);
   emitUpdate(req, access.server.id, 'threads', 'deleted', { id: current.id }, access.channel.id);
@@ -1402,7 +1402,7 @@ router.get('/channels/:channelId/polls/:pollId', (req, res) => {
   const access = getChannel(req, res, 'VIEW_CHANNEL');
   if (!access) return undefined;
   const poll = platformService.getPoll(access.channel.id, text(req.params.pollId, 100), req.user.id);
-  if (!poll || poll.channelId !== access.channel.id) return res.status(404).json({ error: 'Anket bulunamadı.' });
+  if (!poll || poll.channelId !== access.channel.id) return res.status(404).json({ error: 'Poll not found.' });
   return res.json(poll);
 });
 
@@ -1430,14 +1430,14 @@ router.put('/channels/:channelId/polls/:pollId/votes', (req, res) => {
   const access = getChannel(req, res, 'SEND_MESSAGES');
   if (!access) return undefined;
   const current = platformService.getPoll(access.channel.id, text(req.params.pollId, 100), req.user.id);
-  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Anket bulunamadı.' });
+  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Poll not found.' });
   const poll = platformService.votePoll(
     access.channel.id,
     current.id,
     req.user.id,
     Array.isArray(req.body.optionIds) ? req.body.optionIds.slice(0, 10) : [],
   );
-  if (!poll) return res.status(404).json({ error: 'Anket bulunamadı.' });
+  if (!poll) return res.status(404).json({ error: 'Poll not found.' });
   emitUpdate(req, access.server.id, 'polls', 'voted', poll, access.channel.id);
   return res.json(poll);
 });
@@ -1446,7 +1446,7 @@ router.post('/channels/:channelId/polls/:pollId/close', (req, res) => {
   const access = getChannel(req, res, 'MANAGE_MESSAGES');
   if (!access) return undefined;
   const current = platformService.getPoll(access.channel.id, text(req.params.pollId, 100), req.user.id);
-  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Anket bulunamadı.' });
+  if (!current || current.channelId !== access.channel.id) return res.status(404).json({ error: 'Poll not found.' });
   const poll = platformService.closePoll(access.channel.id, current.id, req.user.id);
   audit(req, access.server.id, 'POLL_CLOSE', 'poll', poll.id);
   emitUpdate(req, access.server.id, 'polls', 'closed', poll, access.channel.id);
@@ -1458,7 +1458,7 @@ router.delete('/channels/:channelId/polls/:pollId', (req, res) => {
   if (!access) return undefined;
   const current = platformService.getPoll(access.channel.id, text(req.params.pollId, 100), req.user.id);
   if (!current || current.channelId !== access.channel.id || !platformService.deletePoll(access.channel.id, current.id)) {
-    return res.status(404).json({ error: 'Anket bulunamadı.' });
+    return res.status(404).json({ error: 'Poll not found.' });
   }
   audit(req, access.server.id, 'POLL_DELETE', 'poll', current.id);
   emitUpdate(req, access.server.id, 'polls', 'deleted', { id: current.id }, access.channel.id);

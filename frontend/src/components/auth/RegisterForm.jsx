@@ -38,9 +38,9 @@ export default function RegisterForm({ onSwitchToLogin }) {
       });
 
       setLoginTicket(response.loginTicket);
-      setMessage('Kayıt başarılı. Kod e-posta adresine gönderildi.');
+      setMessage('Registration successful. A code was sent to your email address.');
     } catch (err) {
-      setError(err.message || 'Kayıt olunamadı.');
+      setError(err.message || 'Could not create the account.');
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +61,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
 
       finishLogin(response);
     } catch (err) {
-      setError(err.message || 'Kod doğrulanamadı.');
+      setError(err.message || 'The code could not be verified.');
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +76,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
       const response = await resendTwoFactorCode({ loginTicket });
       setMessage(response.message);
     } catch (err) {
-      setError(err.message || 'Kod tekrar gönderilemedi.');
+      setError(err.message || 'The code could not be resent.');
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +87,11 @@ export default function RegisterForm({ onSwitchToLogin }) {
       <div className="bg-[#313338] p-8 rounded-lg shadow-2xl w-full max-w-[480px]">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-[#F2F3F5] mb-2">
-            E-postanı doğrula
+            Verify your email
           </h2>
 
           <p className="text-[#B5BAC1]">
-            <strong>{email}</strong> adresine kod gönderdik.
+            We sent a code to <strong>{email}</strong>.
           </p>
         </div>
 
@@ -128,7 +128,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
             disabled={isLoading || code.length !== 6}
             className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-2.5 rounded disabled:opacity-50"
           >
-            {isLoading ? 'Kontrol ediliyor...' : 'Kodu Doğrula'}
+            {isLoading ? 'Verifying...' : 'Verify Code'}
           </button>
         </form>
 
@@ -139,7 +139,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
             disabled={isLoading}
             className="text-[#00A8FC] hover:underline disabled:opacity-50"
           >
-            Kodu tekrar gönder
+            Resend code
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
     <div className="bg-[#313338] p-8 rounded-lg shadow-2xl w-full max-w-[480px]">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-[#F2F3F5] mb-2">
-          Bir hesap oluştur
+          Create an account
         </h2>
       </div>
 
@@ -166,7 +166,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           className="w-full bg-[#1E1F22] text-[#DBDEE1] px-3 py-2.5 rounded"
-          placeholder="Kullanıcı adı"
+          placeholder="Username"
           minLength={3}
           required
         />
@@ -185,7 +185,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="w-full bg-[#1E1F22] text-[#DBDEE1] px-3 py-2.5 rounded"
-          placeholder="Şifre"
+          placeholder="Password"
           minLength={6}
           required
         />
@@ -195,19 +195,19 @@ export default function RegisterForm({ onSwitchToLogin }) {
           disabled={isLoading}
           className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-2.5 rounded disabled:opacity-50"
         >
-          {isLoading ? 'Kod gönderiliyor...' : 'Kaydol'}
+          {isLoading ? 'Sending code...' : 'Sign Up'}
         </button>
       </form>
 
       <div className="mt-4 text-sm text-[#949BA4]">
-        Zaten hesabın var mı?{' '}
+        Already have an account?{' '}
 
         <button
           type="button"
           onClick={onSwitchToLogin}
           className="text-[#00A8FC] hover:underline font-medium"
         >
-          Giriş Yap
+          Log In
         </button>
       </div>
     </div>

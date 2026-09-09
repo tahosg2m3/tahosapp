@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 // Argon2'nin bellek değeri KiB cinsindendir. Bu ayarlar parola denemelerini
-// pahalı hale getirirken masaüstü/yerel backend kullanımında makul kalır.
+// pahalı hale getirirken masaüstü/yerel backend usesında makul kalır.
 const ARGON2_OPTIONS = Object.freeze({
   type: argon2.argon2id,
   memoryCost: 64 * 1024,
@@ -18,7 +18,7 @@ const passwordWorkQueue = [];
 let activePasswordWork = 0;
 
 function passwordWorkQueueError() {
-  const error = new Error('Güvenli parola işleme kapasitesi geçici olarak dolu.');
+  const error = new Error('Secure password processing is temporarily at capacity.');
   error.code = 'PASSWORD_WORK_QUEUE_FULL';
   return error;
 }
@@ -69,7 +69,7 @@ function isLegacyPlaintextPassword(value) {
   return typeof value === 'string'
     && value.length > 0
     && value.length <= 1024
-    // Tanınmayan `$algoritma$...` biçimini yanlışlıkla düz metin kabul edip
+    // Tanınmayan `$algoritma$...` biçimini yanlışlıkla düz text kabul edip
     // çift hashlemeyelim; yalnız '$' ile başlayan normal eski parolaları bozmayalım.
     && !/^\$[A-Za-z0-9-]+\$/.test(value)
     && !isArgon2Hash(value)
@@ -83,7 +83,7 @@ function constantTimeTextEquals(first, second) {
 }
 
 async function hashPassword(password) {
-  if (typeof password !== 'string') throw new TypeError('Parola metin olmalıdır.');
+  if (typeof password !== 'string') throw new TypeError('The password must be text.');
   return schedulePasswordWork(() => argon2.hash(password, ARGON2_OPTIONS));
 }
 
@@ -119,8 +119,8 @@ async function verifyPassword(password, storedHash) {
     }
   }
 
-  // Çok eski sürümler parolayı düz metin saklıyordu. Yalnızca başarılı ilk
-  // girişe izin verilir ve değer aynı istek içinde Argon2id'e taşınır.
+  // Çok eski sürümler parolayı düz text saklıyordu. Yalnızca başarılı ilk
+  // girişe izin verilir and değer aynı istek içinde Argon2id'e taşınır.
   if (!isLegacyPlaintextPassword(storedHash)) {
     return { valid: false, needsRehash: false, format: 'invalid' };
   }

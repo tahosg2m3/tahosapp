@@ -21,10 +21,10 @@ export default function NsfwGate({ channel, children }) {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#ef4444]/15 text-[#f87171]">
           <AlertTriangle className="h-8 w-8" />
         </div>
-        <h1 className="mt-5 text-2xl font-bold text-white">Yaş sınırlı kanal</h1>
+        <h1 className="mt-5 text-2xl font-bold text-white">Age-restricted channel</h1>
         <p className="mt-3 text-sm leading-6 text-[#94a3b8]">
-          Bu kanal yetişkinlere uygun içerik barındırabilir. Devam ederek en az 18 yaşında olduğunu
-          onaylarsın.
+          This channel may contain adult content. By continuing, you confirm that you are at least 18 years old.
+
         </p>
         <button
           type="button"
@@ -34,14 +34,14 @@ export default function NsfwGate({ channel, children }) {
           }}
           className="mt-6 w-full rounded-xl bg-[#ef4444] py-3 text-sm font-bold text-white hover:bg-[#dc2626]"
         >
-          18 yaşındayım, devam et
+          I am 18 or older, continue
         </button>
         <button
           type="button"
           onClick={() => setCurrentChannel(null)}
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold text-[#94a3b8] hover:bg-white/[0.05] hover:text-white"
         >
-          <ArrowLeft className="h-4 w-4" /> Geri dön
+          <ArrowLeft className="h-4 w-4" /> Go Back
         </button>
       </section>
     </div>

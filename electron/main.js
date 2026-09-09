@@ -19,7 +19,7 @@ const { pathToFileURL } = require('url');
 const { AutomaticPresenceDetector } = require('./automaticPresence');
 const { autoUpdater } = require('electron-updater');
 
-// Electron ana süreci için oluşturulabilecek Node tanı raporlarının ortam
+// Electron ana süreci has oluşturulabilecek Node tanı raporlarının ortam
 // değişkenlerini (örneğin harici DATA_ENCRYPTION_KEY) içermesine izin verme.
 try {
   if (process.report && 'excludeEnv' in process.report) process.report.excludeEnv = true;
@@ -31,8 +31,8 @@ try {
 // development value must never make a packaged build load localhost content.
 const isDev = !app.isPackaged;
 // Ürün adı tahosapp olarak değiştiğinde mevcut kurulumların şifreli yerel
-// verilerini kaybetme. Eski veri klasörü varsa ve yeni klasör henüz yoksa
-// yalnız o kurulum için eski güvenli konumu kullan; temiz kurulumlar tahosapp
+// verilerini kaybetme. Eski veri klasörü varsa and yeni klasör henüz yoksa
+// yalnız o kurulum has eski güvenli konumu kullan; temiz kurulumlar tahosapp
 // klasörünü kullanır.
 if (!isDev) {
   const appDataPath = app.getPath('appData');
@@ -61,7 +61,7 @@ const ENCRYPTED_STATE_MAGICS = [
   Buffer.from('discord-clone-encrypted-state', 'utf8'),
 ];
 const BACKEND_PLATFORM_ENV_KEYS = Object.freeze([
-  // Node/native modüllerin temel süreç ve geçici klasör ihtiyaçları. Uygulama
+  // Node/native modüllerin temel süreç and geçici klasör ihtiyaçları. Uygulama
   // sırları (SMTP/JWT/GIPHY vb.) burada yoktur; yalnız runtime.env'den okunur.
   'PATH',
   'SystemRoot',
@@ -87,13 +87,13 @@ function requireCleanUrl(value, label, { secureOnly = false } = {}) {
   try {
     parsed = new URL(String(value || ''));
   } catch (_) {
-    throw new Error(`${label} geçerli bir URL değil.`);
+    throw new Error(`${label} is not a valid URL.`);
   }
   if (parsed.username || parsed.password || parsed.search || parsed.hash) {
-    throw new Error(`${label} kullanıcı bilgisi, sorgu veya parça içeremez.`);
+    throw new Error(`${label} cannot contain user information, a query, or a fragment.`);
   }
   if (parsed.pathname !== '/' && parsed.pathname !== '') {
-    throw new Error(`${label} yalnızca origin içermeli; yol eklenmemeli.`);
+    throw new Error(`${label} must contain only an origin, without a path.`);
   }
   if (secureOnly && parsed.protocol !== 'https:') {
     throw new Error(`${label} uzak modda https:// ile başlamalı.`);
@@ -109,12 +109,12 @@ function loadDeploymentConfig() {
   try {
     source = JSON.parse(fs.readFileSync(DEPLOYMENT_CONFIG_PATH, 'utf8'));
   } catch (error) {
-    throw new Error(`Dağıtım yapılandırması okunamadı: ${error.message}`);
+    throw new Error(`Could not read deployment configuration: ${error.message}`);
   }
 
   const mode = String(source?.mode || '').trim().toLowerCase();
   if (!['local', 'remote'].includes(mode)) {
-    throw new Error('deployment/app-config.json içindeki mode local veya remote olmalı.');
+    throw new Error('The mode in deployment/app-config.json must be local or remote.');
   }
 
   if (mode === 'local') {
@@ -134,18 +134,18 @@ function loadDeploymentConfig() {
   const socketUrl = requireCleanUrl(source.socketUrl || source.apiOrigin, 'socketUrl', { secureOnly: true });
   const peerHost = String(source.peerHost || '').trim().toLowerCase();
   if (!peerHost || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(peerHost)) {
-    throw new Error('peerHost yalnızca geçerli bir alan adı olmalı.');
+    throw new Error('peerHost must be a valid hostname.');
   }
   const peerPort = Number(source.peerPort ?? 443);
   if (!Number.isInteger(peerPort) || peerPort < 1 || peerPort > 65535) {
-    throw new Error('peerPort 1 ile 65535 arasında olmalı.');
+    throw new Error('peerPort must be between 1 and 65535.');
   }
   const peerPath = String(source.peerPath || '/peerjs').trim();
   if (!/^\/[A-Za-z0-9/_-]*$/.test(peerPath) || peerPath.includes('..')) {
-    throw new Error('peerPath / ile başlayan güvenli bir yol olmalı.');
+    throw new Error('peerPath must be a safe path beginning with /.');
   }
   if (source.peerSecure !== true) {
-    throw new Error('Uzak modda peerSecure true olmalı.');
+    throw new Error('peerSecure must be true in remote mode.');
   }
 
   return Object.freeze({
@@ -242,7 +242,7 @@ let desktopUpdateState = Object.freeze({
   progress: null,
   automaticChecks: true,
   lastCheckedAt: null,
-  message: 'Otomatik güncelleme yalnızca kurulu Windows uygulamasında kullanılabilir.',
+  message: 'Automatic updates are available only in the installed Windows app.',
 });
 
 function parseUrl(value) {
@@ -376,22 +376,22 @@ function openExternalSafely(value) {
 
 function normalizeDesktopApiRequest(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Geçersiz masaüstü API isteği.');
+    throw new Error('Invalid desktop API request.');
   }
 
   const requestPath = String(value.path || '');
   if (!requestPath || requestPath.length > 4096 || /[\r\n\0\\]/.test(requestPath)) {
-    throw new Error('Geçersiz API yolu.');
+    throw new Error('Invalid API path.');
   }
 
   const target = new URL(requestPath, `${DEPLOYMENT_CONFIG.apiOrigin}/`);
   if (target.origin !== DEPLOYMENT_CONFIG.apiOrigin
     || !target.pathname.startsWith('/api/')) {
-    throw new Error('API isteği izin verilen sunucu yoluyla sınırlıdır.');
+    throw new Error('The API request is restricted to the configured server.');
   }
 
   const method = String(value.method || 'GET').trim().toUpperCase();
-  if (!API_REQUEST_METHODS.has(method)) throw new Error('API isteği yöntemi desteklenmiyor.');
+  if (!API_REQUEST_METHODS.has(method)) throw new Error('The API request method is not supported.');
 
   const headers = {};
   if (value.headers && typeof value.headers === 'object' && !Array.isArray(value.headers)) {
@@ -399,7 +399,7 @@ function normalizeDesktopApiRequest(value) {
       const name = String(rawName || '').trim().toLowerCase();
       if (!API_REQUEST_HEADERS.has(name) || typeof rawValue !== 'string') continue;
       if (rawValue.length > 8192 || /[\r\n\0]/.test(rawValue)) {
-        throw new Error('Geçersiz API üst bilgisi.');
+        throw new Error('Invalid API header.');
       }
       headers[name] = rawValue;
     }
@@ -408,9 +408,9 @@ function normalizeDesktopApiRequest(value) {
   let body;
   if (value.body != null) {
     if (typeof value.body !== 'string' || Buffer.byteLength(value.body, 'utf8') > API_REQUEST_BODY_LIMIT) {
-      throw new Error('API isteği gövdesi izin verilen boyutu aşıyor.');
+      throw new Error('The API request body exceeds the allowed size.');
     }
-    if (method === 'GET' || method === 'HEAD') throw new Error('Bu API yöntemi gövde kabul etmiyor.');
+    if (method === 'GET' || method === 'HEAD') throw new Error('This API method does not accept a body.');
     body = value.body;
   }
 
@@ -434,11 +434,11 @@ async function performDesktopApiRequest(value) {
     });
     const declaredLength = Number(response.headers.get('content-length') || 0);
     if (Number.isFinite(declaredLength) && declaredLength > API_RESPONSE_BODY_LIMIT) {
-      throw new Error('API yanıtı izin verilen boyutu aşıyor.');
+      throw new Error('The API response exceeds the allowed size.');
     }
     const responseBody = await response.arrayBuffer();
     if (responseBody.byteLength > API_RESPONSE_BODY_LIMIT) {
-      throw new Error('API yanıtı izin verilen boyutu aşıyor.');
+      throw new Error('The API response exceeds the allowed size.');
     }
 
     const responseHeaders = {};
@@ -475,7 +475,7 @@ function prepareRuntimeEnvFile() {
       fs.copyFileSync(packagedTemplate, exampleFile);
     }
   } catch (error) {
-    console.warn('SMTP örnek yapılandırması oluşturulamadı:', error.message);
+    console.warn('Could not create the example SMTP configuration:', error.message);
   }
 
   return runtimeEnvFile;
@@ -527,7 +527,7 @@ function inspectStateBeforeProtectedKeyCreation(dataDirectory) {
     entries = fs.readdirSync(dataDirectory, { withFileTypes: true });
   } catch (error) {
     if (error.code === 'ENOENT') return { hasLegacyPlaintext: false };
-    throw new Error(`Uygulama veri klasörü anahtar oluşturulmadan önce denetlenemedi: ${error.message}`);
+    throw new Error(`The application data directory could not be inspected before key creation: ${error.message}`);
   }
 
   const names = new Set(entries.map(entry => entry.name));
@@ -544,8 +544,8 @@ function inspectStateBeforeProtectedKeyCreation(dataDirectory) {
 
   if (hasProtectedKeyResidue || hasMigrationMarker || hasRawKeyResidue) {
     throw new Error(
-      'İşletim sistemi korumalı veri anahtarı eksik, ancak önceki bir anahtar/migration kaydı mevcut. '
-      + 'Yeni anahtar üretilmedi; doğru anahtarı veya uygulama veri yedeğini geri yükleyin.',
+      'The operating-system-protected data key is missing, but a previous key or migration record exists. '
+      + 'No new key was generated. Restore the correct key or application data backup.',
     );
   }
 
@@ -557,15 +557,15 @@ function inspectStateBeforeProtectedKeyCreation(dataDirectory) {
   let hasLegacyPlaintext = false;
   for (const artifact of stateArtifacts) {
     if (!artifact.isFile()) {
-      throw new Error(`Uygulama veri kalıntısı normal bir dosya değil (${artifact.name}); yeni anahtar üretilmedi.`);
+      throw new Error(`The application data artifact is not a regular file (${artifact.name}); no new key was generated.`);
     }
     const artifactPath = path.join(dataDirectory, artifact.name);
     const size = fs.statSync(artifactPath).size;
     if (!size) continue;
     if (ENCRYPTED_STATE_MAGICS.some(magic => fileContainsBytes(artifactPath, magic))) {
       throw new Error(
-        'Şifreli uygulama verisi bulundu ancak işletim sistemi korumalı anahtarı eksik. '
-        + 'Yeni anahtar üretilmedi; veri kurtarma için eski anahtarı geri yükleyin.',
+        'Encrypted application data was found, but its operating-system-protected key is missing. '
+        + 'No new key was generated. Restore the old key to recover the data.',
       );
     }
     hasLegacyPlaintext = true;
@@ -582,10 +582,10 @@ async function getPackagedDataEncryptionKey() {
   }
 
   if (!(await safeStorage.isAsyncEncryptionAvailable())) {
-    throw new Error('İşletim sistemi güvenli anahtar deposu kullanılamıyor. DATA_ENCRYPTION_KEY tanımlayın.');
+    throw new Error('The operating system secure key store is unavailable. Configure DATA_ENCRYPTION_KEY.');
   }
   if (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text') {
-    throw new Error('Linux güvenli anahtar deposu basic_text modunda. DATA_ENCRYPTION_KEY harici ve güvenli biçimde tanımlanmalıdır.');
+    throw new Error('The Linux secure key store is in basic_text mode. DATA_ENCRYPTION_KEY must be configured externally and securely.');
   }
 
   const protectedKeyPath = path.join(app.getPath('userData'), PROTECTED_DATA_KEY_FILE);
@@ -593,7 +593,7 @@ async function getPackagedDataEncryptionKey() {
     const encryptedKey = await fs.promises.readFile(protectedKeyPath);
     const decrypted = await safeStorage.decryptStringAsync(encryptedKey);
     const key = decrypted?.result;
-    if (!key) throw new Error('İşletim sistemi korumalı veri anahtarı çözülemedi.');
+    if (!key) throw new Error('The operating-system-protected data key could not be decrypted.');
 
     if (decrypted.shouldReEncrypt) {
       const rotated = await safeStorage.encryptStringAsync(key);
@@ -667,7 +667,7 @@ async function startPackagedBackend() {
     backendProcess = child;
 
     child.on('error', (type, location) => {
-      // Electron'un üçüncü argümanı tam Node diagnostic report'tur ve child
+      // Electron'un üçüncü argümanı tam Node diagnostic report'tur and child
       // environment içindeki veri anahtarını/sırları barındırabilir. Asla loglama.
       const incidentId = crypto.randomUUID();
       const safeType = String(type || 'Unknown').replace(/[\r\n\t]/g, ' ').slice(0, 80);
@@ -684,7 +684,7 @@ async function startPackagedBackend() {
         if (mainWindow && !mainWindow.isDestroyed()) {
           dialog.showErrorBox(
             'Yerel servis durdu',
-            'Uygulamanın yerel servisi beklenmedik biçimde kapandı. Verilerin zarar görmemesi için uygulama kapatılacak.',
+            'The local service stopped unexpectedly. The app will close to protect your data.',
           );
           app.quit();
         }
@@ -790,7 +790,7 @@ function chooseDisplaySource(request, callback) {
       menuItems.push({ label, enabled: false });
       entries.forEach(source => {
         menuItems.push({
-          label: source.name || 'Adsız kaynak',
+          label: source.name || 'Unnamed source',
           icon: source.appIcon && !source.appIcon.isEmpty() ? source.appIcon.resize({ width: 16, height: 16 }) : undefined,
           click: () => {
             const streams = { video: source };
@@ -803,7 +803,7 @@ function chooseDisplaySource(request, callback) {
 
     appendGroup('Ekranlar', sources.filter(source => source.id.startsWith('screen:')));
     appendGroup('Pencereler', sources.filter(source => source.id.startsWith('window:')));
-    menuItems.push({ type: 'separator' }, { label: 'İptal', click: () => complete({}) });
+    menuItems.push({ type: 'separator' }, { label: 'Cancel', click: () => complete({}) });
 
     const picker = Menu.buildFromTemplate(menuItems);
     picker.popup({
@@ -830,7 +830,7 @@ function loadDesktopUpdatePreferences() {
     return Object.freeze({ automaticChecks: source?.automaticChecks !== false });
   } catch (error) {
     if (error.code !== 'ENOENT') {
-      console.warn('Masaüstü güncelleme tercihi okunamadı; güvenli varsayılan kullanılıyor.');
+      console.warn('Could not read the desktop update preference; using the safe default.');
     }
     return Object.freeze({ automaticChecks: true });
   }
@@ -873,8 +873,8 @@ function setDesktopUpdateState(patch) {
 
 function updateErrorMessage(error) {
   const code = String(error?.code || '');
-  if (code === 'ERR_UPDATER_INVALID_RELEASE_FEED') return 'Güncelleme bilgisi geçersiz. Daha sonra tekrar dene.';
-  return 'Güncelleme sunucusuna ulaşılamadı. İnternet bağlantını kontrol edip tekrar dene.';
+  if (code === 'ERR_UPDATER_INVALID_RELEASE_FEED') return 'The update information is invalid. Try again later.';
+  return 'Could not reach the update server. Check your internet connection and try again.';
 }
 
 async function checkForDesktopUpdates({ manual = false } = {}) {
@@ -905,8 +905,8 @@ function initializeDesktopUpdater() {
     status: supported ? 'idle' : 'disabled',
     automaticChecks: desktopUpdatePreferences.automaticChecks,
     message: supported
-      ? 'Güncellemeler otomatik olarak denetlenir.'
-      : 'Otomatik güncelleme yalnızca kurulu Windows uygulamasında kullanılabilir.',
+      ? 'Updates otomatik olarak denetlenir.'
+      : 'Automatic updates are available only in the installed Windows app.',
   });
   if (!supported) return;
 
@@ -920,7 +920,7 @@ function initializeDesktopUpdater() {
     setDesktopUpdateState({
       status: 'checking',
       progress: null,
-      message: 'Güncellemeler denetleniyor…',
+      message: 'Updates denetleniyor…',
     });
   });
   autoUpdater.on('update-available', info => {
@@ -929,7 +929,7 @@ function initializeDesktopUpdater() {
       availableVersion: String(info?.version || '').slice(0, 32) || null,
       progress: 0,
       lastCheckedAt: new Date().toISOString(),
-      message: 'Yeni sürüm bulundu ve güvenli biçimde indiriliyor.',
+      message: 'A new version is available and is downloading securely.',
     });
   });
   autoUpdater.on('update-not-available', () => {
@@ -938,7 +938,7 @@ function initializeDesktopUpdater() {
       availableVersion: null,
       progress: null,
       lastCheckedAt: new Date().toISOString(),
-      message: 'tahosapp güncel.',
+      message: 'tahosapp is up to date.',
     });
   });
   autoUpdater.on('download-progress', progress => {
@@ -946,7 +946,7 @@ function initializeDesktopUpdater() {
     setDesktopUpdateState({
       status: 'downloading',
       progress: Math.round(percent * 10) / 10,
-      message: `Güncelleme indiriliyor: %${Math.round(percent)}`,
+      message: `Downloading update: ${Math.round(percent)}%`,
     });
   });
   autoUpdater.on('update-downloaded', info => {
@@ -955,7 +955,7 @@ function initializeDesktopUpdater() {
       availableVersion: String(info?.version || '').slice(0, 32) || desktopUpdateState.availableVersion,
       progress: 100,
       lastCheckedAt: new Date().toISOString(),
-      message: 'Güncelleme hazır. Şimdi yeniden başlatabilir veya uygulamayı kapattığında yüklenmesini bekleyebilirsin.',
+      message: 'The update is ready. Restart now, or close the app to install it later.',
     });
   });
   autoUpdater.on('error', error => {
@@ -1084,7 +1084,7 @@ function startAutomaticPresence() {
   if (!automaticPresenceDetector) {
     automaticPresenceDetector = new AutomaticPresenceDetector({
       onActivities: publishAutomaticPresence,
-      onError: error => console.warn('Otomatik Rich Presence algılayıcısı:', String(error?.message || error).slice(0, 240)),
+      onError: error => console.warn('Automatic Rich Presence detector:', String(error?.message || error).slice(0, 240)),
     });
   }
   automaticPresenceDetector.stopping = false;
@@ -1102,14 +1102,14 @@ function stopAutomaticPresence() {
 function configurePermissions() {
   const allowedPermissions = new Set(['media', 'display-capture', 'speaker-selection']);
 
-  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+  session.defaultVoicesion.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     return allowedPermissions.has(permission)
       && details?.isMainFrame !== false
       && isTrustedAppWebContents(webContents, requestingOrigin)
       && (!details?.embeddingOrigin || isTrustedRendererOrigin(details.embeddingOrigin));
   });
 
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+  session.defaultVoicesion.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const requestingUrl = details?.requestingUrl || webContents?.getURL() || '';
     callback(
       allowedPermissions.has(permission)
@@ -1118,7 +1118,7 @@ function configurePermissions() {
     );
   });
 
-  session.defaultSession.setDisplayMediaRequestHandler(chooseDisplaySource, { useSystemPicker: true });
+  session.defaultVoicesion.setDisplayMediaRequestHandler(chooseDisplaySource, { useSystemPicker: true });
 }
 
 const ownsSingleInstance = isDev || app.requestSingleInstanceLock();
@@ -1142,8 +1142,8 @@ if (!ownsSingleInstance) {
     const backendReady = await waitForPackagedBackend();
     if (!backendReady) {
       dialog.showErrorBox(
-        'tahosapp başlatılamadı',
-        `Yerel servis 127.0.0.1:${BACKEND_PORT} adresinde başlatılamadı. Bu portu kullanan başka bir programı kapatıp tekrar deneyin.`,
+        'tahosapp could not start',
+        `The local service could not start at 127.0.0.1:${BACKEND_PORT}. Close any other program using this port and try again.`,
       );
       app.quit();
       return;
@@ -1208,7 +1208,7 @@ if (!ownsSingleInstance) {
     if (!isTrustedAppFrame(event.senderFrame, event.senderFrame?.url)
       || !isDesktopUpdaterSupported()
       || desktopUpdateState.status !== 'downloaded') return { started: false };
-    setDesktopUpdateState({ status: 'installing', message: 'Güncelleme yükleniyor; tahosapp yeniden başlatılacak…' });
+    setDesktopUpdateState({ status: 'installing', message: 'Installing the update; tahosapp will restart…' });
     setImmediate(() => autoUpdater.quitAndInstall(false, true));
     return { started: true };
   });

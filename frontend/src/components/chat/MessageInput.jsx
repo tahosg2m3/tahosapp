@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
-import { Image as ImageIcon, Mic, SmilePlus, Square, X } from 'lucide-react';
+import { Image as ImageIcon, Mic, Music2, SmilePlus, Square, X } from 'lucide-react';
 import FileUpload, { uploadChatFile } from './FileUpload';
 import GifPicker from './GifPicker';
 import toast from 'react-hot-toast';
+import { createSpotifyInviteFromUrl, getSpotifyCurrentlyPlaying } from '../../services/api';
 
 function attachmentLabel(attachment) {
   if (attachment.type === 'gif') return 'GIF';
   if (attachment.type === 'sticker') return attachment.name || 'Sticker';
-  return attachment.filename || 'Dosya';
+  return attachment.filename || 'File';
 }
 
 export default function MessageInput({
@@ -31,6 +32,7 @@ export default function MessageInput({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
+  const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [commandIndex, setCommandIndex] = useState(0);
   const typingRef = useRef(false);
@@ -122,11 +124,11 @@ export default function MessageInput({
 
   const mentionMatch = message.match(/(?:^|\s)@([^\s@]*)$/);
   const visibleMentions = mentionMatch
-    ? mentionSuggestions.filter(item => (item.username || item.name || '').toLocaleLowerCase('tr-TR').startsWith(mentionMatch[1].toLocaleLowerCase('tr-TR'))).slice(0, 6)
+    ? mentionSuggestions.filter(item => (item.username || item.name || '').toLocaleLowerCase('en-US').startsWith(mentionMatch[1].toLocaleLowerCase('en-US'))).slice(0, 6)
     : [];
   const commandMatch = message.match(/^\/([^\s/]*)$/);
   const visibleCommands = commandMatch
-    ? commandSuggestions.filter(item => item.enabled !== false && item.name?.toLocaleLowerCase('tr-TR').startsWith(commandMatch[1].toLocaleLowerCase('tr-TR'))).slice(0, 8)
+    ? commandSuggestions.filter(item => item.enabled !== false && item.name?.toLocaleLowerCase('en-US').startsWith(commandMatch[1].toLocaleLowerCase('en-US'))).slice(0, 8)
     : [];
 
   const insertMention = (item) => {
@@ -188,13 +190,46 @@ export default function MessageInput({
     setAttachments((current) => [...current, attachment]);
   };
 
+  const sendSpotifyInvite = async () => {
+    if (disabled || isSpotifyLoading) return;
+    setIsSpotifyLoading(true);
+    try {
+      let invite = null;
+      try {
+        const payload = await getSpotifyCurrentlyPlaying();
+        if (payload.isPlaying && payload.invite) invite = payload.invite;
+      } catch (error) {
+        if (!['SPOTIFY_NOT_CONFIGURED', 'SPOTIFY_NOT_CONNECTED'].includes(error.code)) throw error;
+      }
+
+      if (!invite) {
+        const spotifyUrl = window.prompt('Paste the Spotify track link you want to share:');
+        if (!spotifyUrl?.trim()) return;
+        const payload = await createSpotifyInviteFromUrl(spotifyUrl.trim());
+        invite = payload.invite;
+      }
+
+      onSendMessage({
+        content: `Open this on Spotify: ${invite.name}${invite.artist ? ` — ${invite.artist}` : ''}`,
+        attachments: [],
+        replyTo: null,
+        spotifyInvite: invite,
+      });
+      toast.success('Spotify listening invite sent.');
+    } catch (error) {
+      toast.error(error.message || 'Spotify listening invite could not be sent.');
+    } finally {
+      setIsSpotifyLoading(false);
+    }
+  };
+
   const toggleVoiceRecording = async () => {
     if (isRecording) {
       recorderRef.current?.stop();
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      toast.error('Bu cihaz ses kaydını desteklemiyor.');
+      toast.error('This device does not support voice recording.');
       return;
     }
     try {
@@ -213,15 +248,15 @@ export default function MessageInput({
         try {
           const mime = recorder.mimeType || 'audio/webm';
           const extension = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : 'webm';
-          const file = new File([new Blob(chunks, { type: mime })], `sesli-mesaj-${Date.now()}.${extension}`, { type: mime });
+          const file = new File([new Blob(chunks, { type: mime })], `voice-message-${Date.now()}.${extension}`, { type: mime });
           addAttachment(await uploadChatFile(file));
-          toast.success('Sesli mesaj eklendi. Göndermek için Enter’a bas.');
+          toast.success('Voice message added. Press Enter to send it.');
         } catch (error) { toast.error(error.message); }
         finally { setIsUploadingRecording(false); }
       };
       recorder.start(250);
       setIsRecording(true);
-    } catch { toast.error('Mikrofon izni verilmedi.'); }
+    } catch { toast.error('Microphone permission was not granted.'); }
   };
 
   return (
@@ -236,13 +271,13 @@ export default function MessageInput({
       <div className="relative">
         {visibleCommands.length > 0 && (
           <div className="absolute bottom-[calc(100%+8px)] left-0 z-[76] w-80 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151d2c] p-1.5 shadow-2xl shadow-black/40">
-            <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">Uygulama komutları</p>
-            {visibleCommands.map((command, index) => <button key={command.id || command.name} type="button" onMouseDown={event => event.preventDefault()} onClick={() => insertCommand(command)} className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left ${index === commandIndex ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.08] text-sm font-bold">/</span><span className="min-w-0"><span className="block text-sm font-semibold">/{command.name}</span><span className={`block truncate text-[11px] ${index === commandIndex ? 'text-white/70' : 'text-[#64748b]'}`}>{command.description || 'Özel sunucu komutu'}</span></span></button>)}
+            <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">App commands</p>
+            {visibleCommands.map((command, index) => <button key={command.id || command.name} type="button" onMouseDown={event => event.preventDefault()} onClick={() => insertCommand(command)} className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left ${index === commandIndex ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.08] text-sm font-bold">/</span><span className="min-w-0"><span className="block text-sm font-semibold">/{command.name}</span><span className={`block truncate text-[11px] ${index === commandIndex ? 'text-white/70' : 'text-[#64748b]'}`}>{command.description || 'Custom server command'}</span></span></button>)}
           </div>
         )}
         {visibleMentions.length > 0 && (
           <div className="absolute bottom-[calc(100%+8px)] left-0 z-[75] w-72 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151d2c] p-1.5 shadow-2xl shadow-black/40">
-            <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">Üyeler</p>
+            <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">Members</p>
             {visibleMentions.map((item, index) => {
               const username = item.username || item.name;
               return (
@@ -258,12 +293,12 @@ export default function MessageInput({
           <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-white/[0.08] bg-[#1a2333] px-4 py-2.5 text-sm">
             <div className="min-w-0 truncate text-[#cbd5e1]">
               <span className="mr-2 font-semibold text-[#60a5fa]">{replyTo.username}</span>
-              <span className="text-[#94a3b8]">{replyTo.content || 'Ekli mesaj'}</span>
+              <span className="text-[#94a3b8]">{replyTo.content || 'Message with an attachment'}</span>
             </div>
             <button
               type="button"
               onClick={onCancelReply}
-              aria-label="Yanıtı iptal et"
+              aria-label="Cancel reply"
               className="ml-3 rounded-md p-1 text-[#94a3b8] hover:bg-white/[0.08] hover:text-white"
             >
               <X className="h-4 w-4" />
@@ -285,7 +320,7 @@ export default function MessageInput({
                   type="button"
                   onClick={() => setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
                   className="rounded p-0.5 text-[#94a3b8] hover:bg-white/[0.1] hover:text-white"
-                  aria-label={`${attachmentLabel(attachment)} ekini kaldır`}
+                  aria-label={`${attachmentLabel(attachment)} attachment`}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -310,7 +345,7 @@ export default function MessageInput({
               // Bir emoji veya dosya düğmesine basarken yazıyor bilgisini hemen kapatma.
               window.setTimeout(stopTyping, 200);
             }}
-            placeholder={placeholder || 'Mesaj gönder...'}
+            placeholder={placeholder || 'Send a message...'}
             disabled={disabled}
             className="min-w-0 flex-1 bg-transparent px-2 text-[15px] text-[#DBDEE1] outline-none placeholder:text-[#64748b] disabled:cursor-not-allowed"
             autoComplete="off"
@@ -322,11 +357,21 @@ export default function MessageInput({
           <div className="ml-2 flex items-center gap-1">
             <button
               type="button"
+              onClick={sendSpotifyInvite}
+              disabled={disabled || isSpotifyLoading}
+              className="rounded-lg p-1.5 text-[#1ed760] transition-colors hover:bg-[#1ed760]/10 disabled:opacity-40"
+              aria-label="Send a Spotify listening invite"
+              title="Invite others to listen on Spotify"
+            >
+              <Music2 className={`h-5 w-5 ${isSpotifyLoading ? 'animate-pulse' : ''}`} />
+            </button>
+            <button
+              type="button"
               onClick={toggleVoiceRecording}
               disabled={disabled || isUploadingRecording}
               className={`rounded-lg p-1.5 transition-colors disabled:opacity-50 ${isRecording ? 'animate-pulse bg-[#ef4444] text-white' : 'text-[#B5BAC1] hover:bg-white/[0.08] hover:text-[#DBDEE1]'}`}
-              aria-label={isRecording ? 'Ses kaydını bitir' : 'Sesli mesaj kaydet'}
-              title={isRecording ? 'Kaydı bitir' : 'Sesli mesaj'}
+              aria-label={isRecording ? 'Stop recording' : 'Record a voice message'}
+              title={isRecording ? 'Stop recording' : 'Voice message'}
             >
               {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}
             </button>
@@ -338,8 +383,8 @@ export default function MessageInput({
               }}
               disabled={disabled}
               className="rounded-lg p-1.5 text-[#B5BAC1] transition-colors hover:bg-white/[0.08] hover:text-[#DBDEE1] disabled:opacity-50"
-              aria-label="GIF ekle"
-              title="GIF ekle"
+              aria-label="Add GIF"
+              title="Add GIF"
             >
               <ImageIcon className="h-5 w-5" />
             </button>
@@ -351,8 +396,8 @@ export default function MessageInput({
               }}
               disabled={disabled}
               className="rounded-lg p-1.5 text-[#B5BAC1] transition-colors hover:bg-white/[0.08] hover:text-[#DBDEE1] disabled:opacity-50"
-              aria-label="Emoji ekle"
-              title="Emoji ekle"
+              aria-label="Add emoji"
+              title="Add emoji"
             >
               <SmilePlus className="h-5 w-5" />
             </button>
@@ -360,7 +405,7 @@ export default function MessageInput({
 
           {showEmojiPicker && (
             <div className="absolute bottom-[calc(100%+10px)] right-0 z-[70] overflow-hidden rounded-xl border border-white/[0.1] bg-[#111827] shadow-2xl shadow-black/50">
-              {(serverEmojis.length > 0 || serverStickers.length > 0) && <div className="max-h-32 w-[320px] overflow-y-auto border-b border-white/[0.08] p-2"><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">Sunucu içeriği</p><div className="grid grid-cols-8 gap-1">{serverEmojis.map(item => <button key={`emoji-${item.id}`} type="button" title={`:${item.name}:`} onClick={() => { setMessage(current => `${current} ![${item.name}](${item.url}) `); setShowEmojiPicker(false); inputRef.current?.focus(); }} className="rounded-lg p-1 hover:bg-white/[0.08]"><img src={item.url} alt={item.name} className="h-7 w-7 object-contain" /></button>)}{serverStickers.map(item => <button key={`sticker-${item.id}`} type="button" title={item.name} onClick={() => { addAttachment({ ...item, type: 'sticker', filename: item.name }); setShowEmojiPicker(false); }} className="rounded-lg p-1 hover:bg-white/[0.08]"><img src={item.url} alt={item.name} className="h-7 w-7 object-contain" /></button>)}</div></div>}
+              {(serverEmojis.length > 0 || serverStickers.length > 0) && <div className="max-h-32 w-[320px] overflow-y-auto border-b border-white/[0.08] p-2"><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">Server content</p><div className="grid grid-cols-8 gap-1">{serverEmojis.map(item => <button key={`emoji-${item.id}`} type="button" title={`:${item.name}:`} onClick={() => { setMessage(current => `${current} ![${item.name}](${item.url}) `); setShowEmojiPicker(false); inputRef.current?.focus(); }} className="rounded-lg p-1 hover:bg-white/[0.08]"><img src={item.url} alt={item.name} className="h-7 w-7 object-contain" /></button>)}{serverStickers.map(item => <button key={`sticker-${item.id}`} type="button" title={item.name} onClick={() => { addAttachment({ ...item, type: 'sticker', filename: item.name }); setShowEmojiPicker(false); }} className="rounded-lg p-1 hover:bg-white/[0.08]"><img src={item.url} alt={item.name} className="h-7 w-7 object-contain" /></button>)}</div></div>}
               <EmojiPicker
                 theme="dark"
                 emojiStyle={EmojiStyle.TWITTER}
@@ -368,7 +413,7 @@ export default function MessageInput({
                 height={400}
                 lazyLoadEmojis
                 onEmojiClick={appendEmoji}
-                searchPlaceholder="Emoji ara"
+                searchPlaceholder="Search emoji"
               />
             </div>
           )}

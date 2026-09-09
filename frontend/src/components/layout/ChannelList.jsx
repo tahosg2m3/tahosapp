@@ -123,8 +123,8 @@ export default function ChannelList({ onNavigate }) {
         setPermissionMap(permissionsToMap(rolePayload?.currentUserPermissions || rolePayload?.permissions || []));
       })
       .catch((error) => {
-        // Eski bir sunucu/veri için bu endpoint henüz yoksa normal kanal akışı çalışmaya devam eder.
-        console.warn('Rol izinleri yüklenemedi:', error.message);
+        // Eski bir sunucu/veri has bu endpoint henüz yoksa normal kanal akışı çalışmaya devam eder.
+        console.warn('Could not load role permissions:', error.message);
         setRoles([]);
         setMembers([]);
         setPermissionMap({});
@@ -168,7 +168,7 @@ export default function ChannelList({ onNavigate }) {
     const receive = (message) => {
       if (!message?.channelId || message.userId === user?.id || message.channelId === currentChannel?.id) return;
       if (!channels.some(channel => channel.id === message.channelId && channel.serverId === currentServer.id)) return;
-      const mentioned = message.mentions?.includes?.(user?.id) || message.content?.toLocaleLowerCase('tr-TR').includes(`@${user?.username || ''}`.toLocaleLowerCase('tr-TR'));
+      const mentioned = message.mentions?.includes?.(user?.id) || message.content?.toLocaleLowerCase('en-US').includes(`@${user?.username || ''}`.toLocaleLowerCase('en-US'));
       setUnreadByChannel(current => ({
         ...current,
         [message.channelId]: {
@@ -209,8 +209,8 @@ export default function ChannelList({ onNavigate }) {
       }
     } catch (error) {
       if (requestId !== channelLoadIdRef.current) return;
-      console.error('Kanallar yüklenemedi:', error);
-      toast.error('Kanallar yüklenemedi.');
+      console.error('Could not load channels:', error);
+      toast.error('Could not load channels.');
     }
   }
 
@@ -227,15 +227,15 @@ export default function ChannelList({ onNavigate }) {
       setCreateType(null);
       setChannelKind('text');
       setCurrentChannel(channel);
-      toast.success('Kanal oluşturuldu.');
+      toast.success('Channel created.');
     } catch (error) {
-      toast.error(error.message || 'Kanal oluşturulamadı.');
+      toast.error(error.message || 'The channel could not be created.');
     }
   };
 
   const handleDeleteChannel = async (channel) => {
     if (!canManageChannels) return;
-    if (!window.confirm(`“${channel.name}” kanalını silmek istediğine emin misin?`)) return;
+    if (!window.confirm(`“${channel.name}” channel? This action cannot be undone.`)) return;
 
     try {
       await removeManagedChannel(channel.id, user.id);
@@ -258,16 +258,16 @@ export default function ChannelList({ onNavigate }) {
 
   const handleLeaveServer = async () => {
     if (!currentServer || isOwner) return;
-    if (!window.confirm(`“${currentServer.name}” sunucusundan ayrılmak istediğine emin misin?`)) return;
+    if (!window.confirm(`“${currentServer.name}” server?`)) return;
 
     try {
       await leaveServer(currentServer.id, user.id);
       setServers((previous) => previous.filter((server) => server.id !== currentServer.id));
       setCurrentServer(null);
       setCurrentChannel(null);
-      toast.success('Sunucudan ayrıldın.');
+      toast.success('You left the server.');
     } catch (error) {
-      toast.error(error.message || 'Sunucudan ayrılamadın.');
+      toast.error(error.message || 'You could not leave the server.');
     }
   };
 
@@ -275,24 +275,24 @@ export default function ChannelList({ onNavigate }) {
     if (!currentServer?.inviteCode) return;
     try {
       await navigator.clipboard.writeText(buildInviteUrl(currentServer.inviteCode));
-      toast.success('Davet bağlantısı kopyalandı.');
+      toast.success('Invite link copied.');
       setShowServerMenu(false);
     } catch {
-      toast.error('Davet bağlantısı kopyalanamadı.');
+      toast.error('The invite link could not be copied.');
     }
   };
 
   const shareInvite = async () => {
     if (!currentServer?.inviteCode) return;
     const url = buildInviteUrl(currentServer.inviteCode);
-    const text = `${currentServer.name} sunucusuna katıl: ${url}`;
+    const text = `${currentServer.name} Join the server: ${url}`;
     try {
       if (navigator.share) await navigator.share({ title: currentServer.name, text, url });
       else await navigator.clipboard.writeText(text);
-      toast.success('Davet bilgisi hazır.');
+      toast.success('Invite details are ready.');
       setShowServerMenu(false);
     } catch (error) {
-      if (error?.name !== 'AbortError') toast.error('Davet bilgisi paylaşılamadı.');
+      if (error?.name !== 'AbortError') toast.error('The invite could not be shared.');
     }
   };
 
@@ -303,12 +303,12 @@ export default function ChannelList({ onNavigate }) {
     const requiresMute = ['mute', 'unmute'].includes(action);
     const requiresDeafen = ['deafen', 'undeafen'].includes(action);
     if ((requiresMute && !canMuteMembers) || (requiresDeafen && !canDeafenMembers) || (['disconnect', 'move'].includes(action) && !canDisconnectMembers)) {
-      toast.error('Bu işlem için yetkin yok.');
+      toast.error('You do not have permission to do that.');
       return;
     }
 
     if (action === 'move' && (!targetChannel?.id || targetChannel.id === channel.id)) {
-      toast.error('Farklı bir ses kanalı seçmelisin.');
+      toast.error('Choose a different voice channel.');
       return;
     }
 
@@ -319,7 +319,7 @@ export default function ChannelList({ onNavigate }) {
       ...(action === 'move' ? { targetChannelId: targetChannel.id } : {}),
     }, (result) => {
       if (!result?.success) {
-        toast.error(result?.error || 'Ses moderasyonu uygulanamadı.');
+        toast.error(result?.error || 'Voice moderation could not be applied.');
         requestVoiceChannelMembers(currentServer?.id);
         return;
       }
@@ -335,8 +335,8 @@ export default function ChannelList({ onNavigate }) {
         },
       }));
       setOpenVoiceMenu(null);
-      const labels = { mute: 'susturuldu', unmute: 'susturması kaldırıldı', deafen: 'sağırlaştırıldı', undeafen: 'sağırlaştırması kaldırıldı', disconnect: 'ses kanalından çıkarıldı', move: `${targetChannel?.name || 'diğer kanala'} taşındı` };
-      toast.success(`Üye ${labels[action]}.`);
+      const labels = { mute: 'muted', unmute: 'unmuted', deafen: 'deafened', undeafen: 'undeafened', disconnect: 'disconnected from voice', move: `${targetChannel?.name || 'another channel'} moved` };
+      toast.success(`Member ${labels[action]}.`);
       if (action === 'move') requestVoiceChannelMembers(currentServer?.id);
     });
   };
@@ -345,8 +345,8 @@ export default function ChannelList({ onNavigate }) {
     const targetUserId = getVoiceParticipantId(participant);
     if (!socket || !targetUserId || !canDisconnectMembers) return;
     socket.emit('voice:stage:moderate', { action, targetUserId, channelId: channel.id }, result => {
-      if (!result?.success) toast.error(result?.error || 'Stage işlemi uygulanamadı.');
-      else { toast.success('Stage rolü güncellendi.'); setOpenVoiceMenu(null); requestVoiceChannelMembers(currentServer?.id); }
+      if (!result?.success) toast.error(result?.error || 'The Stage action could not be applied.');
+      else { toast.success('Stage role updated.'); setOpenVoiceMenu(null); requestVoiceChannelMembers(currentServer?.id); }
     });
   };
 
@@ -386,13 +386,13 @@ export default function ChannelList({ onNavigate }) {
       const participant = (voiceChannelMembers[payload.sourceChannelId] || [])
         .find((candidate) => getVoiceParticipantId(candidate) === payload.targetUserId);
       if (!sourceChannel || !participant) {
-        toast.error('Kullanıcının güncel ses bağlantısı bulunamadı.');
+        toast.error('The user is no longer connected to voice.');
         requestVoiceChannelMembers(currentServer?.id);
         return;
       }
       emitVoiceModeration('move', participant, sourceChannel, targetChannel);
     } catch {
-      toast.error('Taşıma bilgisi okunamadı.');
+      toast.error('The move request could not be read.');
     }
   };
 
@@ -405,15 +405,15 @@ export default function ChannelList({ onNavigate }) {
           onChange={(event) => setChannelKind(event.target.value)}
           className="mb-2 w-full rounded-[4px] border border-white/[0.08] bg-[#1E1F22] px-2.5 py-2 text-xs text-[#DBDEE1] outline-none focus:border-[#00A8FC]"
         >
-          {type === 'voice' ? <><option value="voice">Ses kanalı</option><option value="stage">Stage kanalı</option></> : <><option value="text">Metin kanalı</option><option value="announcement">Duyuru kanalı</option><option value="forum">Forum kanalı</option><option value="media">Medya kanalı</option><option value="category">Kategori</option></>}
+          {type === 'voice' ? <><option value="voice">Voice channel</option><option value="stage">Stage channel</option></> : <><option value="text">Text channel</option><option value="announcement">Announcement channel</option><option value="forum">Forum channel</option><option value="media">Media channel</option><option value="category">Category</option></>}
         </select>
-        <label className="sr-only" htmlFor={`new-${type}-channel`}>Kanal adı</label>
+        <label className="sr-only" htmlFor={`new-${type}-channel`}>Channel name</label>
         <input
           id={`new-${type}-channel`}
           type="text"
           value={newChannelName}
           onChange={(event) => setNewChannelName(event.target.value)}
-          placeholder={`${channelKind === 'category' ? 'kategori' : channelKind === 'stage' ? 'stage' : type === 'voice' ? 'sesli' : 'metin'}-kanalı`}
+          placeholder={`${channelKind === 'category' ? 'category' : channelKind === 'stage' ? 'stage' : type === 'voice' ? 'voice' : 'text'}-channel`}
           maxLength={50}
           className="w-full rounded-[4px] border border-[#00A8FC] bg-[#1E1F22] px-2.5 py-2 text-sm text-white outline-none placeholder:text-[#72767D]"
           autoFocus
@@ -424,7 +424,7 @@ export default function ChannelList({ onNavigate }) {
             if (!newChannelName) setCreateType(null);
           }}
         />
-        <p className="mt-1 px-1 text-[10px] text-[#949BA4]">Enter ile oluştur, Esc ile vazgeç</p>
+        <p className="mt-1 px-1 text-[10px] text-[#949BA4]">Press Enter to create or Esc to cancel</p>
       </form>
     );
   };
@@ -443,13 +443,13 @@ export default function ChannelList({ onNavigate }) {
         >
           <ChannelIcon className="mr-1.5 h-5 w-5 shrink-0 text-[#80848E]" />
           <span className="min-w-0 flex-1 truncate text-sm font-medium">{channel.name}</span>
-          {unread?.mentions > 0 ? <span className="ml-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">{unread.mentions > 9 ? '9+' : unread.mentions}</span> : unread?.count > 0 ? <span className="ml-1 h-2 w-2 rounded-full bg-[#f8fafc]" title={`${unread.count} okunmamış mesaj`} /> : null}
+          {unread?.mentions > 0 ? <span className="ml-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">{unread.mentions > 9 ? '9+' : unread.mentions}</span> : unread?.count > 0 ? <span className="ml-1 h-2 w-2 rounded-full bg-[#f8fafc]" title={`${unread.count} unread messages`} /> : null}
         </button>
         {canManageChannels && (
           <button
             type="button"
             onClick={(event) => { event.stopPropagation(); setOpenChannelMenu(isMenuOpen ? null : channel.id); setOpenVoiceMenu(null); }}
-            title="Kanal işlemleri"
+            title="Channel actions"
             className={`absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white ${isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -457,9 +457,9 @@ export default function ChannelList({ onNavigate }) {
         )}
         {isMenuOpen && (
           <div className="absolute right-2 top-10 z-50 w-40 rounded-md border border-black/30 bg-[#111214] p-1 shadow-2xl">
-            <button type="button" onClick={() => { setSettingsChannel(channel); setOpenChannelMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><Settings className="h-3.5 w-3.5" /> Kanal ayarları</button>
+            <button type="button" onClick={() => { setSettingsChannel(channel); setOpenChannelMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><Settings className="h-3.5 w-3.5" /> Channel settings</button>
             <button type="button" onClick={() => handleDeleteChannel(channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#F23F42] transition hover:bg-[#F23F42]/10">
-              <Trash2 className="h-3.5 w-3.5" /> Kanalı sil
+              <Trash2 className="h-3.5 w-3.5" /> Delete channel
             </button>
           </div>
         )}
@@ -483,40 +483,40 @@ export default function ChannelList({ onNavigate }) {
           {showServerMenu && (
             <div className="absolute left-3 right-3 top-12 z-50 overflow-hidden rounded-lg border border-white/[0.08] bg-[#111214] p-1.5 shadow-2xl">
               <div className="mb-1.5 rounded-md border border-[#5865F2]/25 bg-[#5865F2]/10 px-2.5 py-2">
-                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#8EA1E1]">Davet bağlantısı</span>
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#8EA1E1]">Invite link</span>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <code className="min-w-0 flex-1 truncate text-xs font-bold text-[#F2F3F5]">{buildInviteUrl(currentServer?.inviteCode) || '—'}</code>
-                  <button type="button" onClick={copyInviteCode} title="Kopyala" className="rounded p-1 text-[#B5BAC1] transition hover:bg-white/10 hover:text-white"><Copy className="h-4 w-4" /></button>
+                  <button type="button" onClick={copyInviteCode} title="Copy" className="rounded p-1 text-[#B5BAC1] transition hover:bg-white/10 hover:text-white"><Copy className="h-4 w-4" /></button>
                 </div>
               </div>
 
               <button type="button" onClick={shareInvite} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#5865F2] hover:text-white">
-                <UserPlus className="h-4 w-4" /> İnsanları davet et
+                <UserPlus className="h-4 w-4" /> Invite people
               </button>
 
               <button type="button" onClick={() => { setServerSettingsInitialTab('community'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                <CalendarDays className="h-4 w-4" /> Etkinlikler
+                <CalendarDays className="h-4 w-4" /> Activelikler
               </button>
 
               <button type="button" onClick={() => { setShowServerProfile(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                <UserCog className="h-4 w-4" /> Sunucu profilini düzenle
+                <UserCog className="h-4 w-4" /> Edit server profile
               </button>
 
               {isOwner && (
                 <button type="button" onClick={() => { setServerSettingsInitialTab('overview'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                  <Settings className="h-4 w-4" /> Sunucu ayarları ve topluluk
+                  <Settings className="h-4 w-4" /> Server settings and community
                 </button>
               )}
 
               {!isOwner && (
                 <button type="button" onClick={() => { setServerSettingsInitialTab('community'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                  <Sparkles className="h-4 w-4" /> Topluluk merkezi
+                  <Sparkles className="h-4 w-4" /> Community Hub
                 </button>
               )}
 
               {!isOwner && canManageMembers && (
                 <button type="button" onClick={() => { setShowMemberManager(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                  <UserCog className="h-4 w-4" /> Üyeleri yönet
+                  <UserCog className="h-4 w-4" /> Manage members
                 </button>
               )}
 
@@ -524,7 +524,7 @@ export default function ChannelList({ onNavigate }) {
                 <>
                   <div className="my-1 h-px bg-white/[0.07]" />
                   <button type="button" onClick={handleLeaveServer} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#F23F42] transition hover:bg-[#F23F42]/10">
-                    <LogOut className="h-4 w-4" /> Sunucudan ayrıl
+                    <LogOut className="h-4 w-4" /> Leave server
                   </button>
                 </>
               )}
@@ -544,9 +544,9 @@ export default function ChannelList({ onNavigate }) {
           )}
           <section className="pb-3">
             <div className="mb-1 flex items-center justify-between px-4">
-              <span className="flex items-center text-[11px] font-bold uppercase tracking-wide text-[#949BA4]"><ChevronDown className="mr-0.5 h-3.5 w-3.5" /> Metin Kanalları</span>
+              <span className="flex items-center text-[11px] font-bold uppercase tracking-wide text-[#949BA4]"><ChevronDown className="mr-0.5 h-3.5 w-3.5" /> Text Channels</span>
               {canManageChannels && (
-                <button type="button" onClick={() => { const opening = createType !== 'text'; setCreateType(opening ? 'text' : null); if (opening) setChannelKind('text'); }} title="Kanal oluştur" className="rounded p-1 text-[#949BA4] transition hover:bg-[#35373C] hover:text-white"><Plus className="h-4 w-4" /></button>
+                <button type="button" onClick={() => { const opening = createType !== 'text'; setCreateType(opening ? 'text' : null); if (opening) setChannelKind('text'); }} title="Create channel" className="rounded p-1 text-[#949BA4] transition hover:bg-[#35373C] hover:text-white"><Plus className="h-4 w-4" /></button>
               )}
             </div>
             {renderCreateForm('text')}
@@ -555,9 +555,9 @@ export default function ChannelList({ onNavigate }) {
 
           <section className="pt-2">
             <div className="mb-1 flex items-center justify-between px-4">
-              <span className="flex items-center text-[11px] font-bold uppercase tracking-wide text-[#949BA4]"><ChevronDown className="mr-0.5 h-3.5 w-3.5" /> Sesli Kanallar</span>
+              <span className="flex items-center text-[11px] font-bold uppercase tracking-wide text-[#949BA4]"><ChevronDown className="mr-0.5 h-3.5 w-3.5" /> Voiceli Kanallar</span>
               {canManageChannels && (
-                <button type="button" onClick={() => { const opening = createType !== 'voice'; setCreateType(opening ? 'voice' : null); if (opening) setChannelKind('voice'); }} title="Sesli veya Stage kanalı oluştur" className="rounded p-1 text-[#949BA4] transition hover:bg-[#35373C] hover:text-white"><Plus className="h-4 w-4" /></button>
+                <button type="button" onClick={() => { const opening = createType !== 'voice'; setCreateType(opening ? 'voice' : null); if (opening) setChannelKind('voice'); }} title="Create a voice or Stage channel" className="rounded p-1 text-[#949BA4] transition hover:bg-[#35373C] hover:text-white"><Plus className="h-4 w-4" /></button>
               )}
             </div>
             {renderCreateForm('voice')}
@@ -587,21 +587,21 @@ export default function ChannelList({ onNavigate }) {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium">{channel.name}</span>
                     </button>
                     {canManageChannels && (
-                      <button type="button" onClick={(event) => { event.stopPropagation(); setOpenChannelMenu(openChannelMenu === channel.id ? null : channel.id); setOpenVoiceMenu(null); }} title="Kanal işlemleri" className={`absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white ${openChannelMenu === channel.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                      <button type="button" onClick={(event) => { event.stopPropagation(); setOpenChannelMenu(openChannelMenu === channel.id ? null : channel.id); setOpenVoiceMenu(null); }} title="Channel actions" className={`absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white ${openChannelMenu === channel.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
                     )}
                     {openChannelMenu === channel.id && (
                       <div className="absolute right-2 top-10 z-50 w-40 rounded-md border border-black/30 bg-[#111214] p-1 shadow-2xl">
-                        <button type="button" onClick={() => { setSettingsChannel(channel); setOpenChannelMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><Settings className="h-3.5 w-3.5" /> Kanal ayarları</button>
-                        <button type="button" onClick={() => handleDeleteChannel(channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#F23F42] transition hover:bg-[#F23F42]/10"><Trash2 className="h-3.5 w-3.5" /> Kanalı sil</button>
+                        <button type="button" onClick={() => { setSettingsChannel(channel); setOpenChannelMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><Settings className="h-3.5 w-3.5" /> Channel settings</button>
+                        <button type="button" onClick={() => handleDeleteChannel(channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#F23F42] transition hover:bg-[#F23F42]/10"><Trash2 className="h-3.5 w-3.5" /> Delete channel</button>
                       </div>
                     )}
 
                     {channelMembers.map((participant) => {
                       const participantId = getVoiceParticipantId(participant);
                       const member = members.find((candidate) => getMemberId(candidate) === participantId);
-                      const displayName = participant.username || participant.user?.username || member?.username || member?.user?.username || 'Bağlanan kullanıcı';
+                      const displayName = participant.username || participant.user?.username || member?.username || member?.user?.username || 'Connected user';
                       const isSpeaking = Boolean(speakingUserIds[participantId]);
                       const override = voiceOverrides[participantId] || {};
                       const isMuted = override.muted ?? Boolean(participant.muted || participant.serverMuted || member?.serverMuted);
@@ -616,17 +616,17 @@ export default function ChannelList({ onNavigate }) {
                           draggable={canDisconnectMembers && participantId !== user?.id}
                           onDragStart={(event) => handleVoiceDragStart(event, participant, channel)}
                           onDragEnd={() => setVoiceDropTargetId(null)}
-                          title={canDisconnectMembers && participantId !== user?.id ? 'Başka bir ses kanalına sürükleyerek taşı' : undefined}
+                          title={canDisconnectMembers && participantId !== user?.id ? 'Drag to move to another voice channel' : undefined}
                         >
                           <div className={`flex min-w-0 items-center gap-2 rounded-lg border px-2 py-1.5 transition-all ${isSpeaking ? 'border-[#34D399] bg-[#34D399]/10 shadow-[0_0_12px_rgba(52,211,153,0.18)]' : 'border-transparent hover:bg-white/[0.04]'}`}>
                             <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white ${isSpeaking ? 'bg-[#34D399]' : 'bg-[#475569]'}`}>{displayName[0]?.toUpperCase() || '?'}</div>
                             <span className={`min-w-0 flex-1 truncate text-[12px] ${isSpeaking ? 'font-semibold text-[#D1FAE5]' : 'text-[#CBD5E1]'}`}>{displayName}</span>
-                            {participant.requestedToSpeak && <span className="shrink-0 rounded-full bg-[#f59e0b]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#fbbf24]">Söz istiyor</span>}
-                            {isMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Susturuldu" />}
-                            {isDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Sağırlaştırıldı" />}
+                            {participant.requestedToSpeak && <span className="shrink-0 rounded-full bg-[#f59e0b]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#fbbf24]">Requesting to speak</span>}
+                            {isMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muteuldu" />}
+                            {isDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Deafened" />}
                             {isSpeaking && !isMuted && <VolumeX className="h-3.5 w-3.5 shrink-0 rotate-180 text-[#34D399]" />}
                             {moderatorCanAct && (
-                              <button type="button" onClick={() => { setOpenVoiceMenu(openVoiceMenu === voiceMenuKey ? null : voiceMenuKey); setOpenChannelMenu(null); }} title="Ses moderasyonu" className="rounded p-0.5 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white"><MoreHorizontal className="h-3.5 w-3.5" /></button>
+                              <button type="button" onClick={() => { setOpenVoiceMenu(openVoiceMenu === voiceMenuKey ? null : voiceMenuKey); setOpenChannelMenu(null); }} title="Voice moderasyonu" className="rounded p-0.5 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white"><MoreHorizontal className="h-3.5 w-3.5" /></button>
                             )}
                           </div>
                           {openVoiceMenu === voiceMenuKey && (
@@ -635,13 +635,13 @@ export default function ChannelList({ onNavigate }) {
                               draggable={false}
                               onDragStart={(event) => { event.preventDefault(); event.stopPropagation(); }}
                             >
-                              {channel.type === 'stage' && canDisconnectMembers && participant.requestedToSpeak && <button type="button" onClick={() => emitStageModeration('approve', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#34d399] transition hover:bg-[#34d399]/10"><Mic className="h-3.5 w-3.5" /> Söz hakkı ver</button>}
-                              {channel.type === 'stage' && canDisconnectMembers && participant.stageRole === 'speaker' && <button type="button" onClick={() => emitStageModeration('audience', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><VolumeX className="h-3.5 w-3.5" /> Dinleyici yap</button>}
-                              {canMuteMembers && <button type="button" onClick={() => emitVoiceModeration(isMuted ? 'unmute' : 'mute', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><MicOff className="h-3.5 w-3.5" /> {isMuted ? 'Susturmayı kaldır' : 'Sustur'}</button>}
-                              {canDeafenMembers && <button type="button" onClick={() => emitVoiceModeration(isDeafened ? 'undeafen' : 'deafen', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><Headphones className="h-3.5 w-3.5" /> {isDeafened ? 'Sağırlaştırmayı kaldır' : 'Sağırlaştır'}</button>}
+                              {channel.type === 'stage' && canDisconnectMembers && participant.requestedToSpeak && <button type="button" onClick={() => emitStageModeration('approve', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#34d399] transition hover:bg-[#34d399]/10"><Mic className="h-3.5 w-3.5" /> Invite to speak</button>}
+                              {channel.type === 'stage' && canDisconnectMembers && participant.stageRole === 'speaker' && <button type="button" onClick={() => emitStageModeration('audience', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><VolumeX className="h-3.5 w-3.5" /> Move to audience</button>}
+                              {canMuteMembers && <button type="button" onClick={() => emitVoiceModeration(isMuted ? 'unmute' : 'mute', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><MicOff className="h-3.5 w-3.5" /> {isMuted ? 'Unmute' : 'Mute'}</button>}
+                              {canDeafenMembers && <button type="button" onClick={() => emitVoiceModeration(isDeafened ? 'undeafen' : 'deafen', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#DBDEE1] transition hover:bg-[#35373C]"><Headphones className="h-3.5 w-3.5" /> {isDeafened ? 'Undeafen' : 'Deafen'}</button>}
                               {canDisconnectMembers && voiceChannels.some((candidate) => candidate.id !== channel.id) && (
                                 <label className="block rounded px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#949BA4]">
-                                  Başka kanala taşı
+                                  Move to another channel
                                   <select
                                     defaultValue=""
                                     onChange={(event) => {
@@ -649,16 +649,16 @@ export default function ChannelList({ onNavigate }) {
                                       if (targetChannel) emitVoiceModeration('move', participant, channel, targetChannel);
                                     }}
                                     className="mt-1 w-full rounded border border-white/10 bg-[#1E1F22] px-2 py-1.5 text-xs font-normal normal-case tracking-normal text-[#DBDEE1] outline-none focus:border-[#5865F2]"
-                                    aria-label={`${displayName} kullanıcısını başka ses kanalına taşı`}
+                                    aria-label={`${displayName} to another voice channel`}
                                   >
-                                    <option value="" disabled>Kanal seç…</option>
+                                    <option value="" disabled>Choose a channel…</option>
                                     {voiceChannels.filter((candidate) => candidate.id !== channel.id).map((candidate) => (
                                       <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                     ))}
                                   </select>
                                 </label>
                               )}
-                              {canDisconnectMembers && <button type="button" onClick={() => emitVoiceModeration('disconnect', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#F23F42] transition hover:bg-[#F23F42]/10"><PhoneOff className="h-3.5 w-3.5" /> Kanaldan çıkar</button>}
+                              {canDisconnectMembers && <button type="button" onClick={() => emitVoiceModeration('disconnect', participant, channel)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs text-[#F23F42] transition hover:bg-[#F23F42]/10"><PhoneOff className="h-3.5 w-3.5" /> Disconnect</button>}
                             </div>
                           )}
                         </div>

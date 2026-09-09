@@ -24,7 +24,7 @@ export default function NotificationCenter() {
     const receiveNotification = (notification) => {
       const nextNotification = {
         id: notification.id || `${notification.messageId || Date.now()}-${Math.random()}`,
-        title: notification.title || 'Yeni mesaj',
+        title: notification.title || 'New message',
         body: notification.body || '',
         timestamp: notification.timestamp || Date.now(),
         ...notification,
@@ -79,13 +79,13 @@ export default function NotificationCenter() {
           <header className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
             <div>
               <h2 className="text-sm font-bold text-[#f8fafc]">Bildirimler</h2>
-              <p className="text-[11px] text-[#94a3b8]">Bahsetmeler ve yeni mesajlar</p>
+              <p className="text-[11px] text-[#94a3b8]">Mentions and new messages</p>
             </div>
             <button
               type="button"
               onClick={() => setNotifications([])}
               className="rounded-md p-1.5 text-[#94a3b8] hover:bg-white/[0.07] hover:text-white"
-              title="Tümünü temizle"
+              title="Clear all"
             >
               <CheckCheck className="h-4 w-4" />
             </button>
@@ -97,13 +97,13 @@ export default function NotificationCenter() {
               onClick={requestPermission}
               className="mx-3 mt-3 w-[calc(100%-1.5rem)] rounded-lg bg-[#2563eb] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1d4ed8]"
             >
-              Masaüstü bildirimlerine izin ver
+              Desktop notificationsne izin ver
             </button>
           )}
 
           <div className="max-h-[420px] overflow-y-auto p-2 custom-scrollbar">
             {visibleNotifications.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-[#64748b]">Henüz bildirimin yok.</p>
+              <p className="px-3 py-8 text-center text-sm text-[#64748b]">You have no notifications yet.</p>
             ) : visibleNotifications.map(notification => (
               <article key={notification.id} className="group relative rounded-lg px-3 py-2.5 hover:bg-white/[0.06]">
                 <p className="pr-6 text-xs font-bold text-[#e2e8f0]">{notification.title}</p>
@@ -113,7 +113,7 @@ export default function NotificationCenter() {
                   type="button"
                   onClick={() => setNotifications(previous => previous.filter(item => item.id !== notification.id))}
                   className="absolute right-2 top-2 hidden rounded p-1 text-[#64748b] hover:bg-white/[0.08] hover:text-white group-hover:block"
-                  title="Bildirimi kaldır"
+                  title="Dismiss notification"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

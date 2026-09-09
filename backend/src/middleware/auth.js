@@ -17,7 +17,7 @@ function validatedJwtSecret(value, source) {
   const secret = String(value || '').trim();
   const byteLength = Buffer.byteLength(secret, 'utf8');
   if (byteLength < 32 || byteLength > 4096) {
-    throw new Error(`${source} en az 32 bayt ve en fazla 4096 bayt olmalıdır.`);
+    throw new Error(`${source} must be at least 32 bytes and at most 4096 bytes.`);
   }
   return secret;
 }
@@ -36,7 +36,7 @@ function getJwtSecret() {
     try {
       if (fs.existsSync(secretPath)) {
         const existingSecret = fs.readFileSync(secretPath, 'utf8').trim();
-        cachedJwtSecret = validatedJwtSecret(existingSecret, 'Uygulama JWT anahtarı');
+        cachedJwtSecret = validatedJwtSecret(existingSecret, 'Application JWT key');
         return cachedJwtSecret;
       }
 
@@ -46,17 +46,17 @@ function getJwtSecret() {
       cachedJwtSecret = generatedSecret;
       return cachedJwtSecret;
     } catch (error) {
-      throw new Error('JWT_SECRET okunamadı ve uygulama veri klasöründe güvenli bir anahtar oluşturulamadı.');
+      throw new Error('JWT_SECRET could not be read and a secure key could not be created in the application data directory.');
     }
   }
 
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('Production için JWT_SECRET veya APP_DATA_DIR zorunludur.');
+    throw new Error('JWT_SECRET or APP_DATA_DIR is required in production.');
   }
 
   if (!warnedAboutFallbackSecret) {
     warnedAboutFallbackSecret = true;
-    console.warn('JWT_SECRET tanımlı değil. Production ortamında güçlü ve gizli bir JWT_SECRET ekleyin.');
+    console.warn('JWT_SECRET is not configured. Set a strong, private JWT_SECRET in production.');
   }
 
   cachedJwtSecret = DEVELOPMENT_FALLBACK_SECRET;
@@ -88,7 +88,7 @@ function getBearerToken(value) {
 
 function verifyAuthToken(token) {
   if (!token || typeof token !== 'string') {
-    const error = new Error('Kimlik doğrulama bilgisi gerekli.');
+    const error = new Error('Authentication is required.');
     error.code = 'AUTH_REQUIRED';
     throw error;
   }
@@ -102,13 +102,13 @@ function verifyAuthToken(token) {
     const user = storage.getUserById(payload.sub);
 
     if (!user || (payload.tokenVersion || 0) !== (user.tokenVersion || 0)) {
-      const error = new Error('Oturum artık geçerli değil.');
+      const error = new Error('The session is no longer valid.');
       error.code = 'AUTH_INVALID';
       throw error;
     }
 
     if (storage.isUserPlatformBanned(user.id)) {
-      const error = new Error('Bu hesap tahosapp genelinde banlandı.');
+      const error = new Error('Bu hesap was banned from tahosapp.');
       error.code = 'ACCOUNT_BANNED';
       error.reason = storage.getUserPlatformBan(user.id)?.reason || null;
       throw error;
@@ -131,11 +131,11 @@ function requireAuth(req, res, next) {
   } catch (error) {
     if (error.code === 'ACCOUNT_BANNED') {
       return res.status(403).json({
-        error: error.reason ? `Hesabın banlandı: ${error.reason}` : 'Hesabın tahosapp genelinde banlandı.',
+        error: error.reason ? `Your account was banned: ${error.reason}` : 'Your account was banned from tahosapp.',
         code: error.code,
       });
     }
-    return res.status(401).json({ error: 'Oturum geçersiz veya süresi dolmuş. Lütfen tekrar giriş yap.' });
+    return res.status(401).json({ error: 'The session is invalid or expired. Please sign in again.' });
   }
 }
 

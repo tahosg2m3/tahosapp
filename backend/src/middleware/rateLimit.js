@@ -181,7 +181,7 @@ function createRateLimitOptions(profileName, scope) {
       const retryAfter = retryAfterSeconds(req, profile.windowMs);
       res.set('Retry-After', String(retryAfter));
       return res.status(429).json({
-        error: 'Çok fazla istek gönderdin. Lütfen biraz sonra tekrar dene.',
+        error: 'Too many requests. Please try again shortly.',
         code: 'RATE_LIMITED',
         retryAfter,
       });

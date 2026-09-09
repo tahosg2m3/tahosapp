@@ -12,19 +12,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const restoreSession = async () => {
+    const restoreVoicesion = async () => {
       try {
         const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('chat_token');
         if (!storedUser || !token || storedUser === 'undefined' || storedUser === 'null') return;
 
         // Yerel depodaki kullanıcı bilgisine körü körüne güvenmek yerine, her
-        // uygulama açılışında imzalı ve süresi geçmemiş token'ı doğruluyoruz.
+        // uygulama açılışında imzalı and süresi geçmemiş token'ı doğruluyoruz.
         const response = await verifyToken();
         if (isMounted) setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
       } catch (error) {
-        console.warn('Oturum doğrulanamadı:', error.message);
+        console.warn('Could not verify the session:', error.message);
         localStorage.removeItem('user');
         localStorage.removeItem('chat_token');
       } finally {
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    restoreSession();
+    restoreVoicesion();
     return () => { isMounted = false; };
   }, []);
 

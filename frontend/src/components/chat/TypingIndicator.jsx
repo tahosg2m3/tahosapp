@@ -2,10 +2,10 @@ export default function TypingIndicator({ users }) {
   if (!users?.length) return <div className="h-5" aria-hidden="true" />;
 
   const text = users.length === 1
-    ? `${users[0]} yazıyor...`
+    ? `${users[0]} is typing...`
     : users.length === 2
-      ? `${users[0]} ve ${users[1]} yazıyor...`
-      : `${users.length} kişi yazıyor...`;
+      ? `${users[0]} and ${users[1]} is typing...`
+      : `${users.length} people are typing...`;
 
   return (
     <div className="flex h-5 items-center gap-2 text-sm text-[#94a3b8]" aria-live="polite">

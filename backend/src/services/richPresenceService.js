@@ -69,18 +69,18 @@ function normalizeMetadata(value) {
 }
 
 function normalizeActivity(input, previous = null) {
-  if (!isRecord(input)) throw new Error('Etkinlik bilgisi bir nesne olmalıdır.');
+  if (!isRecord(input)) throw new Error('Activity details must be an object.');
   const now = Date.now();
   const name = oneLine(input.name ?? input.applicationName, 80);
-  if (!name) throw new Error('Uygulama veya oyun adı zorunludur.');
+  if (!name) throw new Error('An app or game name is required.');
 
   const sessionId = oneLine(input.sessionId || previous?.sessionId || 'primary', 64, 'primary');
   if (!/^[A-Za-z0-9._:-]+$/.test(sessionId)) {
-    throw new Error('Oturum kimliği yalnızca harf, sayı, nokta, alt çizgi, iki nokta ve tire içerebilir.');
+    throw new Error('The session ID may contain only letters, numbers, periods, underscores, colons, and hyphens.');
   }
 
   const type = oneLine(input.type || previous?.type || 'playing', 24).toLowerCase();
-  if (!ACTIVITY_TYPES.has(type)) throw new Error('Desteklenmeyen etkinlik türü.');
+  if (!ACTIVITY_TYPES.has(type)) throw new Error('Unsupported activity type.');
   const requestedCategory = oneLine(input.category || previous?.category, 24).toLowerCase();
   const category = ACTIVITY_CATEGORIES.has(requestedCategory)
     ? requestedCategory
@@ -167,7 +167,7 @@ class RichPresenceService {
     this.lastTokenUse = new Map();
     this.io = null;
     this.ensurePersistentState();
-    this.cleanupTimer = setInterval(() => this.pruneExpiredSessions(true), 15_000);
+    this.cleanupTimer = setInterval(() => this.pruneExpiredVoicesions(true), 15_000);
     this.cleanupTimer.unref?.();
   }
 
@@ -204,7 +204,7 @@ class RichPresenceService {
   }
 
   createToken(userId) {
-    if (!this.storage.getUserById(userId)) throw new Error('Kullanıcı bulunamadı.');
+    if (!this.storage.getUserById(userId)) throw new Error('User not found.');
     const token = `tpr_${crypto.randomBytes(32).toString('base64url')}`;
     const state = this.ensurePersistentState();
     const rotated = Boolean(state.tokens[userId]?.hash);
@@ -266,28 +266,28 @@ class RichPresenceService {
   }
 
   setActivity(userId, input) {
-    if (!this.storage.getUserById(userId)) throw new Error('Kullanıcı bulunamadı.');
+    if (!this.storage.getUserById(userId)) throw new Error('User not found.');
     if (!this.isEnabled(userId)) {
-      const error = new Error('Rich Presence paylaşımı hesap ayarlarında kapalı.');
+      const error = new Error('Rich Presence sharing is disabled in account settings.');
       error.code = 'RICH_PRESENCE_DISABLED';
       throw error;
     }
-    const userSessions = this.sessions.get(userId) || new Map();
-    const requestedSessionId = oneLine(input?.sessionId || 'primary', 64, 'primary');
-    const previous = userSessions.get(requestedSessionId) || null;
-    if (!previous && userSessions.size >= MAX_SESSIONS_PER_USER) {
-      throw new Error(`Aynı anda en fazla ${MAX_SESSIONS_PER_USER} etkinlik oturumu paylaşabilirsin.`);
+    const userVoicesions = this.sessions.get(userId) || new Map();
+    const requestedVoicesionId = oneLine(input?.sessionId || 'primary', 64, 'primary');
+    const previous = userVoicesions.get(requestedVoicesionId) || null;
+    if (!previous && userVoicesions.size >= MAX_SESSIONS_PER_USER) {
+      throw new Error(`You can share up to ${MAX_SESSIONS_PER_USER} activity sessions at once.`);
     }
     const activity = normalizeActivity(input, previous);
-    userSessions.set(activity.sessionId, activity);
-    this.sessions.set(userId, userSessions);
+    userVoicesions.set(activity.sessionId, activity);
+    this.sessions.set(userId, userVoicesions);
     this.broadcast(userId);
     return publicActivity(activity);
   }
 
   heartbeat(userId, sessionId, ttlSeconds = DEFAULT_TTL_SECONDS) {
-    const normalizedSessionId = oneLine(sessionId || 'primary', 64, 'primary');
-    const activity = this.sessions.get(userId)?.get(normalizedSessionId);
+    const normalizedVoicesionId = oneLine(sessionId || 'primary', 64, 'primary');
+    const activity = this.sessions.get(userId)?.get(normalizedVoicesionId);
     if (!activity) return null;
     const now = Date.now();
     activity.updatedAt = now;
@@ -297,10 +297,10 @@ class RichPresenceService {
   }
 
   clear(userId, sessionId, { broadcast = true } = {}) {
-    const normalizedSessionId = oneLine(sessionId || 'primary', 64, 'primary');
-    const userSessions = this.sessions.get(userId);
-    const removed = Boolean(userSessions?.delete(normalizedSessionId));
-    if (userSessions && userSessions.size === 0) this.sessions.delete(userId);
+    const normalizedVoicesionId = oneLine(sessionId || 'primary', 64, 'primary');
+    const userVoicesions = this.sessions.get(userId);
+    const removed = Boolean(userVoicesions?.delete(normalizedVoicesionId));
+    if (userVoicesions && userVoicesions.size === 0) this.sessions.delete(userId);
     if (removed && broadcast) this.broadcast(userId);
     return removed;
   }
@@ -312,22 +312,22 @@ class RichPresenceService {
   }
 
   pruneExpiredForUser(userId, broadcast = true) {
-    const userSessions = this.sessions.get(userId);
-    if (!userSessions) return false;
+    const userVoicesions = this.sessions.get(userId);
+    if (!userVoicesions) return false;
     const now = Date.now();
     let changed = false;
-    userSessions.forEach((activity, sessionId) => {
+    userVoicesions.forEach((activity, sessionId) => {
       if (activity.expiresAt <= now || (activity.endsAt && activity.endsAt <= now)) {
-        userSessions.delete(sessionId);
+        userVoicesions.delete(sessionId);
         changed = true;
       }
     });
-    if (!userSessions.size) this.sessions.delete(userId);
+    if (!userVoicesions.size) this.sessions.delete(userId);
     if (changed && broadcast) this.broadcast(userId);
     return changed;
   }
 
-  pruneExpiredSessions(broadcast = true) {
+  pruneExpiredVoicesions(broadcast = true) {
     [...this.sessions.keys()].forEach(userId => this.pruneExpiredForUser(userId, broadcast));
   }
 
@@ -360,7 +360,7 @@ class RichPresenceService {
       token: this.tokenInfo(userId),
       activities: this.getActivities(userId, { includeHidden: true }),
       limits: {
-        maxSessions: MAX_SESSIONS_PER_USER,
+        maxVoicesions: MAX_SESSIONS_PER_USER,
         ttlSeconds: { minimum: MIN_TTL_SECONDS, default: DEFAULT_TTL_SECONDS, maximum: MAX_TTL_SECONDS },
       },
     };

@@ -22,7 +22,7 @@ function isPlatformAdmin(user) {
 
 function requirePlatformAdmin(req, res, next) {
   if (!isPlatformAdmin(req.user)) {
-    return res.status(403).json({ error: 'Bu işlem yalnızca tahosapp yöneticisine açıktır.' });
+    return res.status(403).json({ error: 'Only a tahosapp administrator can perform this action.' });
   }
   return next();
 }

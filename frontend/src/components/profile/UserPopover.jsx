@@ -66,14 +66,14 @@ function formatProfileDate(value) {
 }
 
 function formatActivityTime(value) {
-  if (!value) return 'Şimdi';
+  if (!value) return 'Now';
   const elapsed = Math.max(0, Date.now() - Number(value));
   const minutes = Math.floor(elapsed / 60000);
-  if (minutes < 1) return 'Şimdi';
-  if (minutes < 60) return `${minutes} dk önce`;
+  if (minutes < 1) return 'Now';
+  if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} sa önce`;
-  return `${Math.floor(hours / 24)} gün önce`;
+  if (hours < 24) return `${hours} hr ago`;
+  return `${Math.floor(hours / 24)} days ago`;
 }
 
 function stopEvent(event) {
@@ -111,11 +111,11 @@ function ProfileAvatar({ avatar, username, presence, size = 'large', serverBorde
         style={{ backgroundColor: getColorForString(username || '?') }}
       >
         {safeAvatar
-          ? <img src={safeAvatar} alt={`${username} profil resmi`} className="h-full w-full object-cover" />
+          ? <img src={safeAvatar} alt={`${username} profile picture`} className="h-full w-full object-cover" />
           : (username?.[0]?.toUpperCase() || '?')}
       </div>
       <span
-        aria-label={presence === 'online' ? 'Çevrimiçi' : 'Çevrimdışı'}
+        aria-label={presence === 'online' ? 'Online' : 'Offline'}
         className={`absolute rounded-full border-[#111214] ${statusClasses} ${PRESENCE_STYLES[presence] || PRESENCE_STYLES.offline}`}
       />
     </div>
@@ -125,9 +125,9 @@ function ProfileAvatar({ avatar, username, presence, size = 'large', serverBorde
 function ProfileBadges({ verified, isOwner, isFriend }) {
   return (
     <span className="inline-flex items-center gap-1.5 align-middle">
-      {verified && <BadgeCheck className="h-4 w-4 fill-[#23cdb5]/20 text-[#23cdb5]" aria-label="Doğrulanmış profil" />}
+      {verified && <BadgeCheck className="h-4 w-4 fill-[#23cdb5]/20 text-[#23cdb5]" aria-label="Verified profile" />}
       {isOwner && <Crown className="h-4 w-4 fill-[#f0b232]/20 text-[#f0b232]" aria-label="Sunucu sahibi" />}
-      {isFriend && <ShieldCheck className="h-4 w-4 fill-[#5865f2]/20 text-[#8b93ff]" aria-label="Arkadaş" />}
+      {isFriend && <ShieldCheck className="h-4 w-4 fill-[#5865f2]/20 text-[#8b93ff]" aria-label="Friend" />}
     </span>
   );
 }
@@ -174,7 +174,7 @@ function RoleChips({ roles, availableRoles, canManage, onToggleRole, compact = f
               type="button"
               onClick={() => onToggleRole(role.id)}
               className="ml-0.5 rounded text-[#949ba4] hover:text-white"
-              aria-label={`${role.name} rolünü kaldır`}
+              aria-label={`${role.name} Remove role`}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -195,7 +195,7 @@ function RoleChips({ roles, availableRoles, canManage, onToggleRole, compact = f
 
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-white/[0.08] bg-[#111214] p-2 shadow-2xl">
-          <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-[#949ba4]">Rolleri yönet</p>
+          <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-[#949ba4]">Manage roles</p>
           <div className="max-h-52 overflow-y-auto">
             {selectableRoles.length ? selectableRoles.map(role => (
               <button
@@ -211,7 +211,7 @@ function RoleChips({ roles, availableRoles, canManage, onToggleRole, compact = f
                 <span className="min-w-0 flex-1 truncate">{role.name}</span>
                 {assignedIds.has(role.id) && <Check className="h-4 w-4 text-[#23a559]" />}
               </button>
-            )) : <p className="px-2 py-3 text-xs text-[#949ba4]">Yönetilebilir rol yok.</p>}
+            )) : <p className="px-2 py-3 text-xs text-[#949ba4]">No manageable roles.</p>}
           </div>
         </div>
       )}
@@ -226,27 +226,27 @@ function MoreMenu({ open, onToggle, onCopyId, copied, onReport, onBlock, isBlock
         type="button"
         onClick={onToggle}
         className={`flex items-center justify-center rounded-full border border-white/[0.08] bg-black/55 text-white hover:bg-black/75 ${compact ? 'h-9 w-9' : 'h-11 w-11'}`}
-        aria-label="Diğer seçenekler"
+        aria-label="More options"
       >
         <MoreHorizontal className="h-5 w-5" />
       </button>
       {open && (
         <div className="absolute right-0 top-full z-[70] mt-2 w-60 rounded-xl border border-white/[0.08] bg-[#111214] p-1.5 shadow-2xl">
           <button type="button" onClick={onCopyId} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#dbdee1] hover:bg-[#5865f2] hover:text-white">
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Kullanıcı ID'sini kopyala
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} User ID'sini kopyala
           </button>
           {isFriend && (
             <button type="button" onClick={onRemoveFriend} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#dbdee1] hover:bg-[#da373c] hover:text-white">
-              <UserMinus className="h-4 w-4" /> Arkadaşlıktan çıkar
+              <UserMinus className="h-4 w-4" /> Remove Friend
             </button>
           )}
           {canReport && (
             <button type="button" onClick={onReport} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#f23f42] hover:bg-[#da373c] hover:text-white">
-              <Flag className="h-4 w-4" /> Şikâyet et
+              <Flag className="h-4 w-4" /> Report et
             </button>
           )}
           <button type="button" onClick={onBlock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#f23f42] hover:bg-[#da373c] hover:text-white">
-            <ShieldOff className="h-4 w-4" /> {isBlocked ? 'Engeli kaldır' : 'Engelle'}
+            <ShieldOff className="h-4 w-4" /> {isBlocked ? 'Unblock' : 'Engelle'}
           </button>
         </div>
       )}
@@ -310,15 +310,15 @@ function FullProfileModal({
       setNote(payload.note || '');
       lastSavedNote.current = payload.note || '';
     } catch (error) {
-      toast.error(error.message || 'Not kaydedilemedi.');
+      toast.error(error.message || 'The note could not be saved.');
     } finally {
       setNoteSaving(false);
     }
   };
 
   const tabItems = [
-    { id: 'activity', label: 'Etkinlik', count: null },
-    { id: 'friends', label: 'Ortak Arkadaş', count: mutualFriends.length },
+    { id: 'activity', label: 'Activelik', count: null },
+    { id: 'friends', label: 'Mutual Friends', count: mutualFriends.length },
     { id: 'servers', label: 'Ortak Sunucu', count: mutualServers.length },
   ];
 
@@ -366,7 +366,7 @@ function FullProfileModal({
               {!relationship.isSelf && (
                 <div className="mt-6 flex items-center gap-2.5">
                   <button type="button" onClick={onMessage} className="flex h-10 items-center gap-2 rounded-lg bg-[#5865f2] px-5 font-bold text-white hover:bg-[#4752c4]">
-                    <MessageSquare className="h-5 w-5 fill-white" /> Mesaj
+                    <MessageSquare className="h-5 w-5 fill-white" /> Message
                   </button>
                   <button type="button" onClick={onFriend} className="flex h-10 items-center gap-2 rounded-lg border border-white/[0.1] bg-[#2b2d31] px-3.5 font-semibold text-[#dbdee1] hover:bg-[#35373c]">
                     {relationship.isFriend ? <UserCheck className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
@@ -389,7 +389,7 @@ function FullProfileModal({
 
               <div className="mt-8 space-y-6 text-[#dbdee1]">
                 <section>
-                  <h2 className="mb-3 text-sm font-semibold text-[#949ba4]">Şu Tarihten Beri Üye:</h2>
+                  <h2 className="mb-3 text-sm font-semibold text-[#949ba4]">Member Since:</h2>
                   <div className="flex flex-wrap items-center gap-3 text-base">
                     <span className="inline-flex items-center gap-2"><MessageSquare className="h-5 w-5 text-[#b5bac1]" /> {formatProfileDate(profile.createdAt)}</span>
                     {member?.serverProfile?.joinedAt && (
@@ -400,21 +400,21 @@ function FullProfileModal({
 
                 {relationship.isFriend && (
                   <section>
-                    <h2 className="mb-3 text-sm font-semibold text-[#949ba4]">Şu Tarihten Beri Arkadaş</h2>
+                    <h2 className="mb-3 text-sm font-semibold text-[#949ba4]">Friends Since</h2>
                     <p className="inline-flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" /> {formatProfileDate(relationship.friendsSince)}</p>
                   </section>
                 )}
 
                 <section>
-                  <h2 className="mb-3 text-sm font-semibold text-[#949ba4]">Roller</h2>
+                  <h2 className="mb-3 text-sm font-semibold text-[#949ba4]">Roles</h2>
                   <RoleChips roles={roles} availableRoles={availableRoles} canManage={canManageRoles} onToggleRole={onToggleRole} />
-                  {!roles.filter(role => !role.isDefault).length && !canManageRoles && <p className="text-sm text-[#6d6f78]">Atanmış özel rol yok.</p>}
+                  {!roles.filter(role => !role.isDefault).length && !canManageRoles && <p className="text-sm text-[#6d6f78]">No custom roles assigned.</p>}
                 </section>
 
                 {!relationship.isSelf && (
                   <section>
                     <div className="mb-2 flex items-center gap-2">
-                      <h2 className="text-sm font-semibold text-[#949ba4]">Not (sadece sana görünür)</h2>
+                      <h2 className="text-sm font-semibold text-[#949ba4]">Note (only visible to you)</h2>
                       {noteSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#949ba4]" />}
                     </div>
                     <textarea
@@ -425,7 +425,7 @@ function FullProfileModal({
                         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') event.currentTarget.blur();
                       }}
                       rows={3}
-                      placeholder="Not eklemek için tıkla"
+                      placeholder="Click to add a note"
                       className="w-full resize-none rounded-lg border border-transparent bg-transparent px-0 py-2 text-base italic text-[#dbdee1] outline-none placeholder:text-[#6d6f78] hover:border-white/[0.08] hover:px-3 focus:border-[#5865f2] focus:bg-[#0b0b0d] focus:px-3"
                     />
                   </section>
@@ -451,15 +451,15 @@ function FullProfileModal({
 
             {activeTab === 'activity' && (
               <section className="pt-8">
-                <h2 className="mb-4 text-base font-medium text-[#949ba4]">Son Etkinlik</h2>
+                <h2 className="mb-4 text-base font-medium text-[#949ba4]">Son Activelik</h2>
                 <div className="space-y-3">
                   {activities.length ? activities.map(activity => (
                     <RichPresenceCard key={activity.sessionId || activity.id} activity={activity} />
                   )) : (
                     <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] text-center">
                       <Gamepad2 className="h-12 w-12 text-[#4e5058]" />
-                      <p className="mt-4 font-semibold text-[#b5bac1]">Yakın zamanda etkinlik yok</p>
-                      <p className="mt-1 text-sm text-[#6d6f78]">Kullanıcının oyun veya özel durum etkinliği burada görünür.</p>
+                      <p className="mt-4 font-semibold text-[#b5bac1]">No recent activity</p>
+                      <p className="mt-1 text-sm text-[#6d6f78]">The user’s game or custom status activity will appear here.</p>
                     </div>
                   )}
                 </div>
@@ -468,7 +468,7 @@ function FullProfileModal({
 
             {activeTab === 'friends' && (
               <section className="pt-8">
-                <h2 className="mb-4 text-base font-medium text-[#949ba4]">{mutualFriends.length} Ortak Arkadaş</h2>
+                <h2 className="mb-4 text-base font-medium text-[#949ba4]">{mutualFriends.length} Mutual Friends</h2>
                 <div className="grid gap-3 xl:grid-cols-2">
                   {mutualFriends.map(friend => {
                     const avatar = resolveSafeMediaUrl(friend.avatar);
@@ -477,11 +477,11 @@ function FullProfileModal({
                         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full font-bold text-white" style={{ backgroundColor: getColorForString(friend.username) }}>
                           {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : friend.username?.[0]?.toUpperCase()}
                         </div>
-                        <div className="min-w-0"><p className="truncate font-bold text-white">{friend.username}</p><p className="text-sm text-[#949ba4]">{friend.customStatus || (friend.status === 'online' ? 'Çevrimiçi' : 'Çevrimdışı')}</p></div>
+                        <div className="min-w-0"><p className="truncate font-bold text-white">{friend.username}</p><p className="text-sm text-[#949ba4]">{friend.customStatus || (friend.status === 'online' ? 'Online' : 'Offline')}</p></div>
                       </article>
                     );
                   })}
-                  {!mutualFriends.length && <p className="text-[#949ba4]">Ortak arkadaşınız yok.</p>}
+                  {!mutualFriends.length && <p className="text-[#949ba4]">You have no mutual friends.</p>}
                 </div>
               </section>
             )}
@@ -497,11 +497,11 @@ function FullProfileModal({
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl font-bold text-white" style={{ backgroundColor: getColorForString(server.name) }}>
                           {icon ? <img src={icon} alt="" className="h-full w-full object-cover" /> : server.name?.[0]?.toUpperCase()}
                         </div>
-                        <div className="min-w-0"><p className="truncate font-bold text-white">{server.name}</p><p className="text-sm text-[#949ba4]">{server.memberCount} üye</p></div>
+                        <div className="min-w-0"><p className="truncate font-bold text-white">{server.name}</p><p className="text-sm text-[#949ba4]">{server.memberCount} member</p></div>
                       </article>
                     );
                   })}
-                  {!mutualServers.length && <p className="text-[#949ba4]">Ortak sunucunuz yok.</p>}
+                  {!mutualServers.length && <p className="text-[#949ba4]">You have no mutual servers.</p>}
                 </div>
               </section>
             )}
@@ -532,7 +532,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
       const payload = await fetchUserProfile(targetId, currentServer?.id || '');
       setDetails(payload);
     } catch (error) {
-      toast.error(error.message || 'Profil bilgileri alınamadı.');
+      toast.error(error.message || 'Profile information could not be loaded.');
     } finally {
       setLoading(false);
     }
@@ -544,7 +544,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
     setLoading(true);
     fetchUserProfile(targetId, currentServer?.id || '')
       .then(payload => { if (active) setDetails(payload); })
-      .catch(error => { if (active) toast.error(error.message || 'Profil bilgileri alınamadı.'); })
+      .catch(error => { if (active) toast.error(error.message || 'Profile information could not be loaded.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [targetId, currentServer?.id]);
@@ -562,7 +562,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
   const profile = { ...baseUser, ...(details?.user || {}) };
   const member = details?.serverMember || baseUser;
   const relationship = details?.relationship || { isSelf: currentUser?.id === targetId };
-  const displayName = member?.nickname || profile.username || 'Kullanıcı';
+  const displayName = member?.nickname || profile.username || 'User';
   const accountName = profile.username || displayName;
   const avatar = member?.serverAvatar || profile.avatar;
   const safeBanner = resolveSafeMediaUrl(member?.serverBanner || profile.banner);
@@ -590,9 +590,9 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
       await navigator.clipboard.writeText(targetId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast.success('Kullanıcı ID kopyalandı.');
+      toast.success('User ID copied.');
     } catch (_) {
-      toast.error('Kullanıcı ID kopyalanamadı.');
+      toast.error('User ID could not be copied.');
     }
   };
 
@@ -605,64 +605,64 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
       window.dispatchEvent(new CustomEvent('tahosapp:navigate-to-dm', { detail: { conversation: completeConversation } }));
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Mesaj başlatılamadı.');
+      toast.error(error.message || 'The conversation could not be started.');
     }
   };
 
   const handleFriend = async () => {
-    if (relationship.isBlocked) return toast.error('Önce kullanıcının engelini kaldır.');
+    if (relationship.isBlocked) return toast.error('Unblock this user first.');
     if (relationship.isFriend) return handleRemoveFriend();
-    if (relationship.pendingRequest?.direction === 'outgoing') return toast('Arkadaşlık isteği zaten gönderildi.');
+    if (relationship.pendingRequest?.direction === 'outgoing') return toast('A friend request has already been sent.');
     try {
       if (relationship.pendingRequest?.direction === 'incoming') {
         await acceptFriendRequest(relationship.pendingRequest.id);
-        toast.success('Arkadaşlık isteği kabul edildi.');
+        toast.success('Friend request accepted.');
       } else {
         await sendFriendRequest(currentUser.id, accountName);
-        toast.success('Arkadaşlık isteği gönderildi.');
+        toast.success('Friend request sent.');
       }
       await loadProfile();
     } catch (error) {
-      toast.error(error.message || 'Arkadaşlık işlemi tamamlanamadı.');
+      toast.error(error.message || 'The friend action could not be completed.');
     }
   };
 
   const handleRemoveFriend = async () => {
     if (!relationship.isFriend) return;
-    if (!window.confirm(`${displayName} kullanıcısını arkadaşlıktan çıkarmak istiyor musun?`)) return;
+    if (!window.confirm(`${displayName} from your friends?`)) return;
     try {
       await removeFriend(currentUser.id, targetId);
-      toast.success('Arkadaşlıktan çıkarıldı.');
+      toast.success('Friend removed.');
       await loadProfile();
     } catch (error) {
-      toast.error(error.message || 'Arkadaşlık kaldırılamadı.');
+      toast.error(error.message || 'The friend could not be removed.');
     }
   };
 
   const handleBlock = async () => {
-    const action = relationship.isBlocked ? 'engelini kaldırmak' : 'engellemek';
-    if (!window.confirm(`${displayName} kullanıcısının ${action} istiyor musun?`)) return;
+    const action = relationship.isBlocked ? 'unblock' : 'block';
+    if (!window.confirm(`${displayName} user? ${action} Do you want to continue?`)) return;
     try {
       if (relationship.isBlocked) await unblockUser(targetId);
       else await blockUser(targetId);
-      toast.success(relationship.isBlocked ? 'Kullanıcının engeli kaldırıldı.' : 'Kullanıcı engellendi.');
+      toast.success(relationship.isBlocked ? 'The user was unblocked.' : 'User engellendi.');
       setMoreOpen(false);
       await loadProfile();
     } catch (error) {
-      toast.error(error.message || 'İşlem tamamlanamadı.');
+      toast.error(error.message || 'The action could not be completed.');
     }
   };
 
   const handleReport = async () => {
     if (!currentServer?.id) return;
-    const reason = window.prompt(`${displayName} kullanıcısını neden şikâyet ediyorsun?`);
+    const reason = window.prompt(`${displayName} Why are you reporting this user?`);
     if (!reason?.trim()) return;
     try {
       await createReport(currentServer.id, { type: 'user', targetUserId: targetId, reason: reason.trim() });
-      toast.success('Şikâyet moderatörlere gönderildi.');
+      toast.success('Report sent to the moderators.');
       setMoreOpen(false);
     } catch (error) {
-      toast.error(error.message || 'Şikâyet gönderilemedi.');
+      toast.error(error.message || 'The report could not be sent.');
     }
   };
 
@@ -674,19 +674,19 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
     try {
       const payload = await assignMemberRoles(currentServer.id, targetId, [...roleIds], currentUser.id);
       setDetails(previous => ({ ...previous, serverMember: payload.member }));
-      toast.success('Kullanıcı rolleri güncellendi.');
+      toast.success('User roles updated.');
     } catch (error) {
-      toast.error(error.message || 'Roller güncellenemedi.');
+      toast.error(error.message || 'Roles could not be updated.');
     }
   };
 
   const friendLabel = relationship.isFriend
-    ? 'Arkadaş'
+    ? 'Friend'
     : relationship.pendingRequest?.direction === 'incoming'
-      ? 'İsteği Kabul Et'
+      ? 'Accept Request'
       : relationship.pendingRequest?.direction === 'outgoing'
-        ? 'İstek Gönderildi'
-        : 'Arkadaş Ekle';
+        ? 'Request Sent'
+        : 'Add Friend';
 
   if (!targetId) return null;
 
@@ -719,7 +719,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
         role="dialog"
         aria-modal="true"
         aria-label={`${displayName} profili`}
-        title="Tam profili açmak için karta tekrar tıkla"
+        title="Click the card again to open the full profile"
         onMouseDown={stopEvent}
         onClick={() => setExpanded(true)}
         style={{ ...(compactPosition || {}), ...profileSurface.style }}
@@ -729,7 +729,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
           {safeBanner && <img src={safeBanner} alt="" className="h-full w-full object-cover" />}
           {!relationship.isSelf && (
             <div className="absolute right-3 top-3 flex gap-1.5" onClick={stopEvent}>
-              <button type="button" onClick={handleBlock} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-black/65 text-white hover:bg-black/80" aria-label={relationship.isBlocked ? 'Engeli kaldır' : 'Engelle'}>
+              <button type="button" onClick={handleBlock} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-black/65 text-white hover:bg-black/80" aria-label={relationship.isBlocked ? 'Unblock' : 'Engelle'}>
                 <ShieldOff className="h-5 w-5" />
               </button>
               <button type="button" onClick={handleFriend} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.1] bg-black/65 text-white hover:bg-black/80" aria-label={friendLabel}>
@@ -776,7 +776,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
             className="mt-4 flex w-full items-center gap-2 text-left text-xs text-[#949ba4] hover:text-[#dbdee1]"
           >
             <MutualAvatars users={mutualFriends} />
-            <span>{mutualFriends.length} Ortak Arkadaş</span>
+            <span>{mutualFriends.length} Mutual Friends</span>
             <span>•</span>
             <span>{mutualServers.length} Ortak Sunucu</span>
           </button>
@@ -794,9 +794,9 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
           {!relationship.isSelf && (
             <div className="mt-4 flex gap-2" onClick={stopEvent}>
               <button type="button" onClick={handleSendMessage} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#5865f2] px-4 py-2.5 font-semibold text-white hover:bg-[#4752c4]">
-                <MessageSquare className="h-4 w-4" /> Mesaj
+                <MessageSquare className="h-4 w-4" /> Message
               </button>
-              <button type="button" onClick={() => setExpanded(true)} className="rounded-lg bg-[#2b2d31] px-4 py-2.5 font-semibold text-[#dbdee1] hover:bg-[#35373c]">Profili Gör</button>
+              <button type="button" onClick={() => setExpanded(true)} className="rounded-lg bg-[#2b2d31] px-4 py-2.5 font-semibold text-[#dbdee1] hover:bg-[#35373c]">View Profile</button>
             </div>
           )}
         </div>

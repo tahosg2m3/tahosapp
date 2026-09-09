@@ -56,7 +56,7 @@ function installSocketRateLimit(socket) {
     counters.set(limit.bucket, counter);
     if (counter.count <= limit.max) return next();
 
-    const error = new Error('Çok fazla gerçek zamanlı işlem gönderildi. Lütfen kısa süre bekle.');
+    const error = new Error('Too many real-time actions were sent. Please wait a moment.');
     error.data = {
       code: 'SOCKET_RATE_LIMITED',
       retryAfterMs: Math.max(1, limit.windowMs - (now - counter.startedAt)),
@@ -83,7 +83,7 @@ module.exports = (io, options = {}) => {
       socket.authUser = { id: user.id, username: user.username };
       return next();
     } catch (error) {
-      return next(new Error('Oturum geçersiz veya süresi dolmuş. Lütfen tekrar giriş yap.'));
+      return next(new Error('The session is invalid or expired. Please sign in again.'));
     }
   });
 
@@ -111,7 +111,7 @@ module.exports = (io, options = {}) => {
 
     const ensureAuthenticated = callback => (...args) => {
       if (!socket.userData.authenticated) {
-        socket.emit('auth:error', { message: 'Önce socket bağlantısını doğrulaman gerekiyor.' });
+        socket.emit('auth:error', { message: 'Authenticate the socket connection first.' });
         return undefined;
       }
       return callback(...args);
@@ -133,7 +133,7 @@ module.exports = (io, options = {}) => {
 
       const user = storage.getUserById(socket.authUser?.id);
       if (!user) {
-        socket.emit('auth:error', { message: 'Kullanıcı bulunamadı.' });
+        socket.emit('auth:error', { message: 'User not found.' });
         socket.disconnect(true);
         return;
       }
@@ -196,7 +196,7 @@ module.exports = (io, options = {}) => {
     socket.on('members:request', ensureAuthenticated(data => {
       const channelId = String(data?.channelId || '');
       if (!canViewChannel(channelId, socket.userData.userId)) {
-        socket.emit('members:update', { channelId, members: [], error: 'Bu kanalı görüntüleme yetkin yok.' });
+        socket.emit('members:update', { channelId, members: [], error: 'You do not have permission to view this channel.' });
         return;
       }
       const members = userService.getChannelMembers(channelId);

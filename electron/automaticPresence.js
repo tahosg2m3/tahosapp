@@ -113,18 +113,18 @@ function classifyGame(processInfo) {
       type: 'playing',
       name,
       details: 'Oyunda',
-      state: store?.platform ? `${store.platform} üzerinden oynuyor` : 'Oyun oynuyor',
+      state: store?.platform ? `${store.platform} Playing via` : 'Playing a game',
       startedAt: Number(processInfo?.startedAt) || Date.now(),
       ttlSeconds: 60,
       metadata: {
-        Kaynak: 'Otomatik algılama',
+        Source: 'Automatic detection',
         ...(store?.platform ? { Platform: store.platform } : {}),
       },
     },
   };
 }
 
-function automaticMediaSessionId(prefix, sourceId) {
+function automaticMediaVoicesionId(prefix, sourceId) {
   const digest = crypto.createHash('sha256').update(sourceId || prefix).digest('hex').slice(0, 12);
   return `auto-${prefix}-${digest}`;
 }
@@ -150,8 +150,8 @@ function classifyMedia(media) {
     : isYouTubeMusic
       ? 'YouTube Music'
       : browserSource
-        ? 'Tarayıcı videosu'
-        : category === 'video' ? 'Video oynatıcı' : 'Medya oynatıcı';
+        ? 'Browser video'
+        : category === 'video' ? 'Video player' : 'Media player';
   const title = cleanText(media.title, 100);
   const artist = cleanText(media.artist, 100);
   if (!title) return null;
@@ -161,14 +161,14 @@ function classifyMedia(media) {
   const mediaPrefix = category === 'video' ? 'video' : 'media';
 
   return {
-    sessionId: automaticMediaSessionId(mediaPrefix, sourceId),
+    sessionId: automaticMediaVoicesionId(mediaPrefix, sourceId),
     type: category === 'video' ? 'watching' : 'listening',
     category,
     provider: isSpotify ? 'spotify' : isYouTubeMusic ? 'youtube-music' : browserSource ? 'browser' : 'other',
     playbackStatus: isPaused ? 'paused' : 'playing',
     name: provider,
     details: title,
-    state: artist || (isPaused ? 'Duraklatıldı' : ''),
+    state: artist || (isPaused ? 'Paused' : ''),
     startedAt: Date.now() - positionMs,
     ttlSeconds: 60,
     ...(category === 'music' ? {
@@ -187,20 +187,20 @@ function classifyMedia(media) {
       },
     } : {}),
     metadata: {
-      Kaynak: 'Otomatik algılama',
+      Source: 'Automatic detection',
       Servis: provider,
-      Durum: isPaused ? 'Duraklatıldı' : 'Oynatılıyor',
+      State: isPaused ? 'Paused' : 'Playing',
     },
   };
 }
 
 function classifySnapshot(snapshot) {
   const processes = Array.isArray(snapshot?.processes) ? snapshot.processes : [];
-  const mediaSessions = Array.isArray(snapshot?.media) ? snapshot.media : [];
+  const mediaVoicesions = Array.isArray(snapshot?.media) ? snapshot.media : [];
   const games = processes.map(classifyGame).filter(Boolean).sort((a, b) => (
     b.score - a.score || Number(b.activity?.startedAt || 0) - Number(a.activity?.startedAt || 0)
   ));
-  const mediaActivities = mediaSessions
+  const mediaActivities = mediaVoicesions
     .map(item => ({ item, activity: classifyMedia(item) }))
     .filter(entry => entry.activity)
     .sort((a, b) => (
@@ -257,7 +257,7 @@ class AutomaticPresenceDetector {
         this.lastDigest = digest;
         this.onActivities(activities);
       } catch (error) {
-        this.onError(new Error(`Otomatik etkinlik çıktısı okunamadı: ${error.message}`));
+        this.onError(new Error(`Could not read automatic activity output: ${error.message}`));
       }
     });
     child.stderr.on('data', chunk => {

@@ -52,11 +52,11 @@ class GroupDmService {
 
   create(ownerId, input = {}) {
     const memberIds = uniqueMemberIds(ownerId, input.memberIds);
-    if (memberIds.length < 3) throw new Error('Grup özel mesajı için en az üç kişi gerekli.');
-    if (memberIds.some(userId => !storage.getUserById(userId))) throw new Error('Üyelerden biri bulunamadı.');
+    if (memberIds.length < 3) throw new Error('A group direct message requires at least three people.');
+    if (memberIds.some(userId => !storage.getUserById(userId))) throw new Error('Membersden biri not found.');
     if (memberIds.some(userId => userId !== String(ownerId)
       && storage.isBlockedEitherDirection?.(ownerId, userId))) {
-      const error = new Error('Engellenen bir kullanıcı gruba eklenemez.');
+      const error = new Error('A blocked user cannot be added to the group.');
       error.statusCode = 403;
       error.code = 'USER_BLOCKED';
       throw error;
@@ -64,7 +64,7 @@ class GroupDmService {
     const now = Date.now();
     const server = {
       id: uuidv4(),
-      name: String(input.name || 'Yeni Grup').trim().slice(0, 100) || 'Yeni Grup',
+      name: String(input.name || 'New Group').trim().slice(0, 100) || 'New Group',
       icon: input.icon ? String(input.icon).slice(0, 1000) : null,
       isDM: true,
       isGroupDM: true,
@@ -92,7 +92,7 @@ class GroupDmService {
     if (!server?.isGroupDM || server.ownerId !== actorId) return null;
     if (updates.name !== undefined) {
       const name = String(updates.name || '').trim().slice(0, 100);
-      if (!name) throw new Error('Grup adı boş olamaz.');
+      if (!name) throw new Error('The group name cannot be empty.');
       server.name = name;
     }
     if (updates.icon !== undefined) server.icon = updates.icon ? String(updates.icon).slice(0, 1000) : null;

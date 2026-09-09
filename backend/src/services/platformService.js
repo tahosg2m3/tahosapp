@@ -1250,13 +1250,13 @@ class PlatformService {
   listForumPosts(serverOrChannelId, filters = {}) {
     const scope = this.resolveFeatureScope(serverOrChannelId, filters.channelId);
     if (!scope) return [];
-    const query = text(filters.query, 100).toLocaleLowerCase('tr');
+    const query = text(filters.query, 100).toLocaleLowerCase('en-US');
     const limit = integer(filters.limit, 1, 100, 50);
     return clone((this.ensureServerState(scope.serverId)?.forumPosts || [])
       .filter(post => !scope.channelId || post.channelId === scope.channelId)
       .filter(post => filters.archived === undefined || post.archived === Boolean(filters.archived))
       .filter(post => !filters.tagId || post.tagIds?.includes(filters.tagId))
-      .filter(post => !query || `${post.title} ${post.content}`.toLocaleLowerCase('tr').includes(query))
+      .filter(post => !query || `${post.title} ${post.content}`.toLocaleLowerCase('en-US').includes(query))
       .sort((first, second) => Number(second.pinned) - Number(first.pinned) || second.updatedAt - first.updatedAt)
       .slice(0, limit));
   }
@@ -1820,11 +1820,11 @@ class PlatformService {
   }
 
   listDiscoverableServers(filters = {}) {
-    const query = text(filters.query, 100).toLocaleLowerCase('tr');
+    const query = text(filters.query, 100).toLocaleLowerCase('en-US');
     const result = this.storage.getAllServers().filter(server => !server.isDM).map(server => {
       const discovery = this.ensureServerState(server.id).discovery;
       if (!discovery.enabled) return null;
-      const haystack = `${server.name} ${discovery.description} ${(discovery.keywords || []).join(' ')}`.toLocaleLowerCase('tr');
+      const haystack = `${server.name} ${discovery.description} ${(discovery.keywords || []).join(' ')}`.toLocaleLowerCase('en-US');
       if (query && !haystack.includes(query)) return null;
       if (filters.category && discovery.category !== filters.category) return null;
       if (filters.language && discovery.language !== filters.language) return null;
@@ -1937,7 +1937,7 @@ class PlatformService {
       snapshot,
     };
     root.backups.push(backup);
-    // Yerel yedeklerin sınırsız büyüyerek ana state'i şişirmesini engeller.
+    // Yerel yedeklerin sınırsız büymemberrek ana state'i şişirmesini engeller.
     const serverBackups = root.backups.filter(item => item.serverId === backup.serverId);
     if (serverBackups.length > 25) {
       const removeIds = new Set(serverBackups.sort((a, b) => b.createdAt - a.createdAt).slice(25).map(item => item.id));
@@ -1990,7 +1990,7 @@ class PlatformService {
       const creatorId = text(options.creatorId, 128);
       if (!creatorId) return null;
       server = this.storage.createServer(
-        text(options.name, 100, backup.snapshot.server?.name || 'Geri yüklenen sunucu'),
+        text(options.name, 100, backup.snapshot.server?.name || 'Restorenen sunucu'),
         creatorId,
       );
       serverId = server.id;
@@ -2581,7 +2581,7 @@ class PlatformService {
   }
 
   // Route katmanında kullanılan kısa uyumluluk adları. Asıl metotları
-  // koruduğumuz için daha önce yazılmış çağrılar da çalışmaya devam eder.
+  // koruduğumuz has daha önce yazılmış çağrılar da çalışmaya devam eder.
   consumeInvite(code, userId) {
     return this.useInvite(code, userId);
   }

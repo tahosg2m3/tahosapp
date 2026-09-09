@@ -43,10 +43,10 @@ export async function createRnnoiseProcessor(
   { onProcessorError, warmupMs = 250 } = {},
 ) {
   if (!isRnnoiseRuntimeSupported() || !context?.audioWorklet) {
-    throw new Error('RNNoise için AudioWorklet/WebAssembly desteği bulunamadı.');
+    throw new Error('AudioWorklet/WebAssembly support required by RNNoise is unavailable.');
   }
   if (context.sampleRate !== RNNOISE_SAMPLE_RATE) {
-    throw new Error(`RNNoise 48 kHz gerektiriyor; ses bağlamı ${context.sampleRate} Hz açıldı.`);
+    throw new Error(`RNNoise requires 48 kHz; the audio context opened at ${context.sampleRate} Hz.`);
   }
 
   const [wasmBinary] = await Promise.all([
@@ -60,7 +60,7 @@ export async function createRnnoiseProcessor(
   const handleProcessorError = (event) => {
     const error = event?.error instanceof Error
       ? event.error
-      : new Error('RNNoise AudioWorklet işlemi durdu.');
+      : new Error('The RNNoise AudioWorklet stopped.');
     initialError = error;
     if (!destroyed) onProcessorError?.(error);
   };
@@ -72,8 +72,8 @@ export async function createRnnoiseProcessor(
     });
     node.addEventListener('processorerror', handleProcessorError);
 
-    // Paket WASM durumunu worklet içinde asenkron oluşturuyor ve bir "ready"
-    // olayı yayınlamıyor. Bu kısa hazırlık süresince ana ses zinciri hâlâ eski
+    // Paket WASM durumunu worklet içinde asenkron oluşturuyor and bir "ready"
+    // olayı yayınlamıyor. Bu kısa is readylık süresince ana ses zinciri hâlâ eski
     // mikrofonu (ilk bağlantıda ise güvenli bypass yolunu) kullanır.
     await wait(warmupMs);
     if (initialError) throw initialError;
@@ -85,7 +85,7 @@ export async function createRnnoiseProcessor(
         destroyed = true;
         node.removeEventListener('processorerror', handleProcessorError);
         try { node.destroy(); } catch { /* Worklet zaten kapanmış olabilir. */ }
-        try { node.disconnect(); } catch { /* Bağlı olmayabilir. */ }
+        try { node.disconnect(); } catch { /* Connected olmayabilir. */ }
         try { node.port.close(); } catch { /* Bazı tarayıcılar port.close sağlamaz. */ }
       },
     };
@@ -93,7 +93,7 @@ export async function createRnnoiseProcessor(
     if (node) {
       node.removeEventListener('processorerror', handleProcessorError);
       try { node.destroy(); } catch { /* Worklet başlatılamamış olabilir. */ }
-      try { node.disconnect(); } catch { /* Bağlı olmayabilir. */ }
+      try { node.disconnect(); } catch { /* Connected olmayabilir. */ }
       try { node.port.close(); } catch { /* Port başlatılmamış olabilir. */ }
     }
     throw error;

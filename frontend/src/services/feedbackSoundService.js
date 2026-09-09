@@ -52,7 +52,7 @@ const SOUND_FILE_CANDIDATES = Object.freeze({
   [FEEDBACK_SOUND_IDS.INCOMING_CALL]: ['incoming-call'],
 });
 
-// Gönderilen test çıkış kaydı düşük olduğu için yalnız bu ses yükseltilir.
+// Gönderilen test çıkış kaydı düşük olduğu has yalnız bu ses yükseltilir.
 // Yeni dosya zaten yüksekse bu değeri 1 yapabilirsin.
 const DEFAULT_GAINS = Object.freeze({
   [FEEDBACK_SOUND_IDS.LEAVE_CALL]: 2.2,
@@ -82,7 +82,7 @@ function resolveSoundUrl(soundId) {
 
 function reportPlaybackError(error) {
   if (error?.name !== 'NotAllowedError') {
-    console.warn('Geri bildirim sesi çalınamadı:', error);
+    console.warn('Could not play feedback sound:', error);
   }
 }
 
@@ -117,7 +117,7 @@ export function playFeedbackSound(soundId, options = {}) {
     }
 
     const audioContext = new AudioContextClass();
-    // Seçili özel aygıtı AudioContext'e yönlendiremeyen eski ortamlarda
+    // Chooseili özel aygıtı AudioContext'e yönlendiremeyen eski ortamlarda
     // yükseltme efektinden vazgeçip HTMLAudioElement yolunu kullanırız. Böylece
     // ses yüksekliği yerine yanlış hoparlörden çalma hatasını tercih etmeyiz.
     if (getSelectedAudioOutputDeviceId() && typeof audioContext.setSinkId !== 'function') {

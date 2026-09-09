@@ -6,12 +6,12 @@ import { Loader2 } from 'lucide-react';
 export default function MessageList({ messages, currentUser, onLoadMore, hasMore }) {
   const virtuosoRef = useRef(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [firstItemIndex, setFirstItemIndex] = useState(10000); // Sanal liste için index hilesi
+  const [firstItemIndex, setFirstItemIndex] = useState(10000); // Sanal liste has index hilesi
 
-  // Mesajlar eklendiğinde (eski mesajlar yüklendiğinde) index'i güncelle
+  // Messages eklendiğinde (eski mesajlar yüklendiğinde) index'i güncelle
   useEffect(() => {
     if (loadingMore) {
-      // Eski mesajlar yüklendiğinde scroll pozisyonunu korumak için index kaydır
+      // Eski mesajlar yüklendiğinde scroll pozisyonunu korumak has index kaydır
       // Bu kısım Virtuoso'nun otomatik yaptığı bir şeydir ama manuel tetikleme gerekebilir
       setLoadingMore(false);
     }
@@ -25,7 +25,7 @@ export default function MessageList({ messages, currentUser, onLoadMore, hasMore
     }
   }, [hasMore, loadingMore, onLoadMore]);
 
-  // Mesajları işle ve grupla
+  // Messagesı işle and grupla
   const getGroupedMessages = useCallback(() => {
     return messages.map((message, index) => {
       if (message.type === 'system') return { ...message, grouped: false };
@@ -43,7 +43,7 @@ export default function MessageList({ messages, currentUser, onLoadMore, hasMore
 
   const groupedMessages = getGroupedMessages();
 
-  // Scroll'u en aşağıya at (Yeni mesaj geldiğinde)
+  // Scroll'u en aşağıya at (New message geldiğinde)
   useEffect(() => {
     if (virtuosoRef.current) {
         // Otomatik takip zaten açık (followOutput)
@@ -64,7 +64,7 @@ export default function MessageList({ messages, currentUser, onLoadMore, hasMore
           startReached={handleStartReached}
           firstItemIndex={Math.max(0, firstItemIndex - groupedMessages.length)}
           initialTopMostItemIndex={groupedMessages.length - 1}
-          followOutput={'auto'} // Yeni mesaj gelince aşağı kaydır
+          followOutput={'auto'} // New message gelince aşağı kaydır
           components={{
             Header: () => loadingMore && (
               <div className="flex justify-center py-2">

@@ -10,11 +10,11 @@ async function platformRequest(path, options = {}) {
   try {
     response = await apiFetch(`${API_ROOT}${path}`, { ...options, headers });
   } catch (_) {
-    throw new Error('Sunucuya bağlanılamadı. İnternet bağlantını kontrol edip tekrar dene.');
+    throw new Error('Could not connect to the server. Check your internet connection and try again.');
   }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(payload.error || payload.message || 'İstek tamamlanamadı.');
+    const error = new Error(payload.error || payload.message || 'The request could not be completed.');
     error.status = response.status;
     error.code = payload.code;
     error.details = payload;

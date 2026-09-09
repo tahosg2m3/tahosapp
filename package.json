@@ -1,6 +1,6 @@
 {
   "name": "tahosapp",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Tahosapp desktop communication application",
   "author": "tahosg2m3",
   "main": "electron/main.js",
@@ -64,10 +64,9 @@
       "shortcutName": "tahosapp",
       "runAfterFinish": true,
       "installerLanguages": [
-        "tr_TR",
         "en_US"
       ],
-      "license": "installer/license_tr.txt",
+      "license": "installer/license_en.txt",
       "include": "installer/installer.nsh",
       "installerIcon": "installer/tahosapp.ico",
       "uninstallerIcon": "installer/tahosapp.ico",
@@ -85,9 +84,9 @@
       "entitlementsInherit": "electron/entitlements.mac.plist",
       "extendInfo": {
         "LSMultipleInstancesProhibited": true,
-        "NSMicrophoneUsageDescription": "tahosapp sesli sohbet için mikrofonunu kullanır.",
-        "NSCameraUsageDescription": "tahosapp görüntülü sohbet için kameranı kullanır.",
-        "NSAudioCaptureUsageDescription": "tahosapp ekran yayını sırasında sistem sesini paylaşmak için ses yakalama izni kullanır."
+        "NSMicrophoneUsageDescription": "tahosapp uses your microphone for voice chat.",
+        "NSCameraUsageDescription": "tahosapp uses your camera for video chat.",
+        "NSAudioCaptureUsageDescription": "tahosapp uses audio capture permission to share system audio during screen sharing."
       }
     },
     "linux": {

@@ -31,8 +31,8 @@ $principals = @{}
 foreach ($sid in @($ownerSid, $systemSid, $administratorsSid)) { $principals[$sid.Value] = $sid }
 
 # Codex'in kısıtlı test token'ı gibi ortamlarda çalışan process SID'i gerçek
-# oturum hesabından farklı olabilir. Dosya sahibine ek olarak Windows'un
-# USERDOMAIN/USERNAME hesabını çöz ve grant listesini SID bazında tekilleştir.
+# oturum hesabından farklı olabilir. File sahibine ek olarak Windows'un
+# USERDOMAIN/USERNAME hesabını çöz and grant listesini SID bazında tekilleştir.
 if (-not [string]::IsNullOrWhiteSpace($env:USERDOMAIN) -and -not [string]::IsNullOrWhiteSpace($env:USERNAME)) {
   $interactiveAccount = New-Object System.Security.Principal.NTAccount("$($env:USERDOMAIN)\$($env:USERNAME)")
   $interactiveSid = $interactiveAccount.Translate([System.Security.Principal.SecurityIdentifier])
@@ -177,7 +177,7 @@ function enforcePrivateFilePermissions(filePath) {
     }
   } catch (error) {
     throw new StateEncryptionError(
-      `Özel veri dosyasının erişim izinleri güvenli hale getirilemedi (${filePath}): ${error.message}`,
+      `Custom veri dosyasının erişim izinleri güvenli hale getirilemedi (${filePath}): ${error.message}`,
       'DATA_PRIVATE_FILE_PERMISSIONS',
       error,
     );
@@ -220,7 +220,7 @@ function loadOrCreateEncryptionKey({
 
   if (!keyFilePath) {
     throw new StateEncryptionError(
-      'DATA_ENCRYPTION_KEY tanımlı değil ve anahtar dosyası yolu verilmedi.',
+      'DATA_ENCRYPTION_KEY tanımlı değil and anahtar dosyası yolu verilmedi.',
       'DATA_ENCRYPTION_KEY_MISSING',
     );
   }
@@ -231,7 +231,7 @@ function loadOrCreateEncryptionKey({
 
   if (!allowKeyCreation) {
     throw new StateEncryptionError(
-      `Şifreli uygulama verisi mevcut fakat anahtar bulunamadı (${keyFilePath}). Yeni anahtar oluşturulmadı ve hiçbir veri değiştirilmedi.`,
+      `Passwordli uygulama verisi mevcut fakat anahtar bulunamadı (${keyFilePath}). Yeni anahtar oluşturulmadı and hiçbir veri değiştirilmedi.`,
       'DATA_ENCRYPTION_KEY_MISSING',
     );
   }
@@ -390,7 +390,7 @@ class EncryptedStateCodec {
       parsed = JSON.parse(serialized);
     } catch (error) {
       throw new StateEncryptionError(
-        `${sourceName} geçerli JSON veya şifreli veri zarfı değil. Veri güvenliği için uygulama başlatılmadı.`,
+        `${sourceName} geçerli JSON veya şifreli veri zarfı değil. Veri güvenliği has uygulama başlatılmadı.`,
         'DATA_FORMAT_INVALID',
         error,
       );

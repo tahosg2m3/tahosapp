@@ -121,7 +121,7 @@ export default function ChatArea() {
     try {
       const saved = await saveServerNotificationPreferences(currentServer.id, next);
       setServerNotification(saved || next);
-      toast.success('Sunucu bildirimleri güncellendi.');
+      toast.success('Server notifications updated.');
     } catch (error) { toast.error(error.message); }
   };
 
@@ -130,7 +130,7 @@ export default function ChatArea() {
     try {
       const saved = await saveChannelNotificationPreferences(channelId, next);
       setChannelNotification(saved || next);
-      toast.success('Kanal bildirimleri güncellendi.');
+      toast.success('Channel notifications updated.');
     } catch (error) { toast.error(error.message); }
   };
 
@@ -198,7 +198,7 @@ export default function ChatArea() {
         shouldScrollToBottomRef.current = true;
         setMessages(Array.isArray(channelMessages) ? channelMessages : []);
       })
-      .catch((error) => console.error('Kanal mesajları yüklenemedi:', error));
+      .catch((error) => console.error('Could not load channel messages:', error));
 
     return () => {
       stillCurrent = false;
@@ -275,7 +275,7 @@ export default function ChatArea() {
         setSendBlockedUntil(Date.now() + Number(payload.retryAfterMs));
         setClock(Date.now());
       }
-      toast.error(payload.message || 'Mesaj gönderilemedi.');
+      toast.error(payload.message || 'Message could not be sent.');
     };
 
     const handleProfileUpdate = payload => {
@@ -350,11 +350,11 @@ export default function ChatArea() {
   }, [markChannelRead, messages]);
 
   const localSearchResults = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLocaleLowerCase('tr-TR');
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase('en-US');
     if (!normalizedQuery) return messages;
     return messages.filter((message) => {
       const attachmentText = (message.attachments || []).map((attachment) => attachment.filename || attachment.name || '').join(' ');
-      return `${message.username || ''} ${message.content || ''} ${attachmentText}`.toLocaleLowerCase('tr-TR').includes(normalizedQuery);
+      return `${message.username || ''} ${message.content || ''} ${attachmentText}`.toLocaleLowerCase('en-US').includes(normalizedQuery);
     });
   }, [messages, searchQuery]);
 
@@ -382,6 +382,7 @@ export default function ChatArea() {
       content: messagePayload.content,
       attachments: messagePayload.attachments || [],
       replyTo: messagePayload.replyTo || null,
+      spotifyInvite: messagePayload.spotifyInvite || null,
       userId: user.id,
       username: user.username,
     });
@@ -415,26 +416,26 @@ export default function ChatArea() {
           {isSearchOpen ? (
             <div className="flex items-center rounded-lg border border-white/[0.08] bg-[#1e293b] px-2">
               <Search className="h-4 w-4 text-[#64748b]" />
-              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} autoFocus placeholder="Mesajlarda ara" className="w-40 bg-transparent px-2 py-1.5 text-sm text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
-              <button type="button" onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }} className="rounded p-0.5 hover:bg-white/[0.08]" aria-label="Aramayı kapat"><X className="h-4 w-4" /></button>
+              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} autoFocus placeholder="Messagesda ara" className="w-40 bg-transparent px-2 py-1.5 text-sm text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
+              <button type="button" onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }} className="rounded p-0.5 hover:bg-white/[0.08]" aria-label="Close search"><X className="h-4 w-4" /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => setIsSearchOpen(true)} className="rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc]" title="Mesajlarda ara" aria-label="Mesajlarda ara"><Search className="h-5 w-5" /></button>
+            <button type="button" onClick={() => setIsSearchOpen(true)} className="rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc]" title="Messagesda ara" aria-label="Messagesda ara"><Search className="h-5 w-5" /></button>
           )}
-          <button type="button" onClick={() => setShowPinned((show) => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showPinned ? 'text-[#fbbf24]' : ''}`} title="Sabitlenmiş mesajlar" aria-label="Sabitlenmiş mesajlar"><Pin className="h-5 w-5" /></button>
+          <button type="button" onClick={() => setShowPinned((show) => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showPinned ? 'text-[#fbbf24]' : ''}`} title="Pinned messages" aria-label="Pinned messages"><Pin className="h-5 w-5" /></button>
           <button type="button" onClick={() => setShowPolls(show => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showPolls ? 'text-[#60a5fa]' : ''}`} title="Anketler" aria-label="Anketler"><BarChart3 className="h-5 w-5" /></button>
-          <button type="button" onClick={() => setShowThreads(show => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showThreads ? 'text-[#60a5fa]' : ''}`} title="Mesaj dizileri" aria-label="Mesaj dizileri"><MessageSquare className="h-5 w-5" /></button>
-          {currentChannel.type === 'announcement' && <button type="button" onClick={() => setShowAnnouncementFollow(true)} className="rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#60a5fa]" title="Duyuru kanalını takip et" aria-label="Duyuru kanalını takip et"><Radio className="h-5 w-5" /></button>}
-          <button type="button" onClick={() => setShowNotifications(show => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showNotifications ? 'text-[#60a5fa]' : ''}`} title="Kanal bildirimleri" aria-label="Kanal bildirimleri"><Bell className="h-5 w-5" /></button>
-          <Users className="h-5 w-5 cursor-pointer transition-colors hover:text-[#f8fafc]" title="Üye listesi" />
+          <button type="button" onClick={() => setShowThreads(show => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showThreads ? 'text-[#60a5fa]' : ''}`} title="Threads" aria-label="Threads"><MessageSquare className="h-5 w-5" /></button>
+          {currentChannel.type === 'announcement' && <button type="button" onClick={() => setShowAnnouncementFollow(true)} className="rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#60a5fa]" title="Follow announcement channel" aria-label="Follow announcement channel"><Radio className="h-5 w-5" /></button>}
+          <button type="button" onClick={() => setShowNotifications(show => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showNotifications ? 'text-[#60a5fa]' : ''}`} title="Channel notifications" aria-label="Channel notifications"><Bell className="h-5 w-5" /></button>
+          <Users className="h-5 w-5 cursor-pointer transition-colors hover:text-[#f8fafc]" title="Member listesi" />
         </div>
       </div>
 
       {showPinned && (
         <div className="absolute right-5 top-16 z-40 w-80 overflow-hidden rounded-xl border border-white/[0.1] bg-[#1e293b] shadow-2xl shadow-black/40">
-          <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2.5"><span className="text-sm font-semibold text-[#f8fafc]">Sabitlenmiş mesajlar</span><button type="button" onClick={() => setShowPinned(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08] hover:text-white"><X className="h-4 w-4" /></button></div>
+          <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2.5"><span className="text-sm font-semibold text-[#f8fafc]">Pinned messages</span><button type="button" onClick={() => setShowPinned(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08] hover:text-white"><X className="h-4 w-4" /></button></div>
           <div className="custom-scrollbar max-h-72 overflow-y-auto p-2">
-            {pinnedMessages.length === 0 ? <p className="p-3 text-sm text-[#94a3b8]">Bu kanalda sabitlenmiş mesaj yok.</p> : pinnedMessages.map((message) => <button key={message.id} type="button" onClick={() => { setShowPinned(false); document.getElementById(`message-${message.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className="block w-full rounded-lg px-2 py-2 text-left hover:bg-white/[0.06]"><span className="mr-2 text-xs font-semibold text-[#93c5fd]">{message.username}</span><span className="text-sm text-[#cbd5e1]">{message.content || 'Ekli mesaj'}</span></button>)}
+            {pinnedMessages.length === 0 ? <p className="p-3 text-sm text-[#94a3b8]">There are no pinned messages in this channel.</p> : pinnedMessages.map((message) => <button key={message.id} type="button" onClick={() => { setShowPinned(false); document.getElementById(`message-${message.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className="block w-full rounded-lg px-2 py-2 text-left hover:bg-white/[0.06]"><span className="mr-2 text-xs font-semibold text-[#93c5fd]">{message.username}</span><span className="text-sm text-[#cbd5e1]">{message.content || 'Message with an attachment'}</span></button>)}
           </div>
         </div>
       )}
@@ -444,18 +445,18 @@ export default function ChatArea() {
       {showAnnouncementFollow && <AnnouncementFollowModal channel={currentChannel} onClose={() => setShowAnnouncementFollow(false)} />}
       {showNotifications && (
         <div className="custom-scrollbar absolute right-5 top-16 z-50 max-h-[calc(100vh-5rem)] w-80 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1e293b] p-3 shadow-2xl shadow-black/40">
-          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold text-white">Bildirim ayarları</p><p className="text-[11px] text-[#64748b]">Önce sunucu, gerekirse kanal istisnası</p></div><button type="button" onClick={() => setShowNotifications(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08]"><X className="h-4 w-4" /></button></div>
+          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold text-white">Notification settings</p><p className="text-[11px] text-[#64748b]">Server default with optional channel override</p></div><button type="button" onClick={() => setShowNotifications(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08]"><X className="h-4 w-4" /></button></div>
 
           <section className="rounded-lg border border-white/[0.07] bg-black/10 p-2">
-            <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">{currentServer?.name} sunucusu</p>
-            <div className="space-y-1">{[['inherit', 'Genel ayarı kullan'], ['all', 'Tüm mesajlar'], ['mentions', 'Yalnızca etiketler'], ['nothing', 'Hiçbiri']].map(([value, label]) => <button key={value} type="button" onClick={() => saveServerNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${serverNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{serverNotification.level === value && <span>✓</span>}</button>)}</div>
-            <div className="mt-2 grid grid-cols-2 gap-1"><button type="button" onClick={() => saveServerNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sunucuyu sustur</button><button type="button" onClick={() => saveServerNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sesi aç</button></div>
+            <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">{currentServer?.name} server</p>
+            <div className="space-y-1">{[['inherit', 'Use default setting'], ['all', 'All messages'], ['mentions', 'Mentions only'], ['nothing', 'Nothing']].map(([value, label]) => <button key={value} type="button" onClick={() => saveServerNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${serverNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{serverNotification.level === value && <span>✓</span>}</button>)}</div>
+            <div className="mt-2 grid grid-cols-2 gap-1"><button type="button" onClick={() => saveServerNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Mute server</button><button type="button" onClick={() => saveServerNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Unmute server</button></div>
           </section>
 
           <section className="mt-3 rounded-lg border border-white/[0.07] bg-black/10 p-2">
-            <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">#{currentChannel.name} kanal istisnası</p>
-            <div className="space-y-1">{[['inherit', 'Sunucu ayarını kullan'], ['all', 'Tüm mesajlar'], ['mentions', 'Yalnızca etiketler'], ['nothing', 'Hiçbiri']].map(([value, label]) => <button key={value} type="button" onClick={() => saveChannelNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${channelNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{channelNotification.level === value && <span>✓</span>}</button>)}</div>
-            <div className="mt-2 grid grid-cols-2 gap-1"><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Kanalı sustur</button><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Sesi aç</button></div>
+            <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">#{currentChannel.name} channel override</p>
+            <div className="space-y-1">{[['inherit', 'Use server setting'], ['all', 'All messages'], ['mentions', 'Mentions only'], ['nothing', 'Nothing']].map(([value, label]) => <button key={value} type="button" onClick={() => saveChannelNotifications({ level: value })} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${channelNotification.level === value ? 'bg-[#2563eb] text-white' : 'text-[#cbd5e1] hover:bg-white/[0.06]'}`}><span>{label}</span>{channelNotification.level === value && <span>✓</span>}</button>)}</div>
+            <div className="mt-2 grid grid-cols-2 gap-1"><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: 4102444800000 })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Mute channel</button><button type="button" onClick={() => saveChannelNotifications({ mutedUntil: null })} className="rounded-lg bg-white/[0.05] px-2 py-2 text-xs text-[#cbd5e1] hover:bg-white/[0.09]">Enable audio</button></div>
           </section>
         </div>
       )}
@@ -463,28 +464,28 @@ export default function ChatArea() {
       <div ref={messageListRef} onScroll={handleScroll} className="custom-scrollbar flex-1 overflow-y-auto px-5 py-4">
         <div className="mb-7 mt-5 border-b border-white/[0.06] pb-6">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2563eb] text-white shadow-lg shadow-blue-500/20"><Hash className="h-8 w-8" /></div>
-          <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#f8fafc]">#{currentChannel.name} kanalına hoş geldin</h1>
-          <p className="text-[14px] text-[#94a3b8]">Sohbete başlamak için ilk mesajını gönder.</p>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#f8fafc]">#{currentChannel.name} Welcome to</h1>
+          <p className="text-[14px] text-[#94a3b8]">Send the first message to start the conversation.</p>
         </div>
 
-        {searchQuery.trim() && <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[#94a3b8]"><Search className="h-3.5 w-3.5" /> “{searchQuery}” için {visibleMessages.length} sonuç</div>}
+        {searchQuery.trim() && <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[#94a3b8]"><Search className="h-3.5 w-3.5" /> {visibleMessages.length} results for “{searchQuery}”</div>}
 
         {visibleMessages.map((message, index) => {
           const previousMessage = visibleMessages[index - 1];
           const grouped = previousMessage && previousMessage.userId === message.userId && (message.timestamp - previousMessage.timestamp < 300000);
           return (
             <div id={`message-${message.id}`} key={message.id}>
-              {firstUnreadId === message.id && !searchQuery.trim() && <div className="my-3 flex items-center gap-2 text-xs font-semibold text-[#f87171]"><div className="h-px flex-1 bg-[#ef4444]/70" /><span>Yeni mesajlar</span><div className="h-px flex-1 bg-[#ef4444]/70" /></div>}
+              {firstUnreadId === message.id && !searchQuery.trim() && <div className="my-3 flex items-center gap-2 text-xs font-semibold text-[#f87171]"><div className="h-px flex-1 bg-[#ef4444]/70" /><span>New messages</span><div className="h-px flex-1 bg-[#ef4444]/70" /></div>}
               <Message message={message} isOwn={message.userId === user.id} grouped={grouped} userId={user.id} currentUsername={user.username} canManageMessages={canManageMessages} onReply={setReplyTo} onReaction={handleReaction} onPin={handlePin} />
             </div>
           );
         })}
 
-        {visibleMessages.length === 0 && searchQuery.trim() && <div className="py-12 text-center text-sm text-[#94a3b8]">Aramanla eşleşen mesaj bulunamadı.</div>}
+        {visibleMessages.length === 0 && searchQuery.trim() && <div className="py-12 text-center text-sm text-[#94a3b8]">No messages match your search.</div>}
         <div ref={messagesEndRef} />
       </div>
 
-      {!isNearBottom && firstUnreadId && <button type="button" onClick={() => { shouldScrollToBottomRef.current = true; messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); markChannelRead(); }} className="absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-[#2563eb] px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-black/30 transition-colors hover:bg-[#3b82f6]">Yeni mesajlara git</button>}
+      {!isNearBottom && firstUnreadId && <button type="button" onClick={() => { shouldScrollToBottomRef.current = true; messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); markChannelRead(); }} className="absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-[#2563eb] px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-black/30 transition-colors hover:bg-[#3b82f6]">Jump to new messages</button>}
 
       <div className="shrink-0 px-5 pb-2 pt-1"><TypingIndicator users={typingUsers} /></div>
       <div className="shrink-0 px-5 pb-5 pt-2">
@@ -500,7 +501,7 @@ export default function ChatArea() {
             serverStickers={serverAssets.stickers}
             commandSuggestions={serverAssets.commands}
             disabled={retrySeconds > 0 || !canSendMessages}
-            placeholder={!canSendMessages ? 'Bu kanala mesaj gönderme yetkin yok' : retrySeconds > 0 ? `Yavaş mod: ${retrySeconds} saniye bekle` : `#${currentChannel.name} kanalına mesaj gönder`}
+            placeholder={!canSendMessages ? 'You do not have permission to send messages in this channel' : retrySeconds > 0 ? `Slow mode: ${retrySeconds} seconds remaining` : `#${currentChannel.name} Send a message to`}
           />
       </div>
     </div>

@@ -32,7 +32,7 @@ function requirePresenceAuth(req, res, next) {
   }
 
   const user = richPresenceService.authenticateToken(presenceToken(req));
-  if (!user) return res.status(401).json({ error: 'Rich Presence entegrasyon anahtarı geçersiz.' });
+  if (!user) return res.status(401).json({ error: 'The Rich Presence integration key is invalid.' });
   req.user = user;
   req.presenceAuth = 'integration';
   return next();
@@ -48,7 +48,7 @@ router.put('/', (req, res) => {
     return res.json({ activity, activities: richPresenceService.getActivities(req.user.id, { includeHidden: true }) });
   } catch (error) {
     return res.status(error.code === 'RICH_PRESENCE_DISABLED' ? 403 : 400).json({
-      error: error.message || 'Etkinlik güncellenemedi.',
+      error: error.message || 'Activity could not be updated.',
       code: error.code || 'INVALID_RICH_PRESENCE',
     });
   }
@@ -57,7 +57,7 @@ router.put('/', (req, res) => {
 router.post('/heartbeat', (req, res) => {
   const sessionId = String(req.body?.sessionId || 'primary');
   const activity = richPresenceService.heartbeat(req.user.id, sessionId, req.body?.ttlSeconds);
-  if (!activity) return res.status(404).json({ error: 'Etkinlik oturumu bulunamadı.' });
+  if (!activity) return res.status(404).json({ error: 'Activelik oturumu not found.' });
   return res.json({ activity });
 });
 

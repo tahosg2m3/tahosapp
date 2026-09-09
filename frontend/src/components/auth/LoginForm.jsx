@@ -33,9 +33,9 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
       const response = await loginUser({ email, password });
 
       setLoginTicket(response.loginTicket);
-      setMessage('6 haneli kod e-posta adresine gönderildi.');
+      setMessage('A six-digit code was sent to your email address.');
     } catch (err) {
-      setError(err.message || 'Giriş yapılamadı.');
+      setError(err.message || 'Could not log in.');
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +56,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
 
       finishLogin(response);
     } catch (err) {
-      setError(err.message || 'Kod doğrulanamadı.');
+      setError(err.message || 'The code could not be verified.');
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +71,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
       const response = await resendTwoFactorCode({ loginTicket });
       setMessage(response.message);
     } catch (err) {
-      setError(err.message || 'Kod tekrar gönderilemedi.');
+      setError(err.message || 'The code could not be resent.');
     } finally {
       setIsLoading(false);
     }
@@ -82,11 +82,11 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
       <div className="bg-[#313338] p-8 rounded-lg shadow-2xl w-full max-w-[480px]">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-[#F2F3F5] mb-2">
-            E-postanı kontrol et
+            Check your email
           </h2>
 
           <p className="text-[#B5BAC1]">
-            <strong>{email}</strong> adresine kod gönderdik.
+            We sent a code to <strong>{email}</strong>.
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
             disabled={isLoading || code.length !== 6}
             className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-2.5 rounded transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Kontrol ediliyor...' : 'Kodu Doğrula'}
+            {isLoading ? 'Verifying...' : 'Verify Code'}
           </button>
         </form>
 
@@ -138,7 +138,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
             }}
             className="text-[#00A8FC] hover:underline"
           >
-            Girişe dön
+            Back to login
           </button>
 
           <button
@@ -147,7 +147,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
             disabled={isLoading}
             className="text-[#00A8FC] hover:underline disabled:opacity-50"
           >
-            Kodu tekrar gönder
+            Resend code
           </button>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
     <div className="bg-[#313338] p-8 rounded-lg shadow-2xl w-full max-w-[480px]">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-[#F2F3F5] mb-2">
-          Tekrar hoş geldin!
+          Welcome back!
         </h2>
       </div>
 
@@ -183,7 +183,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="w-full bg-[#1E1F22] text-[#DBDEE1] px-3 py-2.5 rounded"
-          placeholder="Şifre"
+          placeholder="Password"
           required
         />
 
@@ -192,19 +192,19 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
           disabled={isLoading}
           className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-2.5 rounded disabled:opacity-50"
         >
-          {isLoading ? 'Kod gönderiliyor...' : 'Giriş Yap'}
+          {isLoading ? 'Sending code...' : 'Log In'}
         </button>
       </form>
 
       <div className="mt-4 text-sm text-[#949BA4]">
-        Bir hesaba mı ihtiyacın var?{' '}
+        Need an account?{' '}
 
         <button
           type="button"
           onClick={onSwitchToRegister}
           className="text-[#00A8FC] hover:underline font-medium"
         >
-          Kaydol
+          Sign Up
         </button>
       </div>
 
@@ -213,7 +213,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
         onClick={onForgotPassword}
         className="mt-3 text-sm font-medium text-[#00A8FC] hover:underline"
       >
-        Şifremi unuttum
+        Forgot password
       </button>
     </div>
   );

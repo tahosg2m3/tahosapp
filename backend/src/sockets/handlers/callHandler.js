@@ -82,14 +82,14 @@ module.exports = function registerCallHandlers(io, socket) {
     const callerId = authenticatedUserId();
     const targetUserId = String(data.targetUserId || '');
     if (!callerId || !targetUserId || sameId(callerId, targetUserId)) {
-      reply(callback, { success: false, error: 'Geçersiz arama isteği.' });
+      reply(callback, { success: false, error: 'Invalid call request.' });
       return;
     }
 
     const now = Date.now();
     const retryAfterMs = Math.max(0, START_COOLDOWN_MS - (now - (lastCallStartAt.get(callerId) || 0)));
     if (retryAfterMs > 0) {
-      reply(callback, { success: false, error: 'Yeni arama başlatmak için biraz bekle.', retryAfterMs });
+      reply(callback, { success: false, error: 'Wait a moment before starting another call.', retryAfterMs });
       return;
     }
     lastCallStartAt.set(callerId, now);
@@ -97,15 +97,15 @@ module.exports = function registerCallHandlers(io, socket) {
     const targetUser = storage.getUserById(targetUserId);
     const conversation = validateDirectConversation(data.conversationId, callerId, targetUserId);
     if (!targetUser || !conversation || storage.isBlockedEitherDirection(callerId, targetUserId)) {
-      reply(callback, { success: false, error: 'Bu kullanıcı aranamadı.' });
+      reply(callback, { success: false, error: 'This user could not be called.' });
       return;
     }
     if (userCallIds.has(callerId) || userCallIds.has(targetUserId)) {
-      reply(callback, { success: false, error: 'Kullanıcılardan biri başka bir aramada.' });
+      reply(callback, { success: false, error: 'One of the users is already in another call.' });
       return;
     }
     if (!(io.sockets.adapter.rooms.get(`user:${targetUserId}`)?.size > 0)) {
-      reply(callback, { success: false, error: 'Kullanıcı şu anda çevrimdışı.' });
+      reply(callback, { success: false, error: 'The user is currently offline.' });
       return;
     }
 
@@ -137,7 +137,7 @@ module.exports = function registerCallHandlers(io, socket) {
     const call = getCallForUser(data.callId, userId);
     const peerId = String(data.peerId || '');
     if (!call || !sameId(call.calleeId, userId) || call.status !== 'ringing' || !isPeerIdValid(peerId)) {
-      reply(callback, { success: false, error: 'Bu çağrı artık kabul edilemiyor.' });
+      reply(callback, { success: false, error: 'This call can no longer be accepted.' });
       return;
     }
 
@@ -163,7 +163,7 @@ module.exports = function registerCallHandlers(io, socket) {
     const userId = authenticatedUserId();
     const call = getCallForUser(data.callId, userId);
     if (!call || call.status !== 'connecting') {
-      reply(callback, { success: false, error: 'Bu arama artık bağlanamıyor.' });
+      reply(callback, { success: false, error: 'This call can no longer be connected.' });
       return;
     }
     if (call.timeout) clearTimeout(call.timeout);
@@ -176,7 +176,7 @@ module.exports = function registerCallHandlers(io, socket) {
     const userId = authenticatedUserId();
     const call = getCallForUser(data.callId, userId);
     if (!call || !sameId(call.calleeId, userId) || call.status !== 'ringing') {
-      reply(callback, { success: false, error: 'Bu çağrı artık reddedilemiyor.' });
+      reply(callback, { success: false, error: 'This call can no longer be declined.' });
       return;
     }
     finishCall(io, call, 'call:rejected', { reason: 'rejected' });
@@ -187,7 +187,7 @@ module.exports = function registerCallHandlers(io, socket) {
     const userId = authenticatedUserId();
     const call = getCallForUser(data.callId, userId);
     if (!call || !sameId(call.callerId, userId) || call.status !== 'ringing') {
-      reply(callback, { success: false, error: 'Bu çağrı artık iptal edilemiyor.' });
+      reply(callback, { success: false, error: 'This call can no longer be canceled.' });
       return;
     }
     finishCall(io, call, 'call:cancelled', { reason: 'cancelled' });

@@ -14,8 +14,8 @@ import { PEER_CONFIG as RUNTIME_PEER_CONFIG } from '../config/runtimeConfig';
 
 const VoiceContext = createContext(null);
 
-// Yerel geliştirme, Electron ve dağıtım ortamlarında PeerJS adresi ayrı ayrı
-// ayarlanabilir. Peer sunucusunda discovery kapalı olduğu için istemci tarafında
+// Yerel geliştirme, Electron and dağıtım ortamlarında PeerJS adresi ayrı ayrı
+// ayarlanabilir. Peer sunucusunda discovery kapalı olduğu has istemci tarafında
 // rastgele peer keşfi yapılmaz.
 const PEER_CONFIG = {
   ...RUNTIME_PEER_CONFIG,
@@ -104,8 +104,8 @@ function buildAudioConstraints({ deviceId, isolationMode, audioQuality, includeQ
   if (deviceId && supports('deviceId')) constraints.deviceId = { exact: deviceId };
   if (supports('echoCancellation')) constraints.echoCancellation = processingEnabled;
   // RNNoise ile tarayıcı gürültü engellemesini üst üste çalıştırmak metalik
-  // ses/pumping üretebilir. Güçlü modda yankı engelleme kalır; gürültü ve AGC
-  // işlemini RNNoise + aşağıdaki kontrollü Web Audio zinciri üstlenir.
+  // ses/pumping üretebilir. Strong modda yankı engelleme kalır; gürültü and AGC
+  // actionni RNNoise + aşağıdaki kontrollü Web Audio zinciri üstlenir.
   if (supports('noiseSuppression')) constraints.noiseSuppression = processingEnabled && !useRnnoise;
   if (supports('autoGainControl')) constraints.autoGainControl = processingEnabled && !useRnnoise;
   if (supports('voiceIsolation')) constraints.voiceIsolation = isolationMode === 'strong' && !useRnnoise;
@@ -169,7 +169,7 @@ async function createProcessedVoiceStream(
   }
 
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) throw new Error('Web Audio API desteklenmiyor.');
+  if (!AudioContextClass) throw new Error('Web Audio API not supported.');
 
   const quality = AUDIO_QUALITY_CONFIG[audioQuality] || AUDIO_QUALITY_CONFIG.high;
   const wantsRnnoise = isolationMode === 'strong' && isRnnoiseRuntimeSupported();
@@ -184,7 +184,7 @@ async function createProcessedVoiceStream(
   }
 
   const nodes = [];
-  let rnnoiseSession = null;
+  let rnnoiseVoicesion = null;
   try {
     const source = context.createMediaStreamSource(rawStream);
     const highPass = context.createBiquadFilter();
@@ -230,7 +230,7 @@ async function createProcessedVoiceStream(
       fallbackGain.gain.value = 1;
 
       // RNNoise başlatılamazsa aynı AudioContext içindeki bypass yolu sesin
-      // kesilmesini önler. Hazır olunca iki yol kısa bir geçişle yer değiştirir.
+      // kesilmesini önler. Ready olunca iki yol kısa bir geçişle yer değiştirir.
       highPass.connect(fallbackGain);
       fallbackGain.connect(lowPass);
 
@@ -247,24 +247,24 @@ async function createProcessedVoiceStream(
         };
 
         try {
-          rnnoiseSession = await createRnnoiseProcessor(context, {
+          rnnoiseVoicesion = await createRnnoiseProcessor(context, {
             onProcessorError: handleRuntimeFailure,
           });
-          nodes.push(rnnoiseSession.node);
-          highPass.connect(rnnoiseSession.node);
-          rnnoiseSession.node.connect(rnnoiseGain);
+          nodes.push(rnnoiseVoicesion.node);
+          highPass.connect(rnnoiseVoicesion.node);
+          rnnoiseVoicesion.node.connect(rnnoiseGain);
           rnnoiseGain.connect(lowPass);
           const now = context.currentTime;
           rnnoiseApplied = true;
           rnnoiseGain.gain.setTargetAtTime(1, now, 0.015);
           fallbackGain.gain.setTargetAtTime(0, now, 0.015);
         } catch (error) {
-          fallbackReason = error?.message || 'RNNoise başlatılamadı.';
-          rnnoiseSession?.destroy();
-          rnnoiseSession = null;
+          fallbackReason = error?.message || 'RNNoise could not be started.';
+          rnnoiseVoicesion?.destroy();
+          rnnoiseVoicesion = null;
         }
       } else {
-        fallbackReason = 'AudioWorklet/WebAssembly desteği bulunamadı.';
+        fallbackReason = 'AudioWorklet/WebAssembly support is unavailable.';
       }
 
       lowPass.connect(compressor);
@@ -278,34 +278,34 @@ async function createProcessedVoiceStream(
     outputGain.connect(destination);
     if (context.state !== 'running') {
       // Bazı tarayıcılar kullanıcı hareketi dışında oluşturulan AudioContext'i
-      // askıda bırakır. Askıda bir işleme zinciri sessiz bir WebRTC izi üretir;
+      // askıda bırakır. Askıda bir actione zinciri sessiz bir WebRTC izi üretir;
       // kısa süre içinde başlayamazsa üst katman ham mikrofon akışına düşer.
       await Promise.race([
         context.resume().catch(() => {}),
         new Promise(resolve => window.setTimeout(resolve, 750)),
       ]);
       if (context.state !== 'running') {
-        throw new Error('Web Audio işleme zinciri başlatılamadı.');
+        throw new Error('The Web Audio processing pipeline could not be started.');
       }
     }
 
     const outputTrack = destination.stream.getAudioTracks()[0];
-    if (!outputTrack) throw new Error('İşlenmiş mikrofon izi oluşturulamadı.');
+    if (!outputTrack) throw new Error('The processed microphone track could not be created.');
     try { outputTrack.contentHint = 'speech'; } catch { /* Bazı tarayıcılar salt okunur uygular. */ }
 
     return {
       outputStream: new MediaStream([outputTrack]),
       context,
       nodes,
-      disposeProcessor: () => rnnoiseSession?.destroy(),
+      disposeProcessor: () => rnnoiseVoicesion?.destroy(),
       rnnoiseApplied,
       fallbackReason,
       processingEngine: rnnoiseApplied ? 'rnnoise' : 'web-audio',
     };
   } catch (error) {
-    rnnoiseSession?.destroy();
+    rnnoiseVoicesion?.destroy();
     nodes.forEach(node => {
-      try { node.disconnect?.(); } catch { /* Bağlı olmayan düğüm. */ }
+      try { node.disconnect?.(); } catch { /* Connected olmayan düğüm. */ }
     });
     await context.close().catch(() => {});
     throw error;
@@ -328,11 +328,11 @@ async function enableNativeVoiceProcessingFallback(stream) {
   }
 }
 
-function disposeVoiceProcessingSession(session = {}) {
+function disposeVoiceProcessingVoicesion(session = {}) {
   try { session.disposeListeners?.(); } catch { /* Dinleyiciler zaten kaldırılmış olabilir. */ }
   try { session.disposeProcessor?.(); } catch { /* İşlemci zaten kapanmış olabilir. */ }
   (session.nodes || []).forEach(node => {
-    try { node.disconnect?.(); } catch { /* Bağlı olmayan düğüm. */ }
+    try { node.disconnect?.(); } catch { /* Connected olmayan düğüm. */ }
   });
   stopStream(session.outputStream);
   if (session.rawStream && session.rawStream !== session.outputStream) stopStream(session.rawStream);
@@ -384,7 +384,7 @@ export const VoiceProvider = ({ children }) => {
   const voiceCapabilitiesRef = useRef(DEFAULT_CAPABILITIES);
   const audioStreamRef = useRef(null);
   const sourceAudioStreamRef = useRef(null);
-  const audioProcessingSessionRef = useRef(null);
+  const audioProcessingVoicesionRef = useRef(null);
   const microphoneRequestIdRef = useRef(0);
   const cameraStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
@@ -423,8 +423,8 @@ export const VoiceProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    // Çıkış yapıldığında VoiceProvider yaşamaya devam edebilir. Mikrofon,
-    // RNNoise worklet'i ve Peer çağrıları kullanıcı oturumu ile birlikte kapanır.
+    // Çıkış yapıldığında VoiceProvider yaşamaya devam edebilir. Microphone,
+    // RNNoise worklet'i and Peer çağrıları kullanıcı oturumu ile birlikte kapanır.
     if (!user?.id && isInVoiceRef.current) {
       leaveVoiceChannelRef.current({ notifyServer: false });
     }
@@ -455,7 +455,7 @@ export const VoiceProvider = ({ children }) => {
 
   const refreshAvailableDevices = useCallback(async ({ requestPermission = false } = {}) => {
     if (!navigator.mediaDevices?.enumerateDevices) {
-      setVoiceError('Bu cihaz ses aygıtlarını listelemeyi desteklemiyor.');
+      setVoiceError('This device does not support listing audio devices.');
       return { success: false, error: 'unsupported' };
     }
 
@@ -476,8 +476,8 @@ export const VoiceProvider = ({ children }) => {
       return { success: true, devices: nextDevices };
     } catch (error) {
       const message = error?.name === 'NotAllowedError'
-        ? 'Mikrofon izni verilmedi. Gerçek aygıt adlarını göstermek için izne izin ver.'
-        : 'Ses aygıtları okunamadı. Windows gizlilik ve ses ayarlarını kontrol et.';
+        ? 'Microphone permission was not granted. Grant permission to display the actual device names.'
+        : 'Could not read audio devices. Check the Windows privacy and audio settings.';
       setVoiceError(message);
       return { success: false, error: message };
     } finally {
@@ -612,8 +612,8 @@ export const VoiceProvider = ({ children }) => {
         parameters.encodings = parameters.encodings.map(encoding => ({ ...encoding, maxBitrate }));
         await sender.setParameters(parameters);
       } catch (error) {
-        // Codec/bitrate tercihi desteklenmiyorsa WebRTC kendi uygun değerini seçer.
-        console.warn('Ses kalite profili WebRTC göndericisine uygulanamadı:', error);
+        // Codec/bitrate tercihi not supportedsa WebRTC kendi uygun değerini seçer.
+        console.warn('Could not apply the audio quality profile to the WebRTC sender:', error);
       }
     }));
   };
@@ -689,7 +689,7 @@ export const VoiceProvider = ({ children }) => {
       || callsRef.current[remoteUserId]
     ) return;
 
-    // Her ikisinin de aynı anda arama başlatmasını önlemek için yalnızca küçük
+    // Her ikisinin de aynı anda arama başlatmasını önlemek has yalnızca küçük
     // kullanıcı kimliğine sahip taraf aramayı başlatır.
     if (String(localUser.id) > remoteUserId) return;
 
@@ -759,8 +759,8 @@ export const VoiceProvider = ({ children }) => {
     const localUserId = String(userRef.current?.id || '');
     const remoteUserId = String(participant?.userId || '');
 
-    // Ses çağrısının tek sahibi küçük kullanıcı kimliğine sahip taraftır.
-    // Mikrofon sonradan hazır olduğunda iki tarafın da aynı çağrıyı kapatması,
+    // Voice çağrısının tek sahibi küçük kullanıcı kimliğine sahip taraftır.
+    // Microphone sonradan is ready olduğunda iki tarafın da aynı çağrıyı kapatması,
     // yeni kurulan çağrının yarış nedeniyle yeniden kapanmasına yol açabiliyor.
     if (!localUserId || !remoteUserId || localUserId >= remoteUserId) return;
 
@@ -780,7 +780,7 @@ export const VoiceProvider = ({ children }) => {
   const emitWithAck = (event, payload, timeout = 7000) => new Promise((resolve) => {
     const currentSocket = socketRef.current;
     if (!currentSocket?.connected) {
-      resolve({ success: false, error: 'Sunucu bağlantısı kurulamadı.' });
+      resolve({ success: false, error: 'Could not establish a server connection.' });
       return;
     }
 
@@ -789,9 +789,9 @@ export const VoiceProvider = ({ children }) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve(result || { success: false, error: 'Sunucu yanıt vermedi.' });
+      resolve(result || { success: false, error: 'The server did not respond.' });
     };
-    const timer = window.setTimeout(() => finish({ success: false, error: 'Sunucu yanıt vermedi.' }), timeout);
+    const timer = window.setTimeout(() => finish({ success: false, error: 'The server did not respond.' }), timeout);
 
     currentSocket.emit(event, payload, finish);
   });
@@ -799,21 +799,21 @@ export const VoiceProvider = ({ children }) => {
   const notifyStreamChanged = async (channelId, payload) => {
     const result = await emitWithAck('voice:stream-changed', { channelId, ...payload });
     if (!result?.success) {
-      setVoiceError(result?.error || 'Ses/yayın durumu doğrulanamadı.');
+      setVoiceError(result?.error || 'Could not verify the voice/stream state.');
     }
     return result;
   };
 
   const releaseMicrophone = () => {
     microphoneRequestIdRef.current += 1;
-    const currentSession = audioProcessingSessionRef.current || {
+    const currentVoicesion = audioProcessingVoicesionRef.current || {
       outputStream: audioStreamRef.current,
       rawStream: sourceAudioStreamRef.current,
     };
-    audioProcessingSessionRef.current = null;
+    audioProcessingVoicesionRef.current = null;
     audioStreamRef.current = null;
     sourceAudioStreamRef.current = null;
-    disposeVoiceProcessingSession(currentSession);
+    disposeVoiceProcessingVoicesion(currentVoicesion);
     setMyStream(null);
     setVoiceProcessingStatus('idle');
     setEffectiveVoiceIsolationMode('off');
@@ -872,7 +872,7 @@ export const VoiceProvider = ({ children }) => {
 
     // Yetkiler değiştiğinde yalnızca gerçekten değişmişse sessizce güncelle.
     if (previous.channelId && !sameId(previous.channelId, next.channelId)) {
-      setVoiceError('Ses kanalı yetkilerin güncellendi.');
+      setVoiceError('Your voice channel permissions changed.');
     }
 
     return next;
@@ -896,15 +896,15 @@ export const VoiceProvider = ({ children }) => {
     const previousOutgoingStream = audioStreamRef.current;
     const previousRawStream = sourceAudioStreamRef.current;
     const hasPreviousStream = hasLiveAudioTrack(previousOutgoingStream);
-    const previousSession = hasPreviousStream
-      ? (audioProcessingSessionRef.current || {
+    const previousVoicesion = hasPreviousStream
+      ? (audioProcessingVoicesionRef.current || {
         outputStream: previousOutgoingStream,
         rawStream: previousRawStream,
       })
       : null;
-    const previousEffectiveMode = previousSession?.effectiveMode || effectiveVoiceIsolationMode;
-    const previousProcessingStatus = previousSession?.processingStatus || voiceProcessingStatus;
-    const previousProcessingEngine = previousSession?.processingEngine || voiceProcessingEngine;
+    const previousEffectiveMode = previousVoicesion?.effectiveMode || effectiveVoiceIsolationMode;
+    const previousProcessingStatus = previousVoicesion?.processingStatus || voiceProcessingStatus;
+    const previousProcessingEngine = previousVoicesion?.processingEngine || voiceProcessingEngine;
     const requestId = microphoneRequestIdRef.current + 1;
     microphoneRequestIdRef.current = requestId;
     setVoiceProcessingStatus('starting');
@@ -914,7 +914,7 @@ export const VoiceProvider = ({ children }) => {
       const result = await requestVoiceCapabilities(activeChannel.id);
       if (requestId !== microphoneRequestIdRef.current) return false;
       if (!result?.success) {
-        setVoiceError(result?.error || 'Ses yetkilerin doğrulanamadı.');
+        setVoiceError(result?.error || 'Could not verify your voice permissions.');
         setVoiceProcessingStatus('error');
         return false;
       }
@@ -922,12 +922,12 @@ export const VoiceProvider = ({ children }) => {
     }
 
     if (!capabilities.canSpeak) {
-      setVoiceError('Bu ses kanalında konuşma yetkin yok. Dinleyici olarak bağlısın.');
+      setVoiceError('You cannot speak in this voice channel. You are connected as a listener.');
       setVoiceProcessingStatus('idle');
       return false;
     }
     if (capabilities.serverMuted) {
-      setVoiceError('Mikrofonun bir moderatör tarafından susturuldu.');
+      setVoiceError('Your microphone was muted by a moderator.');
       setVoiceProcessingStatus('idle');
       return false;
     }
@@ -963,52 +963,52 @@ export const VoiceProvider = ({ children }) => {
         try { track.contentHint = 'speech'; } catch { /* Bazı tarayıcılar salt okunur uygular. */ }
       });
 
-      let processingSession;
+      let processingVoicesion;
       let processingFallback = capture.usedConstraintFallback;
       try {
-        processingSession = await createProcessedVoiceStream(rawStream, isolationMode, quality, {
+        processingVoicesion = await createProcessedVoiceStream(rawStream, isolationMode, quality, {
           onRnnoiseRuntimeError: (error) => {
-            const currentSession = audioProcessingSessionRef.current;
-            if (!currentSession || currentSession.rawStream !== rawStream) return;
-            currentSession.rnnoiseApplied = false;
-            currentSession.effectiveMode = 'standard';
-            currentSession.processingStatus = 'fallback';
-            currentSession.processingEngine = 'browser-fallback';
+            const currentVoicesion = audioProcessingVoicesionRef.current;
+            if (!currentVoicesion || currentVoicesion.rawStream !== rawStream) return;
+            currentVoicesion.rnnoiseApplied = false;
+            currentVoicesion.effectiveMode = 'standard';
+            currentVoicesion.processingStatus = 'fallback';
+            currentVoicesion.processingEngine = 'browser-fallback';
             void enableNativeVoiceProcessingFallback(rawStream);
             setEffectiveVoiceIsolationMode('standard');
             setVoiceProcessingStatus('fallback');
             setVoiceProcessingEngine('browser-fallback');
-            setVoiceError(`RNNoise çalışmayı durdurdu; standart gürültü azaltmaya geçildi${error?.message ? ` (${error.message})` : ''}.`);
+            setVoiceError(`RNNoise stopped, so standard noise reduction is now active${error?.message ? ` (${error.message})` : ''}.`);
           },
         });
       } catch (processingError) {
-        console.warn('Ses izolasyonu Web Audio katmanına uygulanamadı; tarayıcı işlemesi kullanılıyor:', processingError);
+        console.warn('Voice isolation could not be applied through Web Audio; browser processing is being used:', processingError);
         processingFallback = true;
-        processingSession = {
+        processingVoicesion = {
           outputStream: rawStream,
           context: null,
           nodes: [],
           rnnoiseApplied: false,
           processingEngine: 'browser-fallback',
-          fallbackReason: processingError?.message || 'Ses işleme zinciri başlatılamadı.',
+          fallbackReason: processingError?.message || 'The audio processing pipeline could not be started.',
         };
       }
-      processingSession.rawStream = rawStream;
+      processingVoicesion.rawStream = rawStream;
       const rawTrack = rawStream.getAudioTracks()[0];
       if (rawTrack?.addEventListener) {
         const handleUnexpectedTrackEnd = () => {
-          if (audioProcessingSessionRef.current !== processingSession || !isInVoiceRef.current) return;
-          setVoiceError('Mikrofon bağlantısı kesildi; yeniden bağlanılıyor…');
+          if (audioProcessingVoicesionRef.current !== processingVoicesion || !isInVoiceRef.current) return;
+          setVoiceError('The microphone disconnected; reconnecting…');
           releaseMicrophone();
           void ensureMicrophone({ skipCapabilityRefresh: true, forceReplace: true });
         };
         rawTrack.addEventListener('ended', handleUnexpectedTrackEnd);
-        processingSession.disposeListeners = () => rawTrack.removeEventListener('ended', handleUnexpectedTrackEnd);
+        processingVoicesion.disposeListeners = () => rawTrack.removeEventListener('ended', handleUnexpectedTrackEnd);
       }
 
-      if (isolationMode === 'strong' && !processingSession.rnnoiseApplied) {
+      if (isolationMode === 'strong' && !processingVoicesion.rnnoiseApplied) {
         processingFallback = true;
-        processingSession.processingEngine = 'browser-fallback';
+        processingVoicesion.processingEngine = 'browser-fallback';
         await enableNativeVoiceProcessingFallback(rawStream);
       }
 
@@ -1017,25 +1017,25 @@ export const VoiceProvider = ({ children }) => {
         || !isInVoiceRef.current
         || !sameId(activeVoiceChannelRef.current?.id, activeChannel.id)
       ) {
-        disposeVoiceProcessingSession(processingSession);
+        disposeVoiceProcessingVoicesion(processingVoicesion);
         return false;
       }
 
-      const outgoingStream = processingSession.outputStream;
-      const nextEffectiveMode = isolationMode === 'strong' && !processingSession.rnnoiseApplied
+      const outgoingStream = processingVoicesion.outputStream;
+      const nextEffectiveMode = isolationMode === 'strong' && !processingVoicesion.rnnoiseApplied
         ? 'standard'
         : isolationMode;
       const nextProcessingStatus = processingFallback ? 'fallback' : 'active';
-      const nextProcessingEngine = processingSession.processingEngine
+      const nextProcessingEngine = processingVoicesion.processingEngine
         || (nextEffectiveMode === 'off' ? 'none' : 'web-audio');
-      processingSession.effectiveMode = nextEffectiveMode;
-      processingSession.processingStatus = nextProcessingStatus;
-      processingSession.processingEngine = nextProcessingEngine;
+      processingVoicesion.effectiveMode = nextEffectiveMode;
+      processingVoicesion.processingStatus = nextProcessingStatus;
+      processingVoicesion.processingEngine = nextProcessingEngine;
       outgoingStream.getAudioTracks().forEach((track) => {
         track.enabled = !isMutedRef.current && (voiceModeRef.current !== 'push-to-talk' || pushToTalkActiveRef.current);
       });
       sourceAudioStreamRef.current = rawStream;
-      audioProcessingSessionRef.current = processingSession;
+      audioProcessingVoicesionRef.current = processingVoicesion;
       audioStreamRef.current = outgoingStream;
       setMyStream(outgoingStream);
       setEffectiveVoiceIsolationMode(nextEffectiveMode);
@@ -1049,7 +1049,7 @@ export const VoiceProvider = ({ children }) => {
       if (!result?.success) {
         if (hasPreviousStream) {
           sourceAudioStreamRef.current = previousRawStream;
-          audioProcessingSessionRef.current = previousSession;
+          audioProcessingVoicesionRef.current = previousVoicesion;
           audioStreamRef.current = previousOutgoingStream;
           setMyStream(previousOutgoingStream);
           setEffectiveVoiceIsolationMode(previousEffectiveMode);
@@ -1057,14 +1057,14 @@ export const VoiceProvider = ({ children }) => {
           setVoiceProcessingEngine(previousProcessingEngine);
         } else {
           sourceAudioStreamRef.current = null;
-          audioProcessingSessionRef.current = null;
+          audioProcessingVoicesionRef.current = null;
           audioStreamRef.current = null;
           setMyStream(null);
           setEffectiveVoiceIsolationMode('off');
           setVoiceProcessingStatus('error');
           setVoiceProcessingEngine('none');
         }
-        disposeVoiceProcessingSession(processingSession);
+        disposeVoiceProcessingVoicesion(processingVoicesion);
         return false;
       }
 
@@ -1072,26 +1072,26 @@ export const VoiceProvider = ({ children }) => {
         inputDeviceIdRef.current = '';
         setInputDeviceId('');
       }
-      if (previousSession && previousSession !== processingSession) {
-        disposeVoiceProcessingSession(previousSession);
+      if (previousVoicesion && previousVoicesion !== processingVoicesion) {
+        disposeVoiceProcessingVoicesion(previousVoicesion);
       }
       reconnectCalls();
       return true;
     } catch (error) {
       if (requestId !== microphoneRequestIdRef.current) return false;
       if (error.name !== 'NotAllowedError') {
-        console.error('Mikrofon erişim hatası:', error);
+        console.error('Microphone access error:', error);
       }
       if (hasPreviousStream) {
         setEffectiveVoiceIsolationMode(previousEffectiveMode);
         setVoiceProcessingStatus(previousProcessingStatus === 'starting' ? 'active' : previousProcessingStatus);
         setVoiceProcessingEngine(previousProcessingEngine);
-        setVoiceError('Yeni ses ayarı uygulanamadı; önceki mikrofon bağlantın kullanılmaya devam ediyor.');
+        setVoiceError('The new audio setting could not be applied; your previous microphone connection remains active.');
       } else {
         setEffectiveVoiceIsolationMode('off');
         setVoiceProcessingStatus('error');
         setVoiceProcessingEngine('none');
-        setVoiceError('Mikrofon izni verilmedi veya mikrofon bulunamadı. Dinleyici olarak bağlı kalabilirsin.');
+        setVoiceError('Microphone permission was denied or no microphone was found. You can remain connected as a listener.');
       }
       return false;
     }
@@ -1101,7 +1101,7 @@ export const VoiceProvider = ({ children }) => {
     const result = await requestVoiceCapabilities(channel.id);
     const capabilities = normalizeCapabilities(result?.capabilities);
     if (!result?.success || !capabilities.canStream) {
-      setVoiceError(result?.error || 'Bu ses kanalında yayın veya kamera açma yetkin yok.');
+      setVoiceError(result?.error || 'You do not have permission to stream or use the camera in this voice channel.');
       return false;
     }
     return true;
@@ -1147,7 +1147,7 @@ export const VoiceProvider = ({ children }) => {
   const toggleCamera = async () => {
     const activeChannel = activeVoiceChannelRef.current;
     if (!isInVoiceRef.current || !activeChannel?.id) {
-      setVoiceError('Kamerayı açmak için önce bir ses kanalına katıl.');
+      setVoiceError('Join a voice channel before turning on the camera.');
       return;
     }
     if (cameraStreamRef.current) {
@@ -1182,15 +1182,15 @@ export const VoiceProvider = ({ children }) => {
       }
       broadcastVideoStream(stream, 'camera');
     } catch (error) {
-      if (error.name !== 'NotAllowedError') console.error('Kamera erişim hatası:', error);
-      setVoiceError('Kamera izni verilmedi veya kamera bulunamadı.');
+      if (error.name !== 'NotAllowedError') console.error('Camera access error:', error);
+      setVoiceError('Camera permission was denied or no camera was found.');
     }
   };
 
   const toggleScreenShare = async () => {
     const activeChannel = activeVoiceChannelRef.current;
     if (!isInVoiceRef.current || !activeChannel?.id) {
-      setVoiceError('Yayın açmak için önce bir ses kanalına katıl.');
+      setVoiceError('Join a voice channel before starting a stream.');
       return;
     }
     if (screenStreamRef.current) {
@@ -1233,8 +1233,8 @@ export const VoiceProvider = ({ children }) => {
       playFeedbackSound(FEEDBACK_SOUND_IDS.STREAM_STARTED);
     } catch (error) {
       if (error.name !== 'NotAllowedError') {
-        console.error('Ekran paylaşımı hatası:', error);
-        setVoiceError('Ekran paylaşımı başlatılamadı.');
+        console.error('Screen sharing error:', error);
+        setVoiceError('Screen sharing could not be started.');
       }
     }
   };
@@ -1244,7 +1244,7 @@ export const VoiceProvider = ({ children }) => {
     const currentSocket = socketRef.current;
 
     // Ayrılan kullanıcı da çıkış bildirimini duyar. Başarısız
-    // join/rollback akışlarında notifyServer=false olduğu için gereksiz çalmaz.
+    // join/rollback akışlarında notifyServer=false olduğu has gereksiz çalmaz.
     if (playSound && activeChannel?.id) playFeedbackSound(FEEDBACK_SOUND_IDS.LEAVE_CALL);
 
     // Önce ref'leri temizlemek, geç kalan PeerJS çağrılarının cevaplanmasını engeller.
@@ -1288,11 +1288,11 @@ export const VoiceProvider = ({ children }) => {
   const joinVoiceChannel = async (channel, { isMove = false } = {}) => {
     if (!channel?.id || joinInProgressRef.current) return false;
     if (!socketRef.current?.connected) {
-      setVoiceError('Sunucu bağlantısı kurulamadı. Tekrar dene.');
+      setVoiceError('Could not establish a server connection. Try again.');
       return false;
     }
     if (!peerIdRef.current) {
-      setVoiceError('Ses altyapısı hazırlanıyor. Birkaç saniye sonra tekrar dene.');
+      setVoiceError('Voice services are getting ready. Try again in a few seconds.');
       return false;
     }
     if (sameId(activeVoiceChannelRef.current?.id, channel.id)) return true;
@@ -1302,16 +1302,16 @@ export const VoiceProvider = ({ children }) => {
       if (activeVoiceChannelRef.current) {
         leaveVoiceChannel({ notifyServer: !isMove, playSound: !isMove });
         // leaveVoiceChannel genel temizlik sırasında bu bayrağı da sıfırlar.
-        // Kanal değiştirme işlemi bitene kadar ikinci bir join başlamasın.
+        // Kanal değiştirme action bitene kadar ikinci bir join başlamasın.
         joinInProgressRef.current = true;
       }
 
-      // Mikrofon izni istemeden önce sunucunun güncel CONNECT/SPEAK/STREAM
+      // Microphone izni istemeden önce sunucunun güncel CONNECT/SPEAK/STREAM
       // yetkisini imzalı socket oturumu üzerinden al.
       const preflight = await requestVoiceCapabilities(channel.id);
       const capabilities = normalizeCapabilities(preflight?.capabilities);
       if (!preflight?.success || !capabilities.canConnect) {
-        setVoiceError(preflight?.error || 'Bu ses kanalına bağlanma yetkin yok.');
+        setVoiceError(preflight?.error || 'You do not have permission to join this voice channel.');
         return false;
       }
 
@@ -1339,7 +1339,7 @@ export const VoiceProvider = ({ children }) => {
       pendingVoiceJoinRef.current = null;
 
       if (!result?.success) {
-        setVoiceError(result?.error || 'Ses kanalına bağlanılamadı.');
+        setVoiceError(result?.error || 'Could not join the voice channel.');
         leaveVoiceChannel({ notifyServer: false });
         return false;
       }
@@ -1360,7 +1360,7 @@ export const VoiceProvider = ({ children }) => {
     if (!isInVoiceRef.current || !activeChannel?.id) return;
     if (rejoiningRef.current) return;
     if (!socketRef.current?.connected || !peerIdRef.current) {
-      setVoiceError('Ses bağlantısı yeniden kurulamadı. Kanaldan ayrıldın.');
+      setVoiceError('The voice connection could not be restored, so you left the channel.');
       leaveVoiceChannel({ notifyServer: false });
       return;
     }
@@ -1377,7 +1377,7 @@ export const VoiceProvider = ({ children }) => {
         peerId: peerIdRef.current,
       });
       if (!result?.success) {
-        setVoiceError(result?.error || 'Ses bağlantısı yeniden kurulamadı. Kanaldan ayrıldın.');
+        setVoiceError(result?.error || 'The voice connection could not be restored, so you left the channel.');
         leaveVoiceChannel({ notifyServer: false });
         return;
       }
@@ -1395,11 +1395,11 @@ export const VoiceProvider = ({ children }) => {
     const capabilities = voiceCapabilitiesRef.current;
     if (!isInVoiceRef.current) return;
     if (!capabilities.canSpeak) {
-      setVoiceError('Bu ses kanalında konuşma yetkin yok.');
+      setVoiceError('You do not have permission to speak in this voice channel.');
       return;
     }
     if (capabilities.serverMuted) {
-      setVoiceError('Mikrofonun bir moderatör tarafından susturuldu.');
+      setVoiceError('Your microphone was muted by a moderator.');
       return;
     }
 
@@ -1426,7 +1426,7 @@ export const VoiceProvider = ({ children }) => {
 
   const toggleDeafen = () => {
     if (voiceCapabilitiesRef.current.serverDeafened) {
-      setVoiceError('Sağırlaştırman bir moderatör tarafından uygulanıyor.');
+      setVoiceError('A moderator has deafened you.');
       return;
     }
     const nextDeafened = !isDeafenedRef.current;
@@ -1516,8 +1516,8 @@ export const VoiceProvider = ({ children }) => {
     return setVoiceIsolationMode(nextMode);
   };
 
-  // PeerJS nesnesi tüm ses oturumu boyunca tek kalır. Gelen çağrılar sadece
-  // sunucunun aktif katılımcı olarak bildirdiği peer kimliğiyle eşleşirse yanıtlanır.
+  // PeerJS nesnesi tüm ses oturumu boyunca tek kalır. Incoming calllar sadece
+  // sunucunun aktif katılımcı olarak bildirdiği peer kimliğiyle eşleşirse replieslanır.
   useEffect(() => {
     if (!user?.id) return undefined;
 
@@ -1529,7 +1529,7 @@ export const VoiceProvider = ({ children }) => {
       try {
         iceServers = await getPeerIceServers();
       } catch (error) {
-        console.warn('TURN kimliği alınamadı; varsayılan PeerJS ICE yapılandırması kullanılacak.', error);
+        console.warn('Could not obtain TURN credentials; the default PeerJS ICE configuration will be used.', error);
       }
       if (disposed) return;
 
@@ -1611,14 +1611,14 @@ export const VoiceProvider = ({ children }) => {
         console.error('PeerJS hatası:', error);
         // `peer-unavailable` ses sunucusunun kapalı olduğunu değil, listede
         // kalmış tek bir uzak PeerJS kimliğinin artık bulunamadığını anlatır.
-        // Sunucu yeni snapshot yayımlayacağı için aktif ses oturumunu yanlış bir
+        // Sunucu yeni snapshot yayımlayacağı has aktif ses oturumunu yanlış bir
         // genel bağlantı hatasıyla kapatma.
         if (error?.type === 'peer-unavailable') {
           const activeServerId = activeVoiceChannelRef.current?.serverId;
           if (activeServerId) socketRef.current?.emit('voice:members-request', { serverId: activeServerId });
           return;
         }
-        setVoiceError(`Ses sunucusuna bağlanılamadı (${error.type || 'bilinmeyen hata'}).`);
+        setVoiceError(`Could not connect to the voice server (${error.type || 'unknown error'}).`);
       });
     };
 
@@ -1705,9 +1705,9 @@ export const VoiceProvider = ({ children }) => {
       if (sameId(normalizedUserId, userRef.current?.id)) return;
 
       if (kind === 'audio') {
-        // Mikrofon akışı değişen taraf çağrının sahibi değilse, sahibi olan bu
+        // Microphone akışı değişen taraf çağrının sahibi değilse, sahibi olan bu
         // istemci ses çağrısını yeni track ile tekrar kurar. Video çağrıları
-        // ayrı tutulduğu için bu işlem kamera/yayını etkilemez.
+        // ayrı tutulduğu has bu action kamera/yayını etkilemez.
         reconnectAudioCall(participant);
         return;
       }
@@ -1755,7 +1755,7 @@ export const VoiceProvider = ({ children }) => {
     };
 
     const handleVoiceError = ({ message } = {}) => {
-      setVoiceError(message || 'Ses kanalına bağlanılamadı.');
+      setVoiceError(message || 'Could not join the voice channel.');
       if (pendingVoiceJoinRef.current) {
         pendingVoiceJoinRef.current = null;
         leaveVoiceChannelRef.current({ notifyServer: false });
@@ -1769,17 +1769,17 @@ export const VoiceProvider = ({ children }) => {
       if (action === 'mute') {
         applyVoiceCapabilities({ ...voiceCapabilitiesRef.current, ...state, serverMuted: true });
         playFeedbackSound(FEEDBACK_SOUND_IDS.MUTE);
-        setVoiceError(`${byUsername || 'Bir moderatör'} mikrofonunu susturdu.`);
+        setVoiceError(`${byUsername || 'A moderator'} muted your microphone.`);
       }
       if (action === 'deafen') {
         applyVoiceCapabilities({ ...voiceCapabilitiesRef.current, ...state, serverDeafened: true });
         playFeedbackSound(FEEDBACK_SOUND_IDS.DEAFEN);
-        setVoiceError(`${byUsername || 'Bir moderatör'} seni sağırlaştırdı.`);
+        setVoiceError(`${byUsername || 'A moderator'} deafened you.`);
       }
       if (action === 'unmute') {
         applyVoiceCapabilities({ ...voiceCapabilitiesRef.current, ...state, serverMuted: false });
         playFeedbackSound(FEEDBACK_SOUND_IDS.UNMUTE);
-        setVoiceError(`${byUsername || 'Bir moderatör'} mikrofonunun sesini açtı.`);
+        setVoiceError(`${byUsername || 'A moderator'} unmuted your microphone.`);
       }
       if (action === 'undeafen') {
         applyVoiceCapabilities({ ...voiceCapabilitiesRef.current, ...state, serverDeafened: false });
@@ -1787,23 +1787,23 @@ export const VoiceProvider = ({ children }) => {
         applyDeafenState(false);
         setIsDeafened(false);
         playFeedbackSound(FEEDBACK_SOUND_IDS.UNDEAFEN);
-        setVoiceError(`${byUsername || 'Bir moderatör'} sağırlaştırmayı kaldırdı.`);
+        setVoiceError(`${byUsername || 'A moderator'} undeafened you.`);
       }
       if (action === 'disconnect') {
         playFeedbackSound(FEEDBACK_SOUND_IDS.LEAVE_CALL);
-        setVoiceError(`${byUsername || 'Bir moderatör'} seni ses kanalından çıkardı.`);
+        setVoiceError(`${byUsername || 'A moderator'} removed you from the voice channel.`);
         leaveVoiceChannelRef.current({ notifyServer: false });
       }
       if (action === 'move' || action === 'moved') {
         playFeedbackSound(FEEDBACK_SOUND_IDS.MOVED);
         if (!targetChannel?.id) {
-          setVoiceError('Taşındığın ses kanalı bulunamadı.');
+          setVoiceError('The voice channel you were moved to could not be found.');
           leaveVoiceChannelRef.current({ notifyServer: false, playSound: false });
           return;
         }
         void joinVoiceChannel(targetChannel, { isMove: true }).then((joined) => {
           if (joined) {
-            setVoiceError(`${byUsername || 'Bir moderatör'} seni ${targetChannel.name || 'başka bir ses kanalına'} taşıdı.`);
+            setVoiceError(`${byUsername || 'A moderator'} moved you to ${targetChannel.name || 'another voice channel'}.`);
           }
         });
       }
@@ -1821,7 +1821,7 @@ export const VoiceProvider = ({ children }) => {
     const handleSocketConnect = () => {
       if (!isInVoiceRef.current) return;
       if (!peerIdRef.current) {
-        setVoiceError('Ses altyapısı hazır olmadığı için kanaldan ayrıldın.');
+        setVoiceError('You left the channel because voice services were not ready.');
         leaveVoiceChannelRef.current({ notifyServer: false });
         return;
       }
@@ -1829,7 +1829,7 @@ export const VoiceProvider = ({ children }) => {
     };
 
     const handleSocketDisconnect = () => {
-      if (isInVoiceRef.current) setVoiceError('Sunucu bağlantısı kesildi; ses bağlantısı yeniden kuruluyor…');
+      if (isInVoiceRef.current) setVoiceError('The server connection was lost; restoring the voice connection…');
     };
 
     socket.on('voice:user-joined', handleUserJoined);
@@ -1892,7 +1892,7 @@ export const VoiceProvider = ({ children }) => {
         source.connect(analyser);
         analyzers.push({ userId, analyser, data: new Uint8Array(analyser.frequencyBinCount) });
       } catch (error) {
-        console.warn('Konuşma algılama başlatılamadı:', error);
+        console.warn('Voice activity detection could not be started:', error);
       }
     });
 
@@ -1923,8 +1923,8 @@ export const VoiceProvider = ({ children }) => {
     };
   }, [isInVoice, myStream, remoteStreams, user?.id]);
 
-  // Dinleyici ilkesi: CONNECT olan ama SPEAK olmayan üye kanala katılır; ses
-  // kaynağı istenmez ve panelde konuşma/yayın tuşları pasif görünür.
+  // Dinleyici ilkesi: CONNECT olan ama SPEAK olmayan member kanala katılır; ses
+  // kaynağı istenmez and panelde konuşma/yayın tuşları pasif görünür.
   leaveVoiceChannelRef.current = leaveVoiceChannel;
 
   return (

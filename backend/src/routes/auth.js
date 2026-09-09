@@ -29,7 +29,7 @@ const RESEND_WAIT_MS = 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 const RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
-// Kodlar kısa ve tek kullanımlı olduğundan Argon2 ile parola gibi işlenmez.
+// Kodlar kısa and tek useslı olduğundan Argon2 ile parola gibi işlenmez.
 // Süreç belleğinde kalan rastgele HMAC anahtarı, Map içindeki özetlerin çevrimdışı
 // 000000-999999 taramasına karşı doğrudan SHA-256'dan daha güvenli olmasını sağlar.
 // Uygulama yeniden başladığında bekleyen oturumlar zaten bellekten silinir.
@@ -135,7 +135,7 @@ function rejectRateLimitedRequest(req, res) {
   const retryAfterSeconds = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
   res.set('Retry-After', String(retryAfterSeconds));
   return res.status(429).json({
-    error: 'Çok fazla deneme yaptın. Lütfen biraz bekleyip yeniden dene.',
+    error: 'Too many attempts. Please wait and try again.',
   });
 }
 
@@ -232,11 +232,11 @@ const rateLimits = Object.freeze({
     scope: 'confirm-email-change', kind: 'account', windowMs: 15 * 60 * 1000, limit: 8,
     subject: req => req.body?.emailChangeTicket,
   })),
-  verifySessionIp: rateLimit(authRateLimitOptions({
+  verifyVoicesionIp: rateLimit(authRateLimitOptions({
     scope: 'verify-session', kind: 'ip', windowMs: 15 * 60 * 1000, limit: 300,
     subject: requestRemoteAddress,
   })),
-  verifySessionAccount: rateLimit(authRateLimitOptions({
+  verifyVoicesionAccount: rateLimit(authRateLimitOptions({
     scope: 'verify-session', kind: 'account', windowMs: 15 * 60 * 1000, limit: 180,
     subject: req => req.user?.id,
   })),
@@ -313,7 +313,7 @@ function passwordWorkBusyResponse(error, res) {
   if (!isPasswordWorkQueueError(error)) return null;
   res.set('Retry-After', '2');
   return res.status(503).json({
-    error: 'Güvenli parola işleme servisi şu anda yoğun. Lütfen kısa süre sonra yeniden dene.',
+    error: 'The secure password service is busy. Please try again shortly.',
   });
 }
 
@@ -327,12 +327,12 @@ async function checkPasswordAndMigrate(user, password) {
   const result = await verifyPassword(password, user.password);
   if (!result.valid) return false;
 
-  // Bcrypt, eski Argon2 parametreleri ve çok eski düz metin kayıtları başarılı
-  // doğrulamanın hemen ardından Argon2id'e taşınır. Kullanıcı henüz yeni bir
-  // oturum almadığı için mevcut tokenVersion değiştirilmez.
+  // Bcrypt, eski Argon2 parametreleri and çok eski düz text kayıtları başarılı
+  // doğrulamanın hemen ardından Argon2id'e taşınır. User henüz yeni bir
+  // oturum almadığı has mevcut tokenVersion değiştirilmez.
   if (result.needsRehash) {
     storage.updateUserPassword(user.id, await hashPassword(password), {
-      invalidateSessions: false,
+      invalidateVoicesions: false,
     });
   }
 
@@ -391,22 +391,22 @@ function findPendingRegistration({ username, email }) {
 
 function validatePendingCode(map, ticket, code) {
   const pending = map.get(ticket);
-  if (!pending) return { error: 'Doğrulama oturumu bulunamadı. Yeniden dene.', status: 400 };
+  if (!pending) return { error: 'Verification session not found. Try again.', status: 400 };
 
   if (Date.now() > pending.expiresAt) {
     map.delete(ticket);
-    return { error: 'Kodun süresi doldu. İşlemi yeniden başlat.', status: 400 };
+    return { error: 'The code expired. Start the process again.', status: 400 };
   }
 
   if (pending.attempts >= MAX_CODE_ATTEMPTS) {
     map.delete(ticket);
-    return { error: 'Çok fazla yanlış deneme yaptın. İşlemi yeniden başlat.', status: 429 };
+    return { error: 'Too many incorrect attempts. Start the process again.', status: 429 };
   }
 
   if (!/^\d{6}$/.test(code) || !isCodeCorrect(code, pending.codeHash)) {
     pending.attempts += 1;
     return {
-      error: `Kod hatalı. Kalan hakkın: ${Math.max(0, MAX_CODE_ATTEMPTS - pending.attempts)}`,
+      error: `Incorrect code. Attempts remaining: ${Math.max(0, MAX_CODE_ATTEMPTS - pending.attempts)}`,
       status: 400,
     };
   }
@@ -433,7 +433,7 @@ async function sendRegistrationCode({ username, email, passwordHash }) {
       return { ticket: existing.ticket, reused: true };
     }
 
-    const error = new Error('Bu kullanıcı adı veya e-posta adresi için doğrulanmayı bekleyen bir kayıt var.');
+    const error = new Error('A pending verification already exists for this username or email address.');
     error.code = 'PENDING_REGISTRATION_EXISTS';
     throw error;
   }
@@ -453,21 +453,21 @@ async function sendRegistrationCode({ username, email, passwordHash }) {
 
 async function resendPendingCode(map, ticket, sendCode, resolveRecipient = pending => storage.getUserById(pending.userId)) {
   const pending = map.get(ticket);
-  if (!pending) return { error: 'Doğrulama oturumu bulunamadı. Yeniden dene.', status: 400 };
+  if (!pending) return { error: 'Verification session not found. Try again.', status: 400 };
   if (Date.now() > pending.expiresAt) {
     map.delete(ticket);
-    return { error: 'Kodun süresi doldu. İşlemi yeniden başlat.', status: 400 };
+    return { error: 'The code expired. Start the process again.', status: 400 };
   }
 
   const remainingWait = RESEND_WAIT_MS - (Date.now() - pending.lastSentAt);
   if (remainingWait > 0) {
-    return { error: `Yeni kod için ${Math.ceil(remainingWait / 1000)} saniye bekle.`, status: 429 };
+    return { error: `You can request a new code in ${Math.ceil(remainingWait / 1000)} seconds.`, status: 429 };
   }
 
   const recipient = resolveRecipient(pending);
   if (!recipient) {
     map.delete(ticket);
-    return { error: 'Kullanıcı bulunamadı.', status: 404 };
+    return { error: 'User not found.', status: 404 };
   }
 
   const code = createSixDigitCode();
@@ -496,16 +496,16 @@ router.post('/register', rateLimits.registerIp, rateLimits.registerAccount, asyn
 
     if (username.length < 2 || username.length > 50 || !isValidEmail(email) || !isValidPassword(password)) {
       return res.status(400).json({
-        error: 'Geçerli bir kullanıcı adı, e-posta ve en az 8 karakterlik şifre zorunludur.',
+        error: 'A valid username, email address, and password of at least 8 characters are required.',
       });
     }
 
     if (storage.getUserByUsername(username) || storage.getUserByEmail(email)) {
-      return res.status(409).json({ error: 'Bu kullanıcı adı veya e-posta adresi zaten kullanımda.' });
+      return res.status(409).json({ error: 'This username or email address is already in use.' });
     }
 
     const passwordHash = await hashPassword(password);
-    // SMTP teslimi başarısız olursa kullanıcı/veri üyeliği oluşmaz. Hesap yalnızca
+    // SMTP teslimi başarısız olursa kullanıcı/veri memberliği oluşmaz. Hesap yalnızca
     // e-postadaki kod doğrulandığında kalıcı olarak oluşturulur.
     const registrationResult = await sendRegistrationCode({ username, email, passwordHash });
     const loginTicket = registrationResult.ticket;
@@ -513,14 +513,14 @@ router.post('/register', rateLimits.registerIp, rateLimits.registerAccount, asyn
     return res.status(201).json({
       requiresTwoFactor: true,
       loginTicket,
-      message: 'Kayıt başarılı. Doğrulama kodu e-posta adresine gönderildi.',
+      message: 'Registration successful. A verification code was sent to your email address.',
     });
   } catch (error) {
     const busyResponse = passwordWorkBusyResponse(error, res);
     if (busyResponse) return busyResponse;
-    console.error('Kayıt doğrulama hatası:', error.message);
+    console.error('Registration verification error:', error.message);
     return res.status(503).json({
-      error: emailDeliveryErrorMessage(error, 'Kayıt doğrulama e-postası gönderilemedi. SMTP ayarlarını kontrol edip yeniden dene.'),
+      error: emailDeliveryErrorMessage(error, 'The registration verification email could not be sent. Check the SMTP settings and try again.'),
     });
   }
 });
@@ -543,13 +543,13 @@ router.post('/login', rateLimits.loginIp, rateLimits.loginAccount, async (req, r
     }
 
     if (!user || !passwordAccepted) {
-      return res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
+      return res.status(401).json({ error: 'Incorrect email address or password.' });
     }
 
     const platformBan = storage.getUserPlatformBan(user.id);
     if (platformBan) {
       return res.status(403).json({
-        error: `Hesabın banlandı: ${platformBan.reason}`,
+        error: `Your account was banned: ${platformBan.reason}`,
         code: 'ACCOUNT_BANNED',
       });
     }
@@ -558,14 +558,14 @@ router.post('/login', rateLimits.loginIp, rateLimits.loginAccount, async (req, r
     return res.json({
       requiresTwoFactor: true,
       loginTicket,
-      message: 'Doğrulama kodu e-posta adresine gönderildi.',
+      message: 'A verification code was sent to your email address.',
     });
   } catch (error) {
     const busyResponse = passwordWorkBusyResponse(error, res);
     if (busyResponse) return busyResponse;
-    console.error('Giriş doğrulama hatası:', error.message);
+    console.error('Sign-in verification error:', error.message);
     return res.status(503).json({
-      error: emailDeliveryErrorMessage(error, 'Doğrulama e-postası gönderilemedi. SMTP ayarlarını kontrol et.'),
+      error: emailDeliveryErrorMessage(error, 'The verification email could not be sent. Check the SMTP settings.'),
     });
   }
 });
@@ -589,19 +589,19 @@ router.post('/verify-2fa', rateLimits.verifyTwoFactorIp, rateLimits.verifyTwoFac
     } catch (error) {
       pendingTwoFactorLogins.delete(loginTicket);
       return res.status(409).json({
-        error: 'Bu kullanıcı adı veya e-posta adresi doğrulama sırasında başka bir hesap tarafından kullanıldı. Lütfen tekrar kayıt ol.',
+        error: 'This username or email address was claimed by another account during verification. Please register again.',
       });
     }
   } else {
     user = storage.getUserById(result.pending.userId);
   }
   pendingTwoFactorLogins.delete(loginTicket);
-  if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  if (!user) return res.status(404).json({ error: 'User not found.' });
 
   const platformBan = storage.getUserPlatformBan(user.id);
   if (platformBan) {
     return res.status(403).json({
-      error: `Hesabın banlandı: ${platformBan.reason}`,
+      error: `Your account was banned: ${platformBan.reason}`,
       code: 'ACCOUNT_BANNED',
     });
   }
@@ -619,14 +619,14 @@ router.post('/resend-2fa', rateLimits.resendTwoFactorIp, rateLimits.resendTwoFac
       pending => pending.registration || storage.getUserById(pending.userId),
     );
     if (result.error) return res.status(result.status).json({ error: result.error });
-    return res.json({ message: 'Yeni doğrulama kodu e-posta adresine gönderildi.' });
+    return res.json({ message: 'A new verification code was sent to your email address.' });
   } catch (error) {
-    console.error('Kod tekrar gönderilemedi:', error.message);
-    return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'Yeni kod gönderilemedi.') });
+    console.error('Could not resend the code:', error.message);
+    return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'The new code could not be sent.') });
   }
 });
 
-// E-posta adresinin varlığı hakkında bilgi sızdırmamak için her zaman aynı mesaj döner.
+// E-posta adresinin varlığı hakkında bilgi sızdırmamak has her zaman aynı mesaj döner.
 router.post(
   '/request-password-reset',
   rateLimits.requestPasswordResetIp,
@@ -645,19 +645,19 @@ router.post(
         resetTicket = createDecoyPasswordReset();
       }
     } catch (error) {
-      // SMTP hatası da hesap yokmuş gibi aynı şekil ve sonraki davranışla yanıtlanır.
-      // Böylece yanıt gövdesi üzerinden hesap veya teslimat durumu anlaşılmaz.
+      // SMTP hatası da hesap yokmuş gibi aynı şekil and sonraki davranışla replieslanır.
+      // Böylece replies gövdesi üzerinden hesap veya teslimat durumu anlaşılmaz.
       if (resetTicket) {
         pendingPasswordResets.delete(resetTicket);
         createDecoyPasswordReset(resetTicket);
       } else {
         resetTicket = createDecoyPasswordReset();
       }
-      console.error('Şifre sıfırlama e-postası gönderilemedi:', error.message);
+      console.error('Could not send the password reset email:', error.message);
     }
 
     return res.json({
-      message: 'Bu e-posta hesabı kayıtlıysa şifre sıfırlama kodu gönderildi.',
+      message: 'If this email address is registered, a password reset code was sent.',
       resetTicket,
     });
   },
@@ -679,10 +679,10 @@ router.post(
         pending => (pending.decoy ? { decoy: true } : storage.getUserById(pending.userId)),
       );
       if (result.error) return res.status(result.status).json({ error: result.error });
-      return res.json({ message: 'Yeni şifre sıfırlama kodu e-posta adresine gönderildi.' });
+      return res.json({ message: 'A new password reset code was sent to your email address.' });
     } catch (error) {
-      console.error('Şifre sıfırlama kodu tekrar gönderilemedi:', error.message);
-      return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'Yeni kod gönderilemedi.') });
+      console.error('Could not resend the password reset code:', error.message);
+      return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'The new code could not be sent.') });
     }
   },
 );
@@ -693,7 +693,7 @@ router.post('/reset-password', rateLimits.resetPasswordIp, rateLimits.resetPassw
     const code = String(req.body.code || '').trim();
     const newPassword = String(req.body.newPassword || '');
     if (!isValidPassword(newPassword)) {
-      return res.status(400).json({ error: 'Yeni şifre en az 8, en fazla 128 karakter olmalıdır.' });
+      return res.status(400).json({ error: 'The new password must be between 8 and 128 characters.' });
     }
 
     const result = validatePendingCode(pendingPasswordResets, resetTicket, code);
@@ -701,23 +701,23 @@ router.post('/reset-password', rateLimits.resetPasswordIp, rateLimits.resetPassw
 
     if (result.pending.decoy) {
       pendingPasswordResets.delete(resetTicket);
-      return res.status(400).json({ error: 'Kod veya doğrulama oturumu geçersiz. İşlemi yeniden başlat.' });
+      return res.status(400).json({ error: 'The code or verification session is invalid. Start the process again.' });
     }
 
     const user = storage.getUserById(result.pending.userId);
     if (!user) {
       pendingPasswordResets.delete(resetTicket);
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+      return res.status(404).json({ error: 'User not found.' });
     }
 
     storage.updateUserPassword(user.id, await hashPassword(newPassword));
     pendingPasswordResets.delete(resetTicket);
-    return res.json({ message: 'Şifren güncellendi. Güvenlik için yeniden giriş yap.' });
+    return res.json({ message: 'Your password was updated. Sign in again for security.' });
   } catch (error) {
     const busyResponse = passwordWorkBusyResponse(error, res);
     if (busyResponse) return busyResponse;
-    console.error('Şifre sıfırlama hatası:', error.message);
-    return res.status(500).json({ error: 'Şifre güncellenemedi.' });
+    console.error('Password reset error:', error.message);
+    return res.status(500).json({ error: 'The password could not be updated.' });
   }
 });
 
@@ -731,11 +731,11 @@ router.post(
       const newEmail = normalizeEmail(req.body.newEmail);
       const currentPassword = String(req.body.currentPassword || '');
 
-      if (!isValidEmail(newEmail)) return res.status(400).json({ error: 'Geçerli bir e-posta adresi gir.' });
-      if (newEmail === normalizeEmail(req.user.email)) return res.status(400).json({ error: 'Bu e-posta adresi zaten kullanımda.' });
-      if (storage.getUserByEmail(newEmail)) return res.status(409).json({ error: 'Bu e-posta adresi başka bir hesapta kullanılıyor.' });
+      if (!isValidEmail(newEmail)) return res.status(400).json({ error: 'Enter a valid email address.' });
+      if (newEmail === normalizeEmail(req.user.email)) return res.status(400).json({ error: 'Bu e-posta adresi zaten usesda.' });
+      if (storage.getUserByEmail(newEmail)) return res.status(409).json({ error: 'This email address is used by another account.' });
       if (!(await checkPasswordAndMigrate(req.user, currentPassword))) {
-        return res.status(401).json({ error: 'Mevcut şifren hatalı.' });
+        return res.status(401).json({ error: 'The current password is incorrect.' });
       }
 
       const created = createPendingCode(pendingEmailChanges, req.user.id, { newEmail });
@@ -748,13 +748,13 @@ router.post(
 
       return res.json({
         emailChangeTicket: created.ticket,
-        message: 'Doğrulama kodu yeni e-posta adresine gönderildi.',
+        message: 'A verification code was sent to your new email address.',
       });
     } catch (error) {
       const busyResponse = passwordWorkBusyResponse(error, res);
       if (busyResponse) return busyResponse;
-      console.error('E-posta değişikliği doğrulaması gönderilemedi:', error.message);
-      return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'Doğrulama e-postası gönderilemedi.') });
+      console.error('Could not send email change verification:', error.message);
+      return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'The verification email could not be sent.') });
     }
   },
 );
@@ -769,17 +769,17 @@ router.post(
       const emailChangeTicket = String(req.body.emailChangeTicket || '');
       const pending = pendingEmailChanges.get(emailChangeTicket);
       if (!pending || pending.userId !== req.user.id) {
-        return res.status(400).json({ error: 'Doğrulama oturumu bulunamadı. İşlemi yeniden başlat.' });
+        return res.status(400).json({ error: 'Verification session not found. Start the process again.' });
       }
 
       const result = await resendPendingCode(pendingEmailChanges, emailChangeTicket, (user, code, current) => (
         sendEmailChangeCode(current.newEmail, user.username, code)
       ));
       if (result.error) return res.status(result.status).json({ error: result.error });
-      return res.json({ message: 'Yeni doğrulama kodu yeni e-posta adresine gönderildi.' });
+      return res.json({ message: 'A new verification code was sent to the new email address.' });
     } catch (error) {
-      console.error('E-posta değişikliği kodu tekrar gönderilemedi:', error.message);
-      return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'Yeni kod gönderilemedi.') });
+      console.error('Could not resend the email change code:', error.message);
+      return res.status(503).json({ error: emailDeliveryErrorMessage(error, 'The new code could not be sent.') });
     }
   },
 );
@@ -795,7 +795,7 @@ router.post(
     const pending = pendingEmailChanges.get(emailChangeTicket);
 
     if (!pending || pending.userId !== req.user.id) {
-      return res.status(400).json({ error: 'Doğrulama oturumu bulunamadı. İşlemi yeniden başlat.' });
+      return res.status(400).json({ error: 'Verification session not found. Start the process again.' });
     }
 
     const result = validatePendingCode(pendingEmailChanges, emailChangeTicket, code);
@@ -803,42 +803,42 @@ router.post(
 
     if (storage.getUserByEmail(result.pending.newEmail)) {
       pendingEmailChanges.delete(emailChangeTicket);
-      return res.status(409).json({ error: 'Bu e-posta adresi artık başka bir hesapta kullanılıyor.' });
+      return res.status(409).json({ error: 'This email address is now used by another account.' });
     }
 
     const user = storage.updateUserEmail(req.user.id, result.pending.newEmail);
     pendingEmailChanges.delete(emailChangeTicket);
-    if (!user) return res.status(400).json({ error: 'E-posta adresi güncellenemedi.' });
-    return res.json({ user: publicUser(user), message: 'E-posta adresin güncellendi.' });
+    if (!user) return res.status(400).json({ error: 'The email address could not be updated.' });
+    return res.json({ user: publicUser(user), message: 'Your email address was updated.' });
   },
 );
 
 router.get(
   '/verify',
-  rateLimits.verifySessionIp,
+  rateLimits.verifyVoicesionIp,
   requireAuth,
-  rateLimits.verifySessionAccount,
+  rateLimits.verifyVoicesionAccount,
   (req, res) => res.json({ user: publicUser(req.user) }),
 );
 
 router.get('/:id', rateLimits.readProfileIp, requireAuth, rateLimits.readProfileAccount, (req, res) => {
   const user = storage.getUserById(req.params.id);
-  if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  if (!user) return res.status(404).json({ error: 'User not found.' });
   return res.json(req.params.id === req.user.id ? publicUser(user) : publicProfile(user));
 });
 
 router.put('/:id', rateLimits.updateProfileIp, requireAuth, rateLimits.updateProfileAccount, (req, res) => {
-  if (req.params.id !== req.user.id) return res.status(403).json({ error: 'Başka bir kullanıcının profilini değiştiremezsin.' });
+  if (req.params.id !== req.user.id) return res.status(403).json({ error: 'You cannot change another user’s profile.' });
 
   try {
     const user = storage.updateUserProfile(req.user.id, {
       username: req.body.username,
       avatar: req.body.avatar,
     });
-    if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
     return res.json(publicUser(user));
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Profil güncellenemedi.' });
+    return res.status(400).json({ error: error.message || 'The profile could not be updated.' });
   }
 });
 

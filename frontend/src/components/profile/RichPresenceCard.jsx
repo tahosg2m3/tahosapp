@@ -13,12 +13,12 @@ import {
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 
 const TYPE_DETAILS = {
-  playing: { label: 'Oynuyor', icon: Gamepad2 },
-  listening: { label: 'Dinliyor', icon: Headphones },
-  watching: { label: 'İzliyor', icon: Eye },
-  working: { label: 'Çalışıyor', icon: Briefcase },
-  competing: { label: 'Yarışıyor', icon: Trophy },
-  custom: { label: 'Etkin', icon: Radio },
+  playing: { label: 'Playing', icon: Gamepad2 },
+  listening: { label: 'Listening', icon: Headphones },
+  watching: { label: 'Watching', icon: Eye },
+  working: { label: 'Working', icon: Briefcase },
+  competing: { label: 'Competing', icon: Trophy },
+  custom: { label: 'Active', icon: Radio },
 };
 
 function formatDuration(milliseconds) {
@@ -99,15 +99,15 @@ export default function RichPresenceCard({ activity, compact = false }) {
           {activity?.details && activity.details !== activity?.music?.song && <p className={`${compact ? 'text-xs' : 'text-base'} mt-1 truncate text-[#b5bac1]`}>{activity.details}</p>}
           {activity?.state && activity.state !== activity?.music?.artist && <p className="truncate text-xs text-[#949ba4]">{activity.state}</p>}
           {activity?.playbackStatus === 'paused'
-            ? <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#f0b232]"><Pause className="h-3.5 w-3.5 fill-current" /> Duraklatıldı</p>
-            : !activity?.hideElapsed && <p className="mt-1.5 text-xs tabular-nums text-[#949ba4]">{formatDuration(elapsed)} geçti</p>}
+            ? <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#f0b232]"><Pause className="h-3.5 w-3.5 fill-current" /> Paused</p>
+            : !activity?.hideElapsed && <p className="mt-1.5 text-xs tabular-nums text-[#949ba4]">{formatDuration(elapsed)} elapsed</p>}
         </div>
       </div>
 
       {progress && Number.isFinite(progress.percentage) && (
         <div className={`${compact ? 'mt-3' : 'mt-4'}`}>
           <div className="mb-1 flex items-center justify-between gap-3 text-[11px] text-[#949ba4]">
-            <span className="truncate">{progress.label || (activity?.type === 'listening' ? 'Parça ilerlemesi' : 'İlerleme')}</span>
+            <span className="truncate">{progress.label || (activity?.type === 'listening' ? 'Track progress' : 'Progress')}</span>
             <span className="shrink-0 tabular-nums">{['music', 'video'].includes(activity?.category) || activity?.type === 'listening' ? `${formatDuration(progress.current)} / ${formatDuration(progress.total)}` : `${progress.current} / ${progress.total}`}</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-black/35"><span className="block h-full rounded-full bg-[#5865f2] transition-[width] duration-500" style={{ width: `${progress.percentage}%` }} /></div>

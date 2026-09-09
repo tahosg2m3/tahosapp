@@ -29,7 +29,7 @@ function getSmtpSecure(port) {
   const value = String(configuredValue).trim().toLowerCase();
   if (['true', '1', 'yes'].includes(value)) return true;
   if (['false', '0', 'no'].includes(value)) return false;
-  throw configurationError('SMTP_SECURE yalnızca true veya false olabilir.');
+  throw configurationError('SMTP_SECURE must be true or false.');
 }
 
 function createTransporter() {
@@ -37,12 +37,12 @@ function createTransporter() {
 
   const missing = ['SMTP_USER', 'SMTP_PASS'].filter(key => !String(process.env[key] || '').trim());
   if (missing.length) {
-    throw configurationError(`SMTP yapılandırması eksik: ${missing.join(', ')} tanımlanmalı.`);
+    throw configurationError(`SMTP configuration is incomplete: ${missing.join(', ')} must be configured.`);
   }
 
   const port = Number(process.env.SMTP_PORT || 465);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw configurationError('SMTP_PORT 1 ile 65535 arasında geçerli bir sayı olmalıdır.');
+    throw configurationError('SMTP_PORT must be a valid number between 1 and 65535.');
   }
 
   const host = String(process.env.SMTP_HOST || 'smtp.gmail.com').trim();
@@ -87,7 +87,7 @@ async function sendSecurityCode(email, username, code, { subject, heading, descr
     from: process.env.MAIL_FROM || process.env.SMTP_USER,
     to: email,
     subject,
-    text: `Merhaba ${username},\n\n${description}\n\nKodun: ${code}\n\nBu kod 10 dakika geçerlidir. Bu işlemi sen başlatmadıysan bu e-postayı görmezden gelebilirsin.`,
+    text: `Hello ${username},\n\n${description}\n\nYour code: ${code}\n\nThis code is valid for 10 minutes. If you did not start this action, you can ignore this email.`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1f2937">
         <h2>${heading}</h2>
@@ -96,8 +96,8 @@ async function sendSecurityCode(email, username, code, { subject, heading, descr
         <div style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f3f4f6;padding:18px;text-align:center;border-radius:8px;color:#111827">
           ${code}
         </div>
-        <p>Bu kod <strong>10 dakika</strong> geçerlidir.</p>
-        <p style="color:#6b7280;font-size:13px">Bu işlemi sen başlatmadıysan bu e-postayı görmezden gelebilirsin.</p>
+        <p>This code is valid for <strong>10 minutes</strong>.</p>
+        <p style="color:#6b7280;font-size:13px">If you did not start this action, you can ignore this email.</p>
       </div>
     `,
   });
@@ -105,25 +105,25 @@ async function sendSecurityCode(email, username, code, { subject, heading, descr
 
 function sendTwoFactorCode(email, username, code) {
   return sendSecurityCode(email, username, code, {
-    subject: 'tahosapp giriş doğrulama kodun',
-    heading: 'Giriş doğrulaması',
-    description: 'tahosapp hesabına giriş için doğrulama kodun:',
+    subject: 'Your tahosapp sign-in verification code',
+    heading: 'Sign-in verification',
+    description: 'Use this verification code to sign in to your tahosapp account:',
   });
 }
 
 function sendPasswordResetCode(email, username, code) {
   return sendSecurityCode(email, username, code, {
-    subject: 'tahosapp şifre sıfırlama kodun',
-    heading: 'Şifre sıfırlama',
-    description: 'Şifreni sıfırlamak için doğrulama kodun:',
+    subject: 'Your tahosapp password reset code',
+    heading: 'Password reset',
+    description: 'Use this verification code to reset your password:',
   });
 }
 
 function sendEmailChangeCode(email, username, code) {
   return sendSecurityCode(email, username, code, {
-    subject: 'tahosapp e-posta değişikliği kodun',
-    heading: 'E-posta değişikliğini onayla',
-    description: 'Bu e-posta adresini hesabına bağlamak için doğrulama kodun:',
+    subject: 'Your tahosapp email change code',
+    heading: 'Confirm your email change',
+    description: 'Use this verification code to connect this email address to your account:',
   });
 }
 

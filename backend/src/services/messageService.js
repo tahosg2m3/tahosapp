@@ -1,6 +1,8 @@
 ﻿const { v4: uuidv4 } = require('uuid');
 const storage = require('../storage/inMemory'); // Storage'ı dahil ettik
 
+const { normalizeSpotifyInvite } = require('./spotifyService');
+
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -41,9 +43,9 @@ function normalizeAttachment(value) {
   const type = ['image', 'gif', 'sticker', 'audio', 'video', 'file'].includes(value.type)
     ? value.type
     : 'file';
-  const filename = String(value.filename || value.name || 'Dosya')
+  const filename = String(value.filename || value.name || 'File')
     .replace(/[\u0000-\u001f\u007f]/g, '')
-    .slice(0, 255) || 'Dosya';
+    .slice(0, 255) || 'File';
   return {
     url,
     ...(previewUrl ? { previewUrl } : {}),
@@ -76,8 +78,8 @@ function createSafeLinkMetadata(value) {
   }
 }
 
-// Mesajı regex kalıbına dönüştürmeden yalnız açık HTTP(S) şemalarını tarar.
-// Böylece kullanıcı girdisi regex derlemesine giremez ve çalışma süresi
+// Messageı regex kalıbına dönüştürmeden yalnız açık HTTP(S) şemalarını tarar.
+// Böylece kullanıcı girdisi regex derlemesine giremez and çalışma süresi
 // mesaj uzunluğuyla doğrusal kalır.
 function findFirstSafeLinkMetadata(value) {
   const content = typeof value === 'string' ? value.slice(0, 10_000) : '';
@@ -129,15 +131,16 @@ function normalizeVoiceMessage(value) {
 class MessageService {
   // Constructor'da artık veri tutmuyoruz, storage kullanacağız.
 
-  async createMessage({ username, content, channelId, userId, attachments = [], replyTo = null, voiceMessage = null }) {
+  async createMessage({ username, content, channelId, userId, attachments = [], replyTo = null, voiceMessage = null, spotifyInvite = null }) {
     const safeContent = String(content || '').trim();
     if (safeContent.length > MAX_MESSAGE_LENGTH) {
-      const error = new Error(`Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`);
+      const error = new Error(`Messages can contain at most ${MAX_MESSAGE_LENGTH} characters.`);
       error.code = 'MESSAGE_TOO_LONG';
       throw error;
     }
     const safeAttachments = normalizeAttachments(attachments);
     const safeVoiceMessage = normalizeVoiceMessage(voiceMessage);
+    const safeSpotifyInvite = normalizeSpotifyInvite(spotifyInvite);
     const message = {
       id: uuidv4(),
       username,
@@ -158,6 +161,7 @@ class MessageService {
       reactions: {},
       isPinned: false,
       voiceMessage: safeVoiceMessage,
+      spotifyInvite: safeSpotifyInvite,
       editHistory: [],
     };
 
@@ -171,10 +175,10 @@ class MessageService {
   }
 
   getChannelMessages(channelId, limit = 50, before = null) {
-    // Mesajları Storage'dan çek
+    // Messagesı Storage'dan çek
     const allMessages = storage.getChannelMessages(channelId);
     
-    // Sıralama ve Pagination işlemleri
+    // Positionlama and Pagination actionsi
     const sorted = [...allMessages].sort((a, b) => a.timestamp - b.timestamp);
 
     let endIndex = sorted.length;
@@ -195,9 +199,9 @@ class MessageService {
     // Storage üzerinden güncelleme yap
     // (Storage içinde updateChannelMessage fonksiyonunu kullanıyoruz)
     // Önce kanal ID'sini bulmamız lazım ama şu anki yapıda messageId ile kanal bulmak zor olabilir.
-    // Performans için tüm kanalları aramak yerine, storage'a channelId'yi de gönderebiliriz.
+    // Performans has tüm kanalları aramak yerine, storage'a channelId'yi de gönderebiliriz.
     // Ancak socket handler'da channelId zaten var.
-    // Şimdilik storage.updateChannelMessage çağırırken channelId gerekiyor.
+    // Nowlik storage.updateChannelMessage çağırırken channelId gerekiyor.
     
     // NOT: Bu fonksiyonun çağrıldığı yerde (messageHandler.js) channelId zaten gönderiliyor.
     // Burayı güncelliyoruz:
@@ -230,10 +234,10 @@ class MessageService {
 
 const service = new MessageService();
 
-// updateMessage ve deleteMessage için wrapper (eski kodlarla uyum için)
+// updateMessage and deleteMessage has wrapper (eski kodlarla uyum için)
 service.updateMessage = (messageId, content, userId) => {
-    // Bu metod eski haliyle channelId bilmediği için verimsizdir.
-    // Handler'ı güncellemek daha iyi. Ama uyumluluk için tüm kanalları tarayabiliriz:
+    // Bu metod eski haliyle channelId bilmediği has verimsizdir.
+    // Handler'ı güncellemek daha iyi. Ama uyumluluk has tüm kanalları tarayabiliriz:
     for (const channel of storage.channels) {
         const result = service.updateMessageWithChannel(channel.id, messageId, content, userId);
         if (result) return result;

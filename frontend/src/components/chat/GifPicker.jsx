@@ -20,7 +20,7 @@ export default function GifPicker({ onClose, onSelectGif }) {
       } catch (requestError) {
         if (!active) return;
         setGifs([]);
-        setError(requestError.message || 'GIF listesi yüklenemedi.');
+        setError(requestError.message || 'The GIF list could not be loaded.');
       } finally {
         if (active) setLoading(false);
       }
@@ -47,11 +47,11 @@ export default function GifPicker({ onClose, onSelectGif }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="GIF seçici" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="GIF picker" onMouseDown={onClose}>
       <div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-[#1e293b] shadow-2xl shadow-black/50" onMouseDown={event => event.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-white/[0.08] p-4">
-          <div><h2 className="text-lg font-semibold text-[#f8fafc]">GIF seç</h2><p className="text-xs text-[#64748b]">GIPHY üzerinde ara veya popüler GIF’leri seç</p></div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-[#94a3b8] transition-colors hover:bg-white/[0.08] hover:text-white" aria-label="GIF seçiciyi kapat"><X className="h-5 w-5" /></button>
+          <div><h2 className="text-lg font-semibold text-[#f8fafc]">Choose a GIF</h2><p className="text-xs text-[#64748b]">Search GIPHY or choose a trending GIF</p></div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-[#94a3b8] transition-colors hover:bg-white/[0.08] hover:text-white" aria-label="Close GIF picker"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-4">
@@ -71,12 +71,12 @@ export default function GifPicker({ onClose, onSelectGif }) {
               {gifs.map(gif => (
                 <button key={gif.id} type="button" onClick={() => handleSelectGif(gif)} className="group relative mb-2 block w-full break-inside-avoid overflow-hidden rounded-xl bg-[#111827] text-left transition hover:ring-2 hover:ring-[#60a5fa]">
                   <img src={gif.previewUrl || gif.url} alt={gif.title || 'GIF'} className="h-auto w-full object-cover" loading="lazy" />
-                  <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/85 to-transparent px-2 pb-2 pt-8 text-xs font-medium text-white transition-transform group-hover:translate-y-0">Seç</span>
+                  <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/85 to-transparent px-2 pb-2 pt-8 text-xs font-medium text-white transition-transform group-hover:translate-y-0">Choose</span>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="flex h-52 items-center justify-center text-sm text-[#94a3b8]">GIF bulunamadı.</div>
+            <div className="flex h-52 items-center justify-center text-sm text-[#94a3b8]">No GIFs found.</div>
           )}
         </div>
 

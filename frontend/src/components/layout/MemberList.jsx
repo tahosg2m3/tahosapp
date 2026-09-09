@@ -20,11 +20,11 @@ function sortMembers(members) {
 }
 
 function activityLabel(type) {
-  return ({ listening: 'Dinliyor', watching: 'İzliyor', working: 'Çalışıyor', competing: 'Yarışıyor', custom: 'Etkin' })[type] || 'Oynuyor';
+  return ({ listening: 'Listening', watching: 'Watching', working: 'Working', competing: 'Competing', custom: 'Active' })[type] || 'Playing';
 }
 
 function memberActivityText(activity) {
-  if (activity?.playbackStatus === 'paused') return `Duraklatıldı: ${activity.name}`;
+  if (activity?.playbackStatus === 'paused') return `Paused: ${activity.name}`;
   return `${activityLabel(activity?.type)}: ${activity?.name}`;
 }
 
@@ -148,8 +148,8 @@ export default function MemberList() {
                   <div className={`truncate text-[14px] font-medium ${online ? 'text-[#e2e8f0]' : 'text-[#718096]'} ${nameAppearance.className}`} style={nameAppearance.style}>
                     {member.nickname || member.username}
                   </div>
-                  {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#fb7185]" title="Sunucu tarafından susturuldu" />}
-                  {member.serverDeafened && <VolumeX className="h-3.5 w-3.5 shrink-0 text-[#fb7185]" title="Sunucu tarafından sağırlaştırıldı" />}
+                  {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#fb7185]" title="Muted by the server" />}
+                  {member.serverDeafened && <VolumeX className="h-3.5 w-3.5 shrink-0 text-[#fb7185]" title="Deafened by the server" />}
                 </div>
                 {(member.roles || []).filter(role => !role.isDefault).slice(0, 2).length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -164,8 +164,8 @@ export default function MemberList() {
                   {online
                     ? member.activities?.[0]
                       ? memberActivityText(member.activities[0])
-                      : member.status === 'idle' ? 'Boşta' : member.status === 'dnd' ? 'Rahatsız etmeyin' : (member.customStatus || 'Çevrimiçi')
-                    : 'Çevrimdışı'}
+                      : member.status === 'idle' ? 'Idle' : member.status === 'dnd' ? 'Do Not Disturb' : (member.customStatus || 'Online')
+                    : 'Offline'}
                 </div>
               </div>
             </button>
@@ -190,7 +190,7 @@ export default function MemberList() {
         <div className="px-3 py-4">
           <div className="mb-4 flex items-center justify-between px-2">
             <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#94a3b8]">
-              Üyeler
+              Members
             </h2>
             <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] font-semibold text-[#cbd5e1]">
               {members.length}
@@ -198,8 +198,8 @@ export default function MemberList() {
           </div>
 
           {roleGroups.map(group => renderGroup(group.role.name, group.members, true))}
-          {renderGroup('Çevrimiçi', remainingOnline, true)}
-          {renderGroup('Çevrimdışı', offlineMembers, false)}
+          {renderGroup('Online', remainingOnline, true)}
+          {renderGroup('Offline', offlineMembers, false)}
         </div>
       </aside>
     </>

@@ -11,12 +11,12 @@ import { useVoice } from '../../context/VoiceContext';
 import { getRichPresenceSettings } from '../../services/api';
 
 function activityLabel(type) {
-  return ({ listening: 'Dinliyor', watching: 'İzliyor', working: 'Çalışıyor', competing: 'Yarışıyor', custom: 'Etkin' })[type] || 'Oynuyor';
+  return ({ listening: 'Listening', watching: 'Watching', working: 'Working', competing: 'Competing', custom: 'Active' })[type] || 'Playing';
 }
 
 
 function activityText(activity) {
-  if (activity?.playbackStatus === 'paused') return `Duraklatıldı: ${activity.name}`;
+  if (activity?.playbackStatus === 'paused') return `Paused: ${activity.name}`;
   return `${activityLabel(activity?.type)}: ${activity?.name}`;
 }
 
@@ -80,7 +80,7 @@ export default function UserProfile() {
   const nameAppearance = getNameAppearance(user);
   const avatarDecoration = getAvatarDecoration(user);
   const presence = user.presenceStatus || user.status || (isPresenceReady ? 'online' : 'offline');
-  const presenceLabels = { online: 'Çevrimiçi', idle: 'Boşta', dnd: 'Rahatsız etmeyin', invisible: 'Görünmez', offline: 'Çevrimdışı' };
+  const presenceLabels = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', invisible: 'Invisible', offline: 'Offline' };
   const presenceColor = presence === 'online' ? 'bg-[#34d399]' : presence === 'idle' ? 'bg-[#f59e0b]' : presence === 'dnd' ? 'bg-[#ef4444]' : 'bg-[#64748b]';
   const isListedInVoice = Object.values(voiceChannelMembers || {}).some(channelMembers => (
     Array.isArray(channelMembers) && channelMembers.some(member => (
@@ -121,24 +121,24 @@ export default function UserProfile() {
 
           <div className="flex flex-col min-w-0">
             <span className={`text-[14px] font-semibold text-[#F2F3F5] truncate block leading-tight ${nameAppearance.className}`} style={nameAppearance.style}>{user.username}</span>
-            <span className="text-[12px] text-[#94a3b8] truncate block leading-tight">{primaryActivity ? activityText(primaryActivity) : user.customStatus || presenceLabels[presence] || 'Bağlanıyor…'}</span>
+            <span className="text-[12px] text-[#94a3b8] truncate block leading-tight">{primaryActivity ? activityText(primaryActivity) : user.customStatus || presenceLabels[presence] || 'Connecting…'}</span>
           </div>
         </div>
 
         {/* SAĞ KISIM: İkonlar */}
         <div className="flex items-center text-[#B5BAC1]">
-          <button type="button" onClick={toggleMute} disabled={!isInVoice} title={isInVoice ? (isMuted ? 'Mikrofonu aç' : 'Mikrofonu kapat') : 'Bir ses kanalında değilsin'} className={`p-1.5 hover:bg-[#313338] rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isMuted ? 'text-[#ef4444]' : 'hover:text-[#DBDEE1]'}`}>
+          <button type="button" onClick={toggleMute} disabled={!isInVoice} title={isInVoice ? (isMuted ? 'Unmute microphone' : 'Mute microphone') : 'You are not in a voice channel'} className={`p-1.5 hover:bg-[#313338] rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isMuted ? 'text-[#ef4444]' : 'hover:text-[#DBDEE1]'}`}>
             {isMuted ? <Mic className="w-[18px] h-[18px] opacity-50" /> : <Mic className="w-[18px] h-[18px]" />}
           </button>
-          <button type="button" onClick={toggleDeafen} disabled={!isInVoice} title={isInVoice ? (isDeafened ? 'Sesi aç' : 'Kendini sağırlaştır') : 'Bir ses kanalında değilsin'} className={`p-1.5 hover:bg-[#313338] rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isDeafened ? 'text-[#ef4444]' : 'hover:text-[#DBDEE1]'}`}>
+          <button type="button" onClick={toggleDeafen} disabled={!isInVoice} title={isInVoice ? (isDeafened ? 'Enable audio' : 'Deafen yourself') : 'You are not in a voice channel'} className={`p-1.5 hover:bg-[#313338] rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isDeafened ? 'text-[#ef4444]' : 'hover:text-[#DBDEE1]'}`}>
             <Headphones className="w-[18px] h-[18px]" />
           </button>
           {hasVoiceConnection && (
             <button
               type="button"
               onClick={() => leaveVoiceChannel()}
-              title="Ses kanalından ayrıl"
-              aria-label="Ses kanalından ayrıl"
+              title="Leave voice channel"
+              aria-label="Leave voice channel"
               className="rounded-md p-1.5 text-[#ef4444] transition-colors hover:bg-[#ef4444]/15 hover:text-[#f87171]"
             >
               <PhoneOff className="h-[18px] w-[18px]" />
@@ -148,8 +148,8 @@ export default function UserProfile() {
           <button
             type="button"
             onClick={() => { setSettingsInitialTab('account'); setShowSettings(true); }}
-            title="Kullanıcı ayarları"
-            aria-label="Kullanıcı ayarlarını aç"
+            title="User settings"
+            aria-label="Open user settings"
             className="p-1.5 hover:bg-[#313338] hover:text-[#DBDEE1] rounded-md transition-colors"
           >
             <Settings className="w-[18px] h-[18px]" />
@@ -175,14 +175,14 @@ export default function UserProfile() {
                  </div>
                  <div>
                    <div className={`font-bold text-[#F2F3F5] text-[16px] ${nameAppearance.className}`} style={nameAppearance.style}>{user.username}</div>
-                   <div className="text-[13px] text-[#949BA4]">{user.email || 'tahosapp kullanıcısı'}</div>
+                   <div className="text-[13px] text-[#949BA4]">{user.email || 'tahosapp user'}</div>
                  </div>
               </div>
             </div>
 
             <div className="p-2 space-y-0.5">
               <div className="mb-1 grid grid-cols-4 gap-1 px-1">
-                {[['online', 'Çevrimiçi', 'bg-[#34d399]'], ['idle', 'Boşta', 'bg-[#f59e0b]'], ['dnd', 'Rahatsız etmeyin', 'bg-[#ef4444]'], ['invisible', 'Görünmez', 'bg-[#64748b]']].map(([status, label, color]) => (
+                {[['online', 'Online', 'bg-[#34d399]'], ['idle', 'Idle', 'bg-[#f59e0b]'], ['dnd', 'Do Not Disturb', 'bg-[#ef4444]'], ['invisible', 'Invisible', 'bg-[#64748b]']].map(([status, label, color]) => (
                   <button key={status} type="button" onClick={() => changePresence(status)} title={label} className={`flex items-center justify-center rounded p-2 transition hover:bg-[#35373C] ${presence === status ? 'bg-[#35373C]' : ''}`}><span className={`h-3 w-3 rounded-full ${color}`} /></button>
                 ))}
               </div>
@@ -191,17 +191,17 @@ export default function UserProfile() {
                 className="w-full flex items-center px-2 py-2 text-[14px] text-[#B5BAC1] hover:bg-[#5865F2] hover:text-white rounded transition-colors group"
               >
                 <User className="w-[18px] h-[18px] mr-3" />
-                Profili Düzenle
+                Edit Profile
               </button>
 
               <div className="h-[1px] bg-[#1E1F22] my-1" />
 
               <button
-                onClick={() => { if (window.confirm('Çıkış yapmak istediğine emin misin?')) logout(); }}
+                onClick={() => { if (window.confirm('Are you sure you want to sign out?')) logout(); }}
                 className="w-full flex items-center px-2 py-2 text-[14px] text-[#DA373C] hover:bg-[#DA373C] hover:text-white rounded transition-colors group"
               >
                 <LogOut className="w-[18px] h-[18px] mr-3" />
-                Hesaptan Çıkış Yap
+                Sign Out
               </button>
             </div>
           </div>,

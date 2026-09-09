@@ -59,17 +59,17 @@ router.use(authRateLimit, requireAuth, readRateLimit, mutationRateLimit);
 
 router.get('/', (req, res) => {
   const serverId = String(req.query.serverId || '');
-  if (!serverId) return res.status(400).json({ error: 'serverId gerekli.' });
+  if (!serverId) return res.status(400).json({ error: 'serverId is required.' });
 
   const access = canAccessServer(serverId, req.user.id, 'VIEW_CHANNEL');
   // Kanal override'ı VIEW_CHANNEL iznini belirli bir kanalda tekrar verebilir.
-  // Bu nedenle kanal listesi seviyesinde yalnızca üyeliği zorunlu tutuyoruz;
+  // Bu nedenle kanal listesi seviyesinde yalnızca memberliği zorunlu tutuyoruz;
   // görünür kanallar aşağıdaki filtrede tek tek hesaplanır.
   if (access.server && !access.server.isDM && storage.isServerMember(serverId, req.user.id)) {
     access.allowed = true;
   }
-  if (!access.server) return res.status(404).json({ error: 'Sunucu bulunamadı.' });
-  if (!access.allowed) return res.status(403).json({ error: 'Bu sunucuya erişim yetkin yok.' });
+  if (!access.server) return res.status(404).json({ error: 'Server not found.' });
+  if (!access.allowed) return res.status(403).json({ error: 'You do not have access to this server.' });
   const channels = storage.getChannelsByServerId(serverId)
     .filter(channel => access.server.isDM || hasChannelPermission(channel, req.user.id, 'VIEW_CHANNEL'))
     .map(channel => ({
@@ -81,8 +81,8 @@ router.get('/', (req, res) => {
 
 router.get('/:id/messages', (req, res) => {
   const access = getChannelAccess(req.params.id, req.user.id, 'VIEW_CHANNEL');
-  if (!access.channel) return res.status(404).json({ error: 'Kanal bulunamadı.' });
-  if (!access.allowed) return res.status(403).json({ error: 'Bu kanala erişim yetkin yok.' });
+  if (!access.channel) return res.status(404).json({ error: 'Channel not found.' });
+  if (!access.allowed) return res.status(403).json({ error: 'You do not have access to this channel.' });
 
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
   return res.json(messageService.getChannelMessages(req.params.id, limit, req.query.before));
@@ -90,8 +90,8 @@ router.get('/:id/messages', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const access = getChannelAccess(req.params.id, req.user.id, 'VIEW_CHANNEL');
-  if (!access.channel) return res.status(404).json({ error: 'Kanal bulunamadı.' });
-  if (!access.allowed) return res.status(403).json({ error: 'Bu kanala erişim yetkin yok.' });
+  if (!access.channel) return res.status(404).json({ error: 'Channel not found.' });
+  if (!access.allowed) return res.status(403).json({ error: 'You do not have access to this channel.' });
   return res.json({
     ...access.channel,
     ...(platformService.getChannelMetadata(access.channel.id) || {}),
@@ -103,11 +103,11 @@ router.post('/', (req, res) => {
   const name = String(req.body.name || '').trim();
   const allowedTypes = new Set(['text', 'voice', 'category', 'announcement', 'forum', 'stage', 'media']);
   const type = allowedTypes.has(req.body.type) ? req.body.type : 'text';
-  if (!serverId || !name || name.length > 100) return res.status(400).json({ error: 'Geçerli kanal bilgileri gerekli.' });
+  if (!serverId || !name || name.length > 100) return res.status(400).json({ error: 'Valid channel details are required.' });
 
   const access = canAccessServer(serverId, req.user.id, 'MANAGE_CHANNELS');
-  if (!access.server) return res.status(404).json({ error: 'Sunucu bulunamadı.' });
-  if (access.server.isDM || !access.allowed) return res.status(403).json({ error: 'Kanal oluşturma yetkin yok.' });
+  if (!access.server) return res.status(404).json({ error: 'Server not found.' });
+  if (access.server.isDM || !access.allowed) return res.status(403).json({ error: 'You do not have permission to create channels.' });
 
   const channel = storage.createChannel(serverId, name, type);
   if (['voice', 'stage'].includes(type)) channel.temporary = Boolean(req.body.temporary);
@@ -132,18 +132,18 @@ router.post('/', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const access = getChannelAccess(req.params.id, req.user.id, 'MANAGE_CHANNELS');
-  if (!access.channel) return res.status(404).json({ error: 'Kanal bulunamadı.' });
-  if (access.server.isDM || !access.allowed) return res.status(403).json({ error: 'Kanal silme yetkin yok.' });
+  if (!access.channel) return res.status(404).json({ error: 'Channel not found.' });
+  if (access.server.isDM || !access.allowed) return res.status(403).json({ error: 'You do not have permission to delete channels.' });
 
   const serverId = access.channel.serverId;
   const viewers = getChannelViewerSockets(req.app.get('io'), access.channel.id);
   const trash = platformService.trashChannel(req.params.id, req.user.id);
-  if (!trash) return res.status(500).json({ error: 'Kanal güvenli şekilde çöp kutusuna taşınamadı.' });
+  if (!trash) return res.status(500).json({ error: 'The channel could not be moved safely to the trash.' });
   writeChannelAudit(req, serverId, 'CHANNEL_DELETE', access.channel, { trashId: trash.id, expiresAt: trash.expiresAt });
   platformService.deleteChannelData?.(req.params.id);
   storage.deleteChannel(req.params.id);
   viewers.forEach(targetSocket => targetSocket.emit('channels:changed', { serverId }));
-  return res.json({ message: 'Kanal silindi ve 7 günlüğüne çöp kutusuna taşındı.', trash });
+  return res.json({ message: 'Channel deleted and moved to the trash for 7 days.', trash });
 });
 
 module.exports = router;

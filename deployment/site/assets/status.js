@@ -23,17 +23,17 @@
     })
     .then(function (health) {
       var services = health && health.services ? health.services : {};
-      update('api-state', services.api === 'ok', services.api === 'ok' ? 'Çalışıyor' : 'Kesinti var');
-      update('realtime-state', health && health.status === 'ok', health && health.status === 'ok' ? 'Çalışıyor' : 'Kesinti var');
-      update('voice-state', services.peer === 'ok', services.peer === 'ok' ? 'Çalışıyor' : 'Kesinti var');
+      update('api-state', services.api === 'ok', services.api === 'ok' ? 'Operational' : 'Service disruption');
+      update('realtime-state', health && health.status === 'ok', health && health.status === 'ok' ? 'Operational' : 'Service disruption');
+      update('voice-state', services.peer === 'ok', services.peer === 'ok' ? 'Operational' : 'Service disruption');
     })
     .catch(function () {
-      update('api-state', false, 'Erişilemiyor');
-      update('realtime-state', false, 'Erişilemiyor');
-      update('voice-state', false, 'Erişilemiyor');
+      update('api-state', false, 'Unavailable');
+      update('realtime-state', false, 'Unavailable');
+      update('voice-state', false, 'Unavailable');
     })
     .finally(function () {
     var checked = document.getElementById('status-checked');
-    if (checked) checked.textContent = 'Son kontrol: ' + new Date().toLocaleString('tr-TR');
+    if (checked) checked.textContent = 'Last checked: ' + new Date().toLocaleString('en-US');
   });
 }());

@@ -10,11 +10,14 @@ async function request(endpoint, options = {}) {
   try {
     response = await apiFetch(`${RUNTIME_API_URL}${endpoint}`, { ...options, headers });
   } catch (error) {
-    throw new Error('Sunucuya bağlanılamadı. İnternet bağlantını kontrol et ve uygulamanın güncel sürümünü kullandığından emin ol.', { cause: error });
+    throw new Error('Could not connect to the server. Check your internet connection and make sure you are using the latest app version.', { cause: error });
   }
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || `Sunucu isteği başarısız oldu (${response.status}).`);
+    const payload = await response.json().catch(() => ({}));
+    const error = new Error(payload.error || `Server request failed (${response.status}).`);
+    error.code = payload.code || 'REQUEST_FAILED';
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -127,6 +130,18 @@ export const clearRichPresenceActivity = sessionId => request(`/rich-presence/${
   method: 'DELETE',
 });
 export const clearAllRichPresenceActivities = () => request('/rich-presence', { method: 'DELETE' });
+export const getSpotifyStatus = () => request('/spotify/status');
+export const createSpotifyAuthorization = () => request('/spotify/connect', { method: 'POST' });
+export const disconnectSpotify = () => request('/spotify/connection', { method: 'DELETE' });
+export const getSpotifyCurrentlyPlaying = () => request('/spotify/currently-playing');
+export const createSpotifyInviteFromUrl = url => request('/spotify/invite', {
+  method: 'POST',
+  body: JSON.stringify({ url }),
+});
+export const playSpotifyInvite = invite => request('/spotify/play', {
+  method: 'PUT',
+  body: JSON.stringify({ invite }),
+});
 export const fetchFriends = (userId) => request(`/friends/${userId}`);
 export const fetchPendingRequests = (userId) => request(`/friends/${userId}/pending`);
 export const sendFriendRequest = (fromUserId, targetUsername) => request('/friends/request', { method: 'POST', body: JSON.stringify({ fromUserId, targetUsername }) });

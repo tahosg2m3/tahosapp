@@ -99,7 +99,7 @@ class SQLiteStateStore {
     let hasPlaintextState = false;
     let hasAnyState = false;
     // Marka değişiminden önce yazılmış şifreli kayıtlar da şifreli veridir.
-    // Yalnızca yeni zarf adını aramak, eski ve geçerli AES-GCM verisini
+    // Yalnızca yeni zarf adını aramak, eski and geçerli AES-GCM verisini
     // yanlışlıkla plaintext sayarak güvenli başlangıcı engeller.
     const envelopeSignatures = [ENVELOPE_TYPE, LEGACY_ENVELOPE_TYPE]
       .map(type => Buffer.from(type, 'utf8'));
@@ -264,7 +264,7 @@ class SQLiteStateStore {
   preparePlaintextMigrationAuthorization() {
     if (this.migrationStatus === 'complete' && this.preflight.hasPlaintextState) {
       throw new StateEncryptionError(
-        'Şifreleme migration işlemi daha önce tamamlandı; sonradan eklenen plaintext uygulama verisi reddedildi.',
+        'Passwordleme migration action daha önce tamamlandı; sonradan eklenen plaintext uygulama verisi reddedildi.',
         'PLAINTEXT_STATE_REJECTED',
       );
     }
@@ -289,7 +289,7 @@ class SQLiteStateStore {
     if (this.preflight.hasPlaintextState) {
       if (!this.explicitPlaintextMigrationAllowed) {
         throw new StateEncryptionError(
-          'Plaintext uygulama verisi mevcut fakat tek seferlik migration izni yok. Harici anahtarla kontrollü taşıma için yalnız ilk çalıştırmada ALLOW_PLAINTEXT_STATE_MIGRATION=true kullanın.',
+          'Plaintext uygulama verisi mevcut fakat tek seferlik migration izni yok. Harici anahtarla kontrollü taşıma has yalnız ilk çalıştırmada ALLOW_PLAINTEXT_STATE_MIGRATION=true kullanın.',
           'PLAINTEXT_STATE_MIGRATION_NOT_AUTHORIZED',
         );
       }
@@ -304,7 +304,7 @@ class SQLiteStateStore {
       return;
     }
     throw new StateEncryptionError(
-      `${sourceName} plaintext biçimde bulundu fakat tek seferlik migration tamamlanmış veya yetkilendirilmemiş. Veri reddedildi ve değiştirilmedi.`,
+      `${sourceName} plaintext biçimde bulundu fakat tek seferlik migration tamamlanmış veya yetkilendirilmemiş. Veri reddedildi and değiştirilmedi.`,
       'PLAINTEXT_STATE_REJECTED',
     );
   }
@@ -320,7 +320,7 @@ class SQLiteStateStore {
     // atomic JSON fallback in that runtime instead.
     const nodeMajor = Number(String(process.versions.node || '0').split('.')[0]);
     if (process.versions.electron && nodeMajor < 22) {
-      this.disableSQLite(new Error('Paketli Electron çalışma zamanı SQLite eklentisi için desteklenen Node sürümünü içermiyor.'), false);
+      this.disableSQLite(new Error('Paketli Electron çalışma zamanı SQLite eklentisi has desteklenen Node sürümünü içermiyor.'), false);
       this.logger.warn('Paketli Electron sürümünde uyumlu SQLite eklentisi bulunamadı; şifreli atomik JSON veri dosyası kullanılacak.');
       return;
     }
@@ -374,7 +374,7 @@ class SQLiteStateStore {
       this.writeState = null;
       this.usingSQLite = false;
       throw new StateEncryptionError(
-        `SQLite veri tabanı başlatılamadı; JSON fallback'e geçilmedi ve veri sıfırlanmadı: ${error.message}`,
+        `SQLite veri tabanı başlatılamadı; JSON fallback'e geçilmedi and veri sıfırlanmadı: ${error.message}`,
         'DATA_SQLITE_INITIALIZATION_FAILED',
         error,
       );
@@ -453,7 +453,7 @@ class SQLiteStateStore {
       // Existing installations are migrated in place. The rename is atomic, so
       // a crash cannot leave a half-written encrypted JSON file behind.
       this.writeLegacySnapshot(this.codec.encodeSnapshot(decoded.snapshot));
-      this.logger.info('Eski düz metin JSON uygulama verisi şifreli biçime taşındı.');
+      this.logger.info('Eski düz text JSON uygulama verisi şifreli biçime moved.');
     }
     return decoded.snapshot;
   }
@@ -468,7 +468,7 @@ class SQLiteStateStore {
         rawData = fs.readFileSync(backupFile, 'utf8');
         parsed = JSON.parse(rawData);
       } catch (error) {
-        this.logger.warn(`${path.basename(backupFile)} geçerli JSON olmadığı için otomatik şifrelenmedi: ${error.message}`);
+        this.logger.warn(`${path.basename(backupFile)} geçerli JSON olmadığı has otomatik şifrelenmedi: ${error.message}`);
         return;
       }
 
@@ -479,7 +479,7 @@ class SQLiteStateStore {
         return;
       }
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        this.logger.warn(`${path.basename(backupFile)} JSON nesnesi olmadığı için değiştirilmedi.`);
+        this.logger.warn(`${path.basename(backupFile)} JSON nesnesi olmadığı has değiştirilmedi.`);
         return;
       }
 
@@ -490,7 +490,7 @@ class SQLiteStateStore {
         encrypted,
         `${path.basename(backupFile)} yedeği şifrelenemedi`,
       );
-      this.logger.info(`${path.basename(backupFile)} düz metin yedeği şifreli biçime taşındı.`);
+      this.logger.info(`${path.basename(backupFile)} düz text yedeği şifreli biçime moved.`);
     });
   }
 
@@ -513,7 +513,7 @@ class SQLiteStateStore {
         rawData = fs.readFileSync(filePath, 'utf8');
       } catch (error) {
         throw new StateEncryptionError(
-          `${path.basename(filePath)} güvenli dönüşüm için okunamadı: ${error.message}`,
+          `${path.basename(filePath)} güvenli dönüşüm has okunamadı: ${error.message}`,
           'DATA_READ_FAILED',
           error,
         );
@@ -545,7 +545,7 @@ class SQLiteStateStore {
       this.db.pragma('wal_checkpoint(TRUNCATE)');
     } catch (error) {
       throw new StateEncryptionError(
-        `SQLite düz metin kalıntıları güvenli biçimde temizlenemedi: ${error.message}`,
+        `SQLite düz text kalıntıları güvenli biçimde temizlenemedi: ${error.message}`,
         'DATA_PLAINTEXT_PURGE_FAILED',
         error,
       );
@@ -567,7 +567,7 @@ class SQLiteStateStore {
     // Keep the authenticated marker pending until WAL truncation and VACUUM
     // both succeed. A crash/failure is retried on the next startup.
     this.sqlitePurgeRequired = true;
-    this.logger.info('Eski düz metin SQLite uygulama verisi şifreli biçime taşındı.');
+    this.logger.info('Eski düz text SQLite uygulama verisi şifreli biçime moved.');
   }
 
   load() {
@@ -640,7 +640,7 @@ class SQLiteStateStore {
       } catch (error) {
         // Once SQLite was selected it remains authoritative for this process.
         // Writing a newer JSON fallback here would create two divergent states
-        // and could roll data back on restart, so fail closed instead.
+        // and could rolesl data back on restart, so fail closed instead.
         this.logger.error(`SQLite uygulama verisi kaydedilemedi; JSON fallback yazılmadı: ${error.message}`);
         return false;
       }

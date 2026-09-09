@@ -51,7 +51,7 @@ exports.handleStatusChange = (io, socket, data = {}) => {
   if (!storage.PRESENCE_STATUSES.includes(status)) {
     socket.emit('status:error', {
       code: 'INVALID_PRESENCE_STATUS',
-      message: 'Geçersiz çevrimiçi durumu.',
+      message: 'Invalid online status.',
     });
     return;
   }
@@ -75,7 +75,7 @@ exports.handleStatusChange = (io, socket, data = {}) => {
   } catch (error) {
     socket.emit('status:error', {
       code: 'INVALID_STATUS_UPDATE',
-      message: error.message || 'Durum güncellenemedi.',
+      message: error.message || 'Status could not be updated.',
     });
   }
 };

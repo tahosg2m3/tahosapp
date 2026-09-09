@@ -215,7 +215,7 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
     if (!socket.userData?.authenticated || !userId || !channelId || !capabilities.canConnect) {
       reply(callback, {
         success: false,
-        error: 'Bu ses kanalına bağlanma yetkin yok.',
+        error: 'You do not have permission to join this voice channel.',
         capabilities,
       });
       return;
@@ -234,15 +234,15 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
     const capabilities = getVoiceCapabilities(channel, userId);
 
     if (!socket.userData?.authenticated || !userId || !username || !channelId || !isValidPeerId(peerId)) {
-      fail('Ses kanalı bağlantı bilgisi geçersiz.', callback, capabilities);
+      fail('The voice channel connection details are invalid.', callback, capabilities);
       return;
     }
     if (!capabilities.canConnect) {
-      fail('Bu ses kanalına bağlanma yetkin yok.', callback, capabilities);
+      fail('You do not have permission to join this voice channel.', callback, capabilities);
       return;
     }
     if (!isPeerAvailable(peerId)) {
-      fail('Ses bağlantısı henüz hazır değil. Birkaç saniye sonra tekrar dene.', callback, capabilities);
+      fail('The voice connection is not ready yet. Try again in a few seconds.', callback, capabilities);
       return;
     }
 
@@ -334,25 +334,25 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
     const capabilities = withStageRole(channel, baseCapabilities, participant);
 
     if (!socket.userData?.authenticated || !participant || !capabilities.canConnect) {
-      fail('Ses kanalındaki bağlantın doğrulanamadı.', callback, capabilities);
+      fail('Your voice channel connection could not be verified.', callback, capabilities);
       return;
     }
     if (!['audio', 'video'].includes(kind)) {
-      fail('Geçersiz ses/yayın durumu.', callback, capabilities);
+      fail('Invalid voice or stream state.', callback, capabilities);
       return;
     }
     if (kind === 'video' && !['camera', 'screen', 'none'].includes(mode)) {
-      fail('Geçersiz yayın türü.', callback, capabilities);
+      fail('Invalid stream type.', callback, capabilities);
       return;
     }
     if (kind === 'video' && mode !== 'none' && !capabilities.canStream) {
-      fail('Bu ses kanalında yayın veya kamera açma yetkin yok.', callback, capabilities);
+      fail('You do not have permission to stream or use the camera in this voice channel.', callback, capabilities);
       return;
     }
     if (kind === 'audio' && data.enabled !== false
       && (!capabilities.canSpeak || capabilities.serverMuted
         || (channel.type === 'stage' && participant.stageRole !== 'speaker'))) {
-      fail('Bu ses kanalında konuşma yetkin yok.', callback, capabilities);
+      fail('You do not have permission to speak in this voice channel.', callback, capabilities);
       return;
     }
 
@@ -390,7 +390,7 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
     const participant = (voiceChannels.get(channelId) || [])
       .find(member => member.socketId === socket.id && sameId(member.userId, userId));
     if (!socket.userData?.authenticated || channel?.type !== 'stage' || !participant) {
-      reply(callback, { success: false, error: 'Stage kanalındaki bağlantın doğrulanamadı.' });
+      reply(callback, { success: false, error: 'Your Stage channel connection could not be verified.' });
       return;
     }
     participant.requestedToSpeak = true;
@@ -425,7 +425,7 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
       || storage.canManageMember(channel?.serverId, actorId, targetUserId);
     if (!socket.userData?.authenticated || channel?.type !== 'stage' || !target || !validAction
       || !hasPermission || !hierarchyAllowed) {
-      reply(callback, { success: false, error: 'Bu Stage işlemi için yetkin veya rol hiyerarşin yeterli değil.' });
+      reply(callback, { success: false, error: 'You do not have sufficient permission or role hierarchy for this Stage action.' });
       return;
     }
     if (action === 'invite' || action === 'approve') target.stageRole = 'speaker';
@@ -460,16 +460,16 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
     if (!socket.userData?.authenticated || !participant || !['voice', 'stage'].includes(channel?.type)
       || !SOUNDBOARD_SOUND_IDS.has(soundId)
       || !platformService.hasChannelPermission(channelId, userId, 'SPEAK')) {
-      reply(callback, { success: false, error: 'Bu ses tahtası işlemi geçersiz veya yetkin yok.' });
+      reply(callback, { success: false, error: 'This soundboard action is invalid or you do not have permission.' });
       return;
     }
     if (channel.type === 'stage' && participant.stageRole !== 'speaker') {
-      reply(callback, { success: false, error: 'Stage dinleyicileri ses tahtasını kullanamaz.' });
+      reply(callback, { success: false, error: 'Stage listeners cannot use the soundboard.' });
       return;
     }
     const retryAfterMs = Math.max(0, 2000 - (now - lastSoundboardPlayAt));
     if (retryAfterMs > 0) {
-      reply(callback, { success: false, error: 'Ses tahtasını çok hızlı kullanıyorsun.', retryAfterMs });
+      reply(callback, { success: false, error: 'You are using the soundboard too quickly.', retryAfterMs });
       return;
     }
     lastSoundboardPlayAt = now;
@@ -496,18 +496,18 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
     const moderationFail = (message) => fail(message, callback, capabilities);
 
     if (!socket.userData?.authenticated || !definition || !targetUserId || !capabilities.canConnect) {
-      moderationFail('Sesli moderasyon işlemi geçersiz.');
+      moderationFail('Invalid voice moderation action.');
       return;
     }
 
     const targetParticipant = (voiceChannels.get(channelId) || []).find((member) => sameId(member.userId, targetUserId));
     if (!targetParticipant) {
-      moderationFail('Bu kullanıcı bu ses kanalında değil.');
+      moderationFail('This user is not in this voice channel.');
       return;
     }
 
     if (!storage.canModerateMember(channel.serverId, actorId, targetUserId, definition.permission)) {
-      moderationFail('Bu kullanıcıyı yönetmek için yetkin veya rol hiyerarşin yeterli değil.');
+      moderationFail('You do not have sufficient permission or role hierarchy to manage this user.');
       return;
     }
 
@@ -534,7 +534,7 @@ module.exports = (io, socket, { isPeerAvailable = () => true } = {}) => {
         || !targetCapabilities.canConnect
         || !actorCanMoveInSource
         || !actorCanMoveInTarget) {
-        moderationFail('Kullanıcı bu ses kanalına taşınamıyor veya taşıma yetkin yetersiz.');
+        moderationFail('The user cannot be moved to this voice channel or your permission is insufficient.');
         return;
       }
 

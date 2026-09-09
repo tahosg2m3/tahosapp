@@ -10,10 +10,10 @@ const adminRateLimit = rateLimit({
   limit: 120,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Çok fazla yönetim isteği gönderildi. Lütfen kısa süre bekle.' },
+  message: { error: 'Too many administrative requests. Please wait a moment.' },
 });
 
-// Istek siniri pahali JWT, kullanici ve yonetici yetkisi kontrollerinden once
+// Istek siniri pahali JWT, kullanici and yonetici yetkisi kontrollerinden once
 // uygulanir. Boylece gecersiz/anonim istekler de bu kontrolleri sinirsiz
 // tetikleyerek servisi yoramaz.
 router.use(adminRateLimit, requireAuth, requirePlatformAdmin);
@@ -34,14 +34,14 @@ function adminUser(user) {
 }
 
 router.get('/overview', (req, res) => {
-  const query = String(req.query.query || '').trim().toLocaleLowerCase('tr-TR').slice(0, 100);
+  const query = String(req.query.query || '').trim().toLocaleLowerCase('en-US').slice(0, 100);
   const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
   const offset = Math.max(0, Number.parseInt(req.query.offset, 10) || 0);
   const allUsers = storage.getAllUsers();
   const matchingUsers = query
     ? allUsers.filter(user => (
-      String(user.username || '').toLocaleLowerCase('tr-TR').includes(query)
-      || String(user.email || '').toLocaleLowerCase('tr-TR').includes(query)
+      String(user.username || '').toLocaleLowerCase('en-US').includes(query)
+      || String(user.email || '').toLocaleLowerCase('en-US').includes(query)
       || String(user.id || '').toLowerCase().includes(query)
     ))
     : allUsers;
@@ -56,12 +56,12 @@ router.get('/overview', (req, res) => {
 
 router.put('/users/:userId/ban', (req, res) => {
   const target = storage.getUserById(String(req.params.userId || ''));
-  if (!target) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
-  if (target.id === req.user.id) return res.status(400).json({ error: 'Kendi hesabını banlayamazsın.' });
-  if (isPlatformAdmin(target)) return res.status(403).json({ error: 'Başka bir tahosapp yöneticisi banlanamaz.' });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (target.id === req.user.id) return res.status(400).json({ error: 'You cannot ban your own account.' });
+  if (isPlatformAdmin(target)) return res.status(403).json({ error: 'Another tahosapp administrator cannot be banned.' });
 
   const reason = String(req.body?.reason || '').trim().slice(0, 500);
-  if (reason.length < 3) return res.status(400).json({ error: 'En az 3 karakterlik bir ban gerekçesi yazmalısın.' });
+  if (reason.length < 3) return res.status(400).json({ error: 'The ban reason must be at least 3 characters.' });
 
   const ban = storage.setUserPlatformBan(target.id, {
     reason,
@@ -76,7 +76,7 @@ router.put('/users/:userId/ban', (req, res) => {
 
 router.delete('/users/:userId/ban', (req, res) => {
   const target = storage.getUserById(String(req.params.userId || ''));
-  if (!target) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
 
   storage.clearUserPlatformBan(target.id, req.user.id);
   return res.json({ user: adminUser(target) });

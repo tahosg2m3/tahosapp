@@ -23,7 +23,7 @@ async function requestTurnCredentials() {
   });
 
   if (response.status === 404 || response.status === 503) return [];
-  if (!response.ok) throw new Error('TURN kimliği alınamadı.');
+  if (!response.ok) throw new Error('Could not obtain TURN credentials.');
 
   const payload = await response.json();
   const iceServers = normalizeIceServers(payload?.iceServers);

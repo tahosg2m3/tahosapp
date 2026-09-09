@@ -32,7 +32,7 @@ function displayMember(member) {
 }
 
 function memberName(member) {
-  return displayMember(member).username || displayMember(member).email || 'Bilinmeyen kullanıcı';
+  return displayMember(member).username || displayMember(member).email || 'Unknown user';
 }
 
 function updateMemberInList(members, updatedMember) {
@@ -74,7 +74,7 @@ export default function MemberManagementModal({
         setFetchedMembers(unwrapMembers(memberPayload));
         setFetchedRoles(unwrapRoles(rolePayload));
       })
-      .catch((error) => toast.error(error.message || 'Üyeler yüklenemedi.'))
+      .catch((error) => toast.error(error.message || 'Members could not be loaded.'))
       .finally(() => setIsLoading(false));
   }, [serverId, suppliedMembers]);
 
@@ -85,7 +85,7 @@ export default function MemberManagementModal({
   const canDeafen = isOwner || permissions.DEAFEN_MEMBERS || permissions.ADMINISTRATOR;
   const canTimeout = isOwner || permissions.MODERATE_MEMBERS || permissions.ADMINISTRATOR;
 
-  const filteredMembers = members.filter((member) => memberName(member).toLocaleLowerCase('tr-TR').includes(search.trim().toLocaleLowerCase('tr-TR')));
+  const filteredMembers = members.filter((member) => memberName(member).toLocaleLowerCase('en-US').includes(search.trim().toLocaleLowerCase('en-US')));
 
   const commitMembers = (nextMembers) => {
     if (suppliedMembers !== undefined) onMembersChange?.(nextMembers);
@@ -105,9 +105,9 @@ export default function MemberManagementModal({
       const response = await assignMemberRoles(serverId, id, nextRoleIds, actorId);
       const updated = response.member || { ...member, roleIds: nextRoleIds };
       commitMembers(updateMemberInList(members, updated));
-      toast.success('Roller güncellendi.');
+      toast.success('Roles updated.');
     } catch (error) {
-      toast.error(error.message || 'Roller güncellenemedi.');
+      toast.error(error.message || 'Roles could not be updated.');
     } finally {
       setIsLoading(false);
     }
@@ -117,32 +117,32 @@ export default function MemberManagementModal({
     const id = member.id || member.userId || member.user?.id;
     const name = memberName(member);
     const labels = {
-      kick: 'sunucudan atmak',
-      ban: 'sunucudan yasaklamak',
+      kick: 'kick from the server',
+      ban: 'ban from the server',
       mute: 'susturmak',
-      unmute: 'susturmayı kaldırmak',
-      deafen: 'sağırlaştırmak',
-      undeafen: 'sağırlaştırmayı kaldırmak',
-      timeout: 'zaman aşımı uygulamak',
-      untimeout: 'zaman aşımını kaldırmak',
+      unmute: 'unmute',
+      deafen: 'deafen',
+      undeafen: 'undeafen',
+      timeout: 'apply a timeout',
+      untimeout: 'remove the timeout',
     };
 
     let options = {};
     if (action === 'timeout') {
-      const rawDuration = window.prompt('Zaman aşımı süresi (dakika, 1 ile 10080 arası):', '10');
+      const rawDuration = window.prompt('Timeout duration in minutes (1–10080):', '10');
       if (rawDuration === null) return;
       const durationMinutes = Number(rawDuration);
       if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 10080) {
-        toast.error('Süre 1 ile 10080 dakika arasında olmalı.');
+        toast.error('The duration must be between 1 and 10080 minutes.');
         return;
       }
       options = { durationMinutes };
     }
 
-    if (action === 'kick' && !window.confirm(`${name} kullanıcısını sunucudan atmak istediğine emin misin?`)) return;
+    if (action === 'kick' && !window.confirm(`${name} from the server?`)) return;
     if (action === 'ban') {
-      if (!window.confirm(`${name} kullanıcısını sunucudan kalıcı olarak yasaklamak istediğine emin misin?`)) return;
-      const reason = window.prompt('Yasaklama nedeni (isteğe bağlı):', '') || '';
+      if (!window.confirm(`${name} permanently from the server?`)) return;
+      const reason = window.prompt('Yasaklama nedeni (optional):', '') || '';
       options = { reason };
     }
 
@@ -168,9 +168,9 @@ export default function MemberManagementModal({
         }));
       }
       setOpenMenuId(null);
-      toast.success(`${name} kullanıcısı için işlem uygulandı.`);
+      toast.success(`${name} : moderation action applied.`);
     } catch (error) {
-      toast.error(error.message || `${labels[action]} mümkün olmadı.`);
+      toast.error(error.message || `${labels[action]} could not be completed.`);
     } finally {
       setIsLoading(false);
     }
@@ -186,8 +186,8 @@ export default function MemberManagementModal({
       {embedded ? null : (
         <header className="flex items-center justify-between border-b border-black/30 bg-[#2B2D31] px-5 py-4">
           <div>
-            <h2 className="text-lg font-bold text-[#F2F3F5]">Üyeleri Yönet</h2>
-            <p className="mt-0.5 text-xs text-[#949BA4]">Sunucudaki roller ve moderasyon işlemleri</p>
+            <h2 className="text-lg font-bold text-[#F2F3F5]">Manage Members</h2>
+            <p className="mt-0.5 text-xs text-[#949BA4]">Sunucudaki rolesler and moderasyon actionsi</p>
           </div>
           <button type="button" onClick={onClose} className="rounded p-1.5 text-[#949BA4] transition hover:bg-[#404249] hover:text-white">
             <X className="h-5 w-5" />
@@ -198,8 +198,8 @@ export default function MemberManagementModal({
       <div className="min-h-0 flex-1 overflow-y-auto p-5 custom-scrollbar">
         {embedded && (
           <div className="mb-5">
-            <h2 className="text-xl font-bold text-[#F2F3F5]">Üyeler</h2>
-            <p className="mt-1 text-sm text-[#B5BAC1]">Üyelerin rollerini ve moderasyon durumlarını yönet.</p>
+            <h2 className="text-xl font-bold text-[#F2F3F5]">Members</h2>
+            <p className="mt-1 text-sm text-[#B5BAC1]">Manage member roles and moderation status.</p>
           </div>
         )}
 
@@ -208,20 +208,20 @@ export default function MemberManagementModal({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Üye ara"
+            placeholder="Member ara"
             className="w-full rounded-[4px] border border-transparent bg-[#1E1F22] py-2.5 pl-9 pr-3 text-sm text-[#DBDEE1] outline-none transition placeholder:text-[#72767D] focus:border-[#00A8FC]"
           />
         </div>
 
         <div className="mb-2 flex items-center justify-between px-1">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-[#949BA4]">Üyeler — {filteredMembers.length}</span>
-          {isLoading && <span className="text-xs text-[#949BA4]">Güncelleniyor…</span>}
+          <span className="text-[11px] font-bold uppercase tracking-wide text-[#949BA4]">Members — {filteredMembers.length}</span>
+          {isLoading && <span className="text-xs text-[#949BA4]">Up to dateleniyor…</span>}
         </div>
 
         {filteredMembers.length === 0 ? (
           <div className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-[#4E5058] px-5 text-center text-[#949BA4]">
             <Users className="mb-3 h-10 w-10 opacity-40" />
-            <p>{search ? 'Aramana uygun üye bulunamadı.' : 'Gösterilecek üye bulunamadı.'}</p>
+            <p>{search ? 'No members match your search.' : 'No members to display.'}</p>
           </div>
         ) : (
           <div className="overflow-visible rounded-lg border border-black/25 bg-[#2B2D31]">
@@ -254,9 +254,9 @@ export default function MemberManagementModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-sm font-semibold text-[#F2F3F5]">{name}</span>
                         {member.isOwner && <Crown className="h-4 w-4 shrink-0 text-[#FEE75C]" title="Sunucu sahibi" />}
-                        {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Susturuldu" />}
-                        {member.serverDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Sağırlaştırıldı" />}
-                        {member.isTimedOut && <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#FEE75C]" title="Zaman aşımı uygulanmış" />}
+                        {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muteuldu" />}
+                        {member.serverDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Deafened" />}
+                        {member.isTimedOut && <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#FEE75C]" title="Timed out" />}
                       </div>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {memberRoles.length ? memberRoles.map((role) => (
@@ -264,7 +264,7 @@ export default function MemberManagementModal({
                             <i className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: role.color || '#99AAB5' }} />
                             <span className="truncate">{role.name}</span>
                           </span>
-                        )) : <span className="text-xs text-[#949BA4]">Rol atanmamış</span>}
+                        )) : <span className="text-xs text-[#949BA4]">No role assigned</span>}
                       </div>
                     </div>
 
@@ -273,7 +273,7 @@ export default function MemberManagementModal({
                         type="button"
                         onClick={() => setOpenMenuId(menuOpen ? null : id)}
                         className="rounded p-1.5 text-[#949BA4] transition hover:bg-[#404249] hover:text-white"
-                        title="Üye işlemleri"
+                        title="Member actionsi"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </button>
@@ -284,7 +284,7 @@ export default function MemberManagementModal({
                     <div className="relative mt-3 rounded-md border border-black/30 bg-[#1E1F22] p-2 shadow-xl">
                       {canManageRoles && !member.isOwner && (
                         <div className="mb-2 border-b border-[#35373C] pb-2">
-                          <span className="mb-1.5 block px-1 text-[10px] font-bold uppercase tracking-wide text-[#949BA4]">Roller</span>
+                          <span className="mb-1.5 block px-1 text-[10px] font-bold uppercase tracking-wide text-[#949BA4]">Roles</span>
                           <div className="space-y-0.5">
                             {roles.map((role) => {
                               const assigned = roleIds.includes(role.id);
@@ -313,17 +313,17 @@ export default function MemberManagementModal({
                           <span className="mb-1.5 block px-1 text-[10px] font-bold uppercase tracking-wide text-[#949BA4]">Moderasyon</span>
                           {canMute && (
                             <button type="button" onClick={() => handleModeration(member, member.serverMuted ? 'unmute' : 'mute')} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-[#DBDEE1] hover:bg-[#35373C]">
-                              <MicOff className="h-3.5 w-3.5" /> {member.serverMuted ? 'Susturmayı kaldır' : 'Sustur'}
+                              <MicOff className="h-3.5 w-3.5" /> {member.serverMuted ? 'Unmute' : 'Mute'}
                             </button>
                           )}
                           {canDeafen && (
                             <button type="button" onClick={() => handleModeration(member, member.serverDeafened ? 'undeafen' : 'deafen')} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-[#DBDEE1] hover:bg-[#35373C]">
-                              <Headphones className="h-3.5 w-3.5" /> {member.serverDeafened ? 'Sağırlaştırmayı kaldır' : 'Sağırlaştır'}
+                              <Headphones className="h-3.5 w-3.5" /> {member.serverDeafened ? 'Undeafen' : 'Deafen'}
                             </button>
                           )}
                           {canTimeout && (
                             <button type="button" onClick={() => handleModeration(member, member.isTimedOut ? 'untimeout' : 'timeout')} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-[#DBDEE1] hover:bg-[#35373C]">
-                              <Clock3 className="h-3.5 w-3.5" /> {member.isTimedOut ? 'Zaman aşımını kaldır' : 'Zaman aşımı uygula'}
+                              <Clock3 className="h-3.5 w-3.5" /> {member.isTimedOut ? 'Remove timeout' : 'Apply timeout'}
                             </button>
                           )}
                           {canKick && (

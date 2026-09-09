@@ -13,7 +13,7 @@ export const SocketProvider = ({ children }) => {
   const [isPresenceReady, setIsPresenceReady] = useState(false);
 
   useEffect(() => {
-    // Kullanıcı giriş yapmadıysa boşuna bağlanmaya çalışma
+    // User giriş yapmadıysa boşuna bağlanmaya çalışma
     if (!user) {
        setSocket(null);
        setIsPresenceReady(false);
@@ -30,19 +30,19 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('🟢 Soket Hesabına Bağlandı:', newSocket.id);
+      console.log('🟢 Socket connected:', newSocket.id);
       newSocket.emit('authenticate', { userId: user.id, username: user.username });
     });
 
     newSocket.on('presence:ready', () => setIsPresenceReady(true));
     newSocket.on('disconnect', () => setIsPresenceReady(false));
     newSocket.on('platform:account-banned', ({ reason } = {}) => {
-      toast.error(reason ? `Hesabın banlandı: ${reason}` : 'Hesabın tahosapp genelinde banlandı.');
+      toast.error(reason ? `Your account was banned: ${reason}` : 'Your account was banned from tahosapp.');
       logout();
     });
 
     newSocket.on('connect_error', (err) => {
-      console.error('🔴 Soket Hatası:', err.message);
+      console.error('🔴 Socket error:', err.message);
     });
 
     setSocket(newSocket);

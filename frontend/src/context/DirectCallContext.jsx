@@ -98,20 +98,20 @@ export function DirectCallProvider({ children }) {
   const emitWithAck = (eventName, payload, timeoutMs = 8_000) => new Promise((resolve) => {
     const currentSocket = socketRef.current;
     if (!currentSocket?.connected) {
-      resolve({ success: false, error: 'Sunucu bağlantısı yok.' });
+      resolve({ success: false, error: 'No server connection.' });
       return;
     }
     let settled = false;
     const timer = window.setTimeout(() => {
       if (settled) return;
       settled = true;
-      resolve({ success: false, error: 'Sunucu zamanında cevap vermedi.' });
+      resolve({ success: false, error: 'The server did not respond in time.' });
     }, timeoutMs);
     currentSocket.emit(eventName, payload, (result) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timer);
-      resolve(result || { success: false, error: 'Geçersiz sunucu cevabı.' });
+      resolve(result || { success: false, error: 'Invalid server response.' });
     });
   });
 
@@ -119,7 +119,7 @@ export function DirectCallProvider({ children }) {
     if (localStreamRef.current?.getAudioTracks().some(track => track.readyState === 'live')) {
       return localStreamRef.current;
     }
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Bu cihaz mikrofon erişimini desteklemiyor.');
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('This device does not support microphone access.');
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
@@ -171,7 +171,7 @@ export function DirectCallProvider({ children }) {
       try {
         iceServers = await getPeerIceServers();
       } catch (error) {
-        console.warn('TURN kimliği alınamadı; varsayılan PeerJS ICE yapılandırması kullanılacak.', error);
+        console.warn('Could not obtain TURN credentials; the default PeerJS ICE configuration will be used.', error);
       }
       if (disposed) return;
 
@@ -205,7 +205,7 @@ export function DirectCallProvider({ children }) {
 
       peer.on('error', (error) => {
         if (['peer-unavailable', 'network', 'server-error'].includes(error?.type)) {
-          setCallError('Arama bağlantısı kurulamadı.');
+          setCallError('The call connection could not be established.');
         }
       });
     };
@@ -272,7 +272,7 @@ export function DirectCallProvider({ children }) {
 
     const handleDisconnect = () => {
       if (callRef.current) {
-        setCallError('Sunucu bağlantısı kesildi; arama sonlandırıldı.');
+        setCallError('The server connection was lost, so the call ended.');
         clearCall({ playEndSound: true });
       }
     };
@@ -298,9 +298,9 @@ export function DirectCallProvider({ children }) {
   useEffect(() => () => clearCall(), [user?.id]);
 
   const startCall = async ({ targetUser, conversationId }) => {
-    if (callRef.current) return { success: false, error: 'Zaten bir aramadasın.' };
+    if (callRef.current) return { success: false, error: 'You are already in a call.' };
     if (!targetUser?.id || !conversationId || !peerReady || !peerIdRef.current) {
-      return { success: false, error: 'Arama altyapısı henüz hazır değil.' };
+      return { success: false, error: 'Call services are not ready yet.' };
     }
 
     setCallError('');
@@ -309,7 +309,7 @@ export function DirectCallProvider({ children }) {
       await ensureLocalMicrophone();
     } catch (error) {
       releaseMedia();
-      return { success: false, error: 'Arama için mikrofon izni gerekiyor.' };
+      return { success: false, error: 'Microphone permission is required for calls.' };
     }
 
     const result = await emitWithAck('call:start', { targetUserId: targetUser.id, conversationId });
@@ -332,7 +332,7 @@ export function DirectCallProvider({ children }) {
     const current = callRef.current;
     if (!current || current.direction !== 'incoming' || current.status !== 'ringing') return false;
     if (!peerReady || !peerIdRef.current) {
-      setCallError('Arama altyapısı henüz hazır değil.');
+      setCallError('Call services are not ready yet.');
       return false;
     }
     stopRinging();
@@ -340,7 +340,7 @@ export function DirectCallProvider({ children }) {
       if (isInVoiceRef.current) leaveVoiceChannel();
       await ensureLocalMicrophone();
     } catch (error) {
-      setCallError('Aramayı kabul etmek için mikrofon izni gerekiyor.');
+      setCallError('Microphone permission is required to accept the call.');
       startRinging(FEEDBACK_SOUND_IDS.INCOMING_CALL);
       return false;
     }

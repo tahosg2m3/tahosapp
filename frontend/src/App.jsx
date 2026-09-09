@@ -64,11 +64,11 @@ function AppContent() {
         setViewMode('servers');
         url.searchParams.delete('invite');
         window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-        toast.success(`${server.name} sunucusuna katıldın.`);
+        toast.success(`You joined ${server.name}.`);
       })
       .catch(error => {
         handledInviteRef.current = '';
-        toast.error(error.message || 'Davet bağlantısı kullanılamadı.');
+        toast.error(error.message || 'The invite link could not be used.');
       });
   }, [setCurrentChannel, setCurrentServer, setServers, user?.id]);
 
@@ -91,25 +91,25 @@ function AppContent() {
 
     const handleKicked = ({ serverId, reason }) => removeServerFromView({
       serverId,
-      reason: reason ? `Sunucudan çıkarıldın: ${reason}` : 'Bir moderatör seni sunucudan çıkardı.',
+      reason: reason ? `You were removed from the server: ${reason}` : 'A moderator removed you from the server.',
     });
     const handleBanned = ({ serverId, reason }) => removeServerFromView({
       serverId,
-      reason: reason ? `Sunucudan yasaklandın: ${reason}` : 'Bir moderatör seni sunucudan yasakladı.',
+      reason: reason ? `You were banned from the server: ${reason}` : 'A moderator banned you from the server.',
     });
-    const handleDeleted = ({ serverId }) => removeServerFromView({ serverId, reason: 'Bu sunucu silindi.' });
+    const handleDeleted = ({ serverId }) => removeServerFromView({ serverId, reason: 'This server was deleted.' });
     const handleModerated = ({ serverId, action, byUsername }) => {
       if (currentServer?.id !== serverId) return;
       const labels = {
-        timeout: 'zaman aşımı uyguladı',
-        untimeout: 'zaman aşımını kaldırdı',
-        mute: 'mikrofonunu susturdu',
-        unmute: 'mikrofonunun sesini açtı',
-        deafen: 'seni sağırlaştırdı',
-        undeafen: 'sağırlaştırmayı kaldırdı',
+        timeout: 'timed you out',
+        untimeout: 'removed your timeout',
+        mute: 'muted your microphone',
+        unmute: 'unmuted your microphone',
+        deafen: 'deafened you',
+        undeafen: 'undeafened you',
       };
       if (action === 'timeout' && activeVoiceChannel?.serverId === serverId) leaveVoiceChannel();
-      toast(action === 'timeout' ? `Bir moderatör ${labels[action] || 'işlem uyguladı'}.` : `${byUsername || 'Bir moderatör'} ${labels[action] || 'işlem uyguladı'}.`);
+      toast(action === 'timeout' ? `A moderator ${labels[action] || 'took a moderation action'}.` : `${byUsername || 'A moderator'} ${labels[action] || 'took a moderation action'}.`);
     };
     const handleUpdated = ({ server }) => {
       if (!server?.id) return;
@@ -163,8 +163,8 @@ function AppContent() {
                 <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#2B2D31] shadow-inner">
                   <span className="text-4xl font-bold text-[#404249]">#</span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-[#F2F3F5]">Kanal Seçilmedi</h3>
-                <p className="text-[15px]">Sohbete başlamak için sol taraftan bir metin veya ses kanalı seçin.</p>
+                <h3 className="mb-2 text-xl font-bold text-[#F2F3F5]">No Channel Selected</h3>
+                <p className="text-[15px]">Select a text or voice channel on the left to start chatting.</p>
               </div>
             )
           ) : viewMode === 'friends' ? (
@@ -174,8 +174,8 @@ function AppContent() {
           )}
         </div>
 
-        {/* Ses paneli görünümden bağımsız olarak orta sütunda kalır. Böylece
-            kullanıcı DM veya Arkadaşlar ekranına geçse de aramayı yönetebilir. */}
+        {/* Voice paneli görünümden bağımsız olarak orta sütunda kalır. Böylece
+            kullanıcı DM veya Friendlar ekranına geçse de aramayı yönetebilir. */}
         <VoicePanel />
       </div>
 

@@ -49,7 +49,7 @@ export function saveAutomaticPresencePreferences(value) {
   return preferences;
 }
 
-export function isAutomaticPresenceSessionId(value) {
+export function isAutomaticPresenceVoicesionId(value) {
   return value === 'auto-game'
     || value === 'auto-media'
     || /^auto-(?:media|video)-[a-f0-9]{12}$/.test(String(value || ''));
@@ -64,12 +64,12 @@ function filterMusic(activity, preferences) {
 
   const next = { ...activity, music: { ...(activity.music || {}) }, metadata: { ...(activity.metadata || {}) } };
   if (!preferences.showSongTitle) {
-    next.details = 'Bir şarkı dinliyor';
-    next.music.song = 'Bir şarkı';
+    next.details = 'Listening to a song';
+    next.music.song = 'A song';
   }
   if (!preferences.showArtist) {
     next.music.artist = '';
-    next.state = activity.playbackStatus === 'paused' ? 'Duraklatıldı' : '';
+    next.state = activity.playbackStatus === 'paused' ? 'Paused' : '';
   }
   if (!preferences.showAlbum) next.music.album = '';
   if (!preferences.showMusicProgress) {
@@ -87,7 +87,7 @@ function filterVideo(activity, preferences) {
 
   const next = { ...activity, metadata: { ...(activity.metadata || {}) } };
   if (!preferences.showVideoTitle) next.details = 'Bir video izliyor';
-  if (!preferences.showVideoCreator) next.state = activity.playbackStatus === 'paused' ? 'Duraklatıldı' : '';
+  if (!preferences.showVideoCreator) next.state = activity.playbackStatus === 'paused' ? 'Paused' : '';
   if (!preferences.showVideoProgress) next.progress = null;
   next.hideElapsed = !preferences.showVideoElapsed;
   return next;
@@ -98,7 +98,7 @@ export function filterAutomaticPresenceActivities(value, preferencesValue) {
   if (!preferences.enabled) return [];
 
   return (Array.isArray(value) ? value : [])
-    .filter(activity => activity && isAutomaticPresenceSessionId(activity.sessionId) && activity.name)
+    .filter(activity => activity && isAutomaticPresenceVoicesionId(activity.sessionId) && activity.name)
     .map(activity => {
       if (activity.category === 'music' || activity.type === 'listening') return filterMusic(activity, preferences);
       if (activity.category === 'video' || activity.type === 'watching') return filterVideo(activity, preferences);
@@ -106,7 +106,7 @@ export function filterAutomaticPresenceActivities(value, preferencesValue) {
       const next = { ...activity, metadata: { ...(activity.metadata || {}) } };
       if (!preferences.showGamePlatform) {
         delete next.metadata.Platform;
-        next.state = 'Oyun oynuyor';
+        next.state = 'Playing a game';
       }
       next.hideElapsed = !preferences.showGameElapsed;
       return next;

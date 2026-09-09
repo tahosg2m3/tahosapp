@@ -21,11 +21,11 @@ export default function DesktopUpdateNotifier() {
               <RefreshCw className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-white">tahosapp {state.availableVersion} hazır</p>
-              <p className="mt-1 text-xs leading-5 text-[#949BA4]">Güncelleme indirildi. Uygulamayı kapattığında otomatik yüklenir veya şimdi yeniden başlatabilirsin.</p>
+              <p className="font-bold text-white">tahosapp {state.availableVersion} is ready</p>
+              <p className="mt-1 text-xs leading-5 text-[#949BA4]">The update has downloaded. It will install automatically when you close the app, or you can restart now.</p>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => bridge.install()} className="rounded-md bg-[#5865F2] px-3 py-2 text-xs font-bold text-white hover:bg-[#4752C4]">
-                  Yeniden başlat ve yükle
+                  Restart and Install
                 </button>
                 <button type="button" onClick={() => toast.dismiss(t.id)} className="rounded-md bg-[#383A40] px-3 py-2 text-xs font-bold text-[#DBDEE1] hover:bg-[#4E5058]">
                   Sonra

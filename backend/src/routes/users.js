@@ -90,7 +90,7 @@ router.use(authRateLimit, requireAuth, readRateLimit, mutationRateLimit);
 
 // Eski kullanıcı adıyla şifresiz giriş endpoint'i güvenlik nedeniyle kaldırıldı.
 router.post('/login', (req, res) => res.status(410).json({
-  error: 'Bu giriş yöntemi kaldırıldı. E-posta ve iki aşamalı doğrulama kullan.',
+  error: 'This sign-in method has been removed. Use email and two-factor verification.',
 }));
 
 router.get('/', (req, res) => res.json(storage.getPublicUsers()));
@@ -105,7 +105,7 @@ router.post('/me/rich-presence/token', (req, res) => {
   try {
     return res.status(201).json(richPresenceService.createToken(req.user.id));
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Entegrasyon anahtarı oluşturulamadı.' });
+    return res.status(400).json({ error: error.message || 'The integration key could not be created.' });
   }
 });
 
@@ -116,7 +116,7 @@ router.delete('/me/rich-presence/token', (req, res) => {
 
 router.patch('/me/rich-presence/settings', (req, res) => {
   if (typeof req.body?.enabled !== 'boolean') {
-    return res.status(400).json({ error: 'Etkin ayarı true veya false olmalıdır.' });
+    return res.status(400).json({ error: 'The enabled setting must be true or false.' });
   }
   return res.json(richPresenceService.setEnabled(req.user.id, req.body.enabled));
 });
@@ -145,9 +145,9 @@ router.patch('/me', async (req, res) => {
 
   try {
     const user = storage.updateUserProfile(req.user.id, updates);
-    if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
 
-    // Kullanıcı adı değiştiğinde mevcut socket oturumları da eski adla
+    // Username değiştiğinde mevcut socket oturumları da eski adla
     // mesaj göndermeye devam etmesin.
     const io = req.app.get('io');
     if (io) {
@@ -159,7 +159,7 @@ router.patch('/me', async (req, res) => {
           if (activeSocket.userData) activeSocket.userData.username = user.username;
         });
       } catch (error) {
-        console.warn('Aktif profil oturumları güncellenemedi:', error.message);
+        console.warn('Could not update active profile sessions:', error.message);
       }
     }
 
@@ -167,8 +167,8 @@ router.patch('/me', async (req, res) => {
     return res.json({ user: privateUser(user) });
   } catch (error) {
     const message = error.message === 'Username taken'
-      ? 'Bu kullanıcı adı zaten kullanılıyor.'
-      : (error.message || 'Profil güncellenemedi.');
+      ? 'This username is already in use.'
+      : (error.message || 'The profile could not be updated.');
     return res.status(400).json({ error: message });
   }
 });
@@ -176,7 +176,7 @@ router.patch('/me', async (req, res) => {
 router.get('/:userId/profile', (req, res) => {
   const targetUserId = String(req.params.userId || '').trim();
   const target = storage.getPublicUserById(targetUserId);
-  if (!target) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
 
   const requestedServerId = String(req.query.serverId || '').trim();
   const canSeeServerContext = requestedServerId
@@ -195,7 +195,7 @@ router.get('/:userId/profile', (req, res) => {
   if (!activities.length && target.customStatus) {
     activities.push({
       id: 'custom-status',
-      name: 'Özel Durum',
+      name: 'Custom State',
       details: String(target.customStatus).slice(0, 160),
       state: '',
       imageUrl: null,
@@ -235,13 +235,13 @@ router.get('/:userId/profile', (req, res) => {
 
 router.put('/:userId/note', (req, res) => {
   const targetUserId = String(req.params.userId || '').trim();
-  if (!storage.getUserById(targetUserId)) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
-  if (targetUserId === req.user.id) return res.status(400).json({ error: 'Kendi profiline özel not ekleyemezsin.' });
+  if (!storage.getUserById(targetUserId)) return res.status(404).json({ error: 'User not found.' });
+  if (targetUserId === req.user.id) return res.status(400).json({ error: 'You cannot add a private note to your own profile.' });
   try {
     const note = storage.setProfileNote(req.user.id, targetUserId, req.body?.note ?? '');
     return res.json({ note });
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Not kaydedilemedi.' });
+    return res.status(400).json({ error: error.message || 'The note could not be saved.' });
   }
 });
 
@@ -249,12 +249,12 @@ router.get('/me/blocks', (req, res) => res.json({ users: storage.getBlockedUsers
 
 function blockUser(req, res) {
   const targetUserId = String(req.params.userId || req.body?.userId || req.body?.targetUserId || '').trim();
-  if (!targetUserId) return res.status(400).json({ error: 'Engellenecek kullanıcı gerekli.' });
+  if (!targetUserId) return res.status(400).json({ error: 'A user to block is required.' });
   if (targetUserId === req.user.id) return res.status(400).json({ error: 'Kendini engelleyemezsin.' });
-  if (!storage.getUserById(targetUserId)) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  if (!storage.getUserById(targetUserId)) return res.status(404).json({ error: 'User not found.' });
 
   const blocked = storage.blockUser(req.user.id, targetUserId);
-  if (!blocked) return res.status(400).json({ error: 'Kullanıcı engellenemedi.' });
+  if (!blocked) return res.status(400).json({ error: 'User engellenemedi.' });
   emitSocialUpdate(req, [req.user.id, targetUserId]);
   req.app.get('io')?.to(`user:${req.user.id}`).emit('blocks:changed', { userId: req.user.id });
   return res.status(201).json({ blockedUser: blocked.user, blockedAt: blocked.createdAt });
@@ -266,7 +266,7 @@ router.post('/me/blocks/:userId', blockUser);
 router.delete('/me/blocks/:userId', (req, res) => {
   const targetUserId = String(req.params.userId || '').trim();
   const removed = storage.unblockUser(req.user.id, targetUserId);
-  if (!removed) return res.status(404).json({ error: 'Bu kullanıcı engellenenler listesinde değil.' });
+  if (!removed) return res.status(404).json({ error: 'This user is not in your blocked list.' });
   req.app.get('io')?.to(`user:${req.user.id}`).emit('blocks:changed', { userId: req.user.id });
   return res.json({ success: true });
 });

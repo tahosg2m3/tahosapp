@@ -101,13 +101,13 @@ function removeUploadedFile(file) {
   try {
     fs.unlinkSync(storedFilePath);
   } catch (_) {
-    // Dosya daha önce kaldırılmışsa istemci yanıtı değişmemeli.
+    // File daha önce kaldırılmışsa istemci repliesı değişmemeli.
   }
 }
 
 function reserveUploadCapacity(req, res, next) {
   if (trackedUploadBytes + reservedUploadBytes + MAX_UPLOAD_BYTES > uploadStorageLimit) {
-    return res.status(507).json({ error: 'Dosya depolama alanı dolu. Yöneticiyle iletişime geç.' });
+    return res.status(507).json({ error: 'File storage is full. Contact an administrator.' });
   }
   reservedUploadBytes += MAX_UPLOAD_BYTES;
   let finalized = false;
@@ -127,10 +127,10 @@ function reserveUploadCapacity(req, res, next) {
 }
 
 function validateUploadedFile(req, res, next) {
-  if (!req.file) return res.status(400).json({ error: 'Dosya yüklenmedi.' });
+  if (!req.file) return res.status(400).json({ error: 'No file was uploaded.' });
   const definition = declaredFileType(req.file, req.path === '/avatar');
   const storedFilePath = resolveUploadedFilePath(req.file);
-  if (!storedFilePath) return res.status(400).json({ error: 'Dosya yolu güvenlik kontrolünü geçemedi.' });
+  if (!storedFilePath) return res.status(400).json({ error: 'The file path failed the security check.' });
   let descriptor;
   try {
     descriptor = fs.openSync(storedFilePath, 'r');
@@ -140,7 +140,7 @@ function validateUploadedFile(req, res, next) {
     descriptor = undefined;
     if (!definition || !signatureMatches(header.subarray(0, bytesRead), definition.signature)) {
       removeUploadedFile(req.file);
-      return res.status(415).json({ error: 'Dosyanın gerçek türü desteklenmiyor veya uzantısıyla eşleşmiyor.' });
+      return res.status(415).json({ error: 'The actual file type is unsupported or does not match its extension.' });
     }
     req.verifiedUpload = definition;
     return next();

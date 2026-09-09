@@ -108,11 +108,11 @@ export default function DMList({ setViewMode }) {
   }, [activeDM?.channelId, setActiveDM, setViewMode, socket, user.username]);
 
   const visibleDMs = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase('tr');
+    const normalized = query.trim().toLocaleLowerCase('en-US');
     if (!normalized) return dms;
     return dms.filter((dm) => {
       const label = isGroupDM(dm) ? dm.name : dm.otherUser?.username;
-      return String(label || '').toLocaleLowerCase('tr').includes(normalized);
+      return String(label || '').toLocaleLowerCase('en-US').includes(normalized);
     });
   }, [dms, query]);
 
@@ -130,13 +130,13 @@ export default function DMList({ setViewMode }) {
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748b]" />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sohbet bul" className="w-full rounded-lg border border-white/[0.06] bg-[#0f172a] py-2 pl-8 pr-2 text-[13px] text-[#e2e8f0] outline-none placeholder:text-[#64748b] focus:border-[#3b82f6]/60" />
           </div>
-          <button type="button" onClick={() => setShowCreateGroup(true)} className="rounded-lg p-2 text-[#94a3b8] transition-colors hover:bg-white/[0.08] hover:text-white" title="Grup mesajı oluştur" aria-label="Grup mesajı oluştur"><Plus className="h-5 w-5" /></button>
+          <button type="button" onClick={() => setShowCreateGroup(true)} className="rounded-lg p-2 text-[#94a3b8] transition-colors hover:bg-white/[0.08] hover:text-white" title="Create a group conversation" aria-label="Create a group conversation"><Plus className="h-5 w-5" /></button>
         </div>
 
         <div className="p-2">
           <div className="mb-2 flex items-center justify-between px-2">
-            <h3 className="text-[11px] font-bold uppercase tracking-wide text-[#94a3b8]">Direkt Mesajlar</h3>
-            <button type="button" onClick={() => setShowCreateGroup(true)} className="rounded p-1 text-[#64748b] hover:bg-white/[0.06] hover:text-white" title="Grup mesajı oluştur"><Plus className="h-3.5 w-3.5" /></button>
+            <h3 className="text-[11px] font-bold uppercase tracking-wide text-[#94a3b8]">Direkt Messages</h3>
+            <button type="button" onClick={() => setShowCreateGroup(true)} className="rounded p-1 text-[#64748b] hover:bg-white/[0.06] hover:text-white" title="Create a group conversation"><Plus className="h-3.5 w-3.5" /></button>
           </div>
 
           <div className="space-y-0.5">
@@ -145,7 +145,7 @@ export default function DMList({ setViewMode }) {
               const directUser = dm.otherUser;
               if (!group && !directUser) return null;
               const isActive = activeDM?.id === dm.id;
-              const label = group ? (dm.name || 'Yeni Grup') : directUser.username;
+              const label = group ? (dm.name || 'New Group') : directUser.username;
               const status = directUser?.presenceStatus || directUser?.status;
               const online = status && !['offline', 'invisible'].includes(status);
               const avatarUrl = group ? null : resolveSafeAvatarUrl(directUser.avatar);
@@ -162,12 +162,12 @@ export default function DMList({ setViewMode }) {
                   </div>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] font-medium">{label}</span>
-                    {group && <span className="block truncate text-[11px] text-[#64748b]">{dm.memberIds?.length || dm.members?.length || 0} üye</span>}
+                    {group && <span className="block truncate text-[11px] text-[#64748b]">{dm.memberIds?.length || dm.members?.length || 0} member</span>}
                   </span>
                 </button>
               );
             })}
-            {visibleDMs.length === 0 && <p className="px-3 py-6 text-center text-xs leading-5 text-[#64748b]">{query ? 'Eşleşen sohbet bulunamadı.' : 'Henüz direkt mesajın yok.'}</p>}
+            {visibleDMs.length === 0 && <p className="px-3 py-6 text-center text-xs leading-5 text-[#64748b]">{query ? 'No matching conversations found.' : 'You do not have any direct messages yet.'}</p>}
           </div>
         </div>
       </div>

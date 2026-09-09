@@ -4,8 +4,8 @@ import toast from 'react-hot-toast';
 import { API_ORIGIN } from '../../config/runtimeConfig';
 
 export async function uploadChatFile(file) {
-  if (!file) throw new Error('Dosya seçilmedi.');
-  if (file.size > 10 * 1024 * 1024) throw new Error('Dosya boyutu en fazla 10 MB olabilir.');
+  if (!file) throw new Error('No file selected.');
+  if (file.size > 10 * 1024 * 1024) throw new Error('File boyutu en fazla 10 MB olabilir.');
 
   const formData = new FormData();
   formData.append('file', file);
@@ -18,10 +18,10 @@ export async function uploadChatFile(file) {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
   } catch (_) {
-    throw new Error('Dosya yükleme sunucusuna bağlanılamadı. Uygulamayı yeniden başlatıp tekrar dene.');
+    throw new Error('Could not connect to the file upload server. Restart the app and try again.');
   }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Dosya yüklenemedi.');
+  if (!response.ok) throw new Error(data.error || 'The file could not be uploaded.');
   const type = data.mimetype?.startsWith('image/') ? 'image' : data.mimetype?.startsWith('audio/') ? 'audio' : 'file';
   return { ...data, url: data.url?.startsWith('http') ? data.url : `${API_ORIGIN}${data.url}`, type };
 }
@@ -40,10 +40,10 @@ export default function FileUpload({ onFileSelect, disabled = false }) {
     try {
       onFileSelect(await uploadChatFile(file));
       setShowMenu(false);
-      toast.success('Dosya mesaja eklendi.');
+      toast.success('File attached to the message.');
     } catch (error) {
       console.error('Failed to upload file:', error);
-      toast.error(error.message || 'Dosya yüklenemedi.');
+      toast.error(error.message || 'The file could not be uploaded.');
     } finally {
       setUploading(false);
     }
@@ -55,8 +55,8 @@ export default function FileUpload({ onFileSelect, disabled = false }) {
         type="button"
         onClick={() => setShowMenu((open) => !open)}
         disabled={disabled || uploading}
-        aria-label="Dosya ekle"
-        title="Dosya ekle"
+        aria-label="File ekle"
+        title="File ekle"
         className="rounded-lg p-1.5 text-[#B5BAC1] transition-colors hover:bg-white/[0.08] hover:text-[#DBDEE1] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
@@ -66,7 +66,7 @@ export default function FileUpload({ onFileSelect, disabled = false }) {
         <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-xl border border-white/[0.09] bg-[#1e293b] p-1.5 shadow-2xl shadow-black/40">
           <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-[#DBDEE1] transition-colors hover:bg-white/[0.08]">
             <ImageIcon className="h-4 w-4 text-[#60a5fa]" />
-            <span>Görsel yükle</span>
+            <span>Upload image</span>
             <input
               type="file"
               accept="image/*"
@@ -77,7 +77,7 @@ export default function FileUpload({ onFileSelect, disabled = false }) {
 
           <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-[#DBDEE1] transition-colors hover:bg-white/[0.08]">
             <File className="h-4 w-4 text-[#34d399]" />
-            <span>Dosya yükle</span>
+            <span>Upload file</span>
             <input
               type="file"
               onChange={handleFileSelect}

@@ -31,13 +31,13 @@ export async function apiFetch(input, init = {}) {
       body: init.body,
     });
   } catch (_) {
-    throw new TypeError('Masaüstü uygulaması güvenli API bağlantısını kuramadı.');
+    throw new TypeError('The desktop app could not establish a secure API connection.');
   }
 
   if (!result || result.transportError) {
     const message = result?.code === 'API_TIMEOUT'
-      ? 'Sunucu yanıt vermeyi zaman aşımına uğrattı.'
-      : 'Masaüstü uygulaması sunucuya bağlanamadı.';
+      ? 'The server response timed out.'
+      : 'The desktop app could not connect to the server.';
     throw new TypeError(message);
   }
 

@@ -35,7 +35,7 @@ router.get('/', externalRateLimit, async (req, res) => {
   const apiKey = String(process.env.GIPHY_API_KEY || '').trim();
   if (!apiKey) {
     return res.status(503).json({
-      error: 'GIPHY yapılandırılmamış. backend/.env dosyasına GIPHY_API_KEY ekle.',
+      error: 'GIPHY is not configured. Add GIPHY_API_KEY to backend/.env.',
       code: 'GIPHY_NOT_CONFIGURED',
     });
   }
@@ -58,14 +58,14 @@ router.get('/', externalRateLimit, async (req, res) => {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) return res.status(502).json({ error: `GIPHY isteği başarısız (${response.status}).` });
+    if (!response.ok) return res.status(502).json({ error: `GIPHY request failed (${response.status}).` });
     const payload = await response.json();
     const gifs = (Array.isArray(payload?.data) ? payload.data : []).map(normalizeGif).filter(Boolean);
     return res.json({ gifs, pagination: payload?.pagination || null, source: 'giphy' });
   } catch (error) {
     const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
     return res.status(502).json({
-      error: timedOut ? 'GIPHY zaman aşımına uğradı. Tekrar dene.' : 'GIPHY bağlantısı kurulamadı. İnternet bağlantısını kontrol et.',
+      error: timedOut ? 'GIPHY timed out. Try again.' : 'Could not connect to GIPHY. Check your internet connection.',
     });
   }
 });

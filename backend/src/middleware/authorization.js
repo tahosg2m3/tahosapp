@@ -9,11 +9,11 @@ function requireServerMember(req, res, next) {
   const server = storage.getServerById(serverId);
 
   if (!server || server.isDM) {
-    return res.status(404).json({ error: 'Sunucu bulunamadı.' });
+    return res.status(404).json({ error: 'Server not found.' });
   }
 
   if (!storage.isServerMember(serverId, req.user.id)) {
-    return res.status(403).json({ error: 'Bu sunucuya erişim yetkin yok.' });
+    return res.status(403).json({ error: 'You do not have access to this server.' });
   }
 
   req.server = server;
@@ -25,11 +25,11 @@ function requireServerOwner(req, res, next) {
   const server = storage.getServerById(serverId);
 
   if (!server || server.isDM) {
-    return res.status(404).json({ error: 'Sunucu bulunamadı.' });
+    return res.status(404).json({ error: 'Server not found.' });
   }
 
   if (server.creatorId !== req.user.id) {
-    return res.status(403).json({ error: 'Bu işlem yalnızca sunucu sahibine açıktır.' });
+    return res.status(403).json({ error: 'Only the server owner can perform this action.' });
   }
 
   req.server = server;
@@ -42,15 +42,15 @@ function requirePermission(permission) {
     const server = storage.getServerById(serverId);
 
     if (!server || server.isDM) {
-      return res.status(404).json({ error: 'Sunucu bulunamadı.' });
+      return res.status(404).json({ error: 'Server not found.' });
     }
 
     if (!storage.isServerMember(serverId, req.user.id)) {
-      return res.status(403).json({ error: 'Bu sunucuya erişim yetkin yok.' });
+      return res.status(403).json({ error: 'You do not have access to this server.' });
     }
 
     if (!storage.hasPermission(serverId, req.user.id, permission)) {
-      return res.status(403).json({ error: 'Bu işlem için gerekli yetkin yok.' });
+      return res.status(403).json({ error: 'You do not have permission to perform this action.' });
     }
 
     req.server = server;

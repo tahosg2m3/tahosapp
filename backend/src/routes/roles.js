@@ -63,7 +63,7 @@ router.get('/:serverId/roles', authRateLimit, requireAuth, readRateLimit, requir
 
 router.post('/:serverId/roles', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const name = String(req.body.name || '').trim();
-  if (!name || name.length > 100) return res.status(400).json({ error: 'Rol adı 1-100 karakter olmalıdır.' });
+  if (!name || name.length > 100) return res.status(400).json({ error: 'The role name must be 1–100 characters.' });
 
   const role = storage.createServerRole(req.params.serverId, {
     name,
@@ -73,7 +73,7 @@ router.post('/:serverId/roles', authRateLimit, requireAuth, mutationRateLimit, r
     mentionable: req.body.mentionable,
     permissions: req.body.permissions,
   });
-  if (!role) return res.status(400).json({ error: 'Rol oluşturulamadı.' });
+  if (!role) return res.status(400).json({ error: 'The role could not be created.' });
 
   emitRolesChanged(req, req.params.serverId);
   writeAudit(req, req.params.serverId, 'ROLE_CREATE', 'role', role.id, { name: role.name });
@@ -82,14 +82,14 @@ router.post('/:serverId/roles', authRateLimit, requireAuth, mutationRateLimit, r
 
 router.patch('/:serverId/roles/reorder', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const roles = storage.reorderServerRoles(req.params.serverId, req.body.roleIds);
-  if (!roles) return res.status(400).json({ error: 'Rol sırası geçersiz.' });
+  if (!roles) return res.status(400).json({ error: 'The role order is invalid.' });
   emitRolesChanged(req, req.params.serverId);
   return res.json({ roles });
 });
 
 router.put('/:serverId/roles/reorder', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const roles = storage.reorderServerRoles(req.params.serverId, req.body.roleIds);
-  if (!roles) return res.status(400).json({ error: 'Rol sırası geçersiz.' });
+  if (!roles) return res.status(400).json({ error: 'The role order is invalid.' });
   emitRolesChanged(req, req.params.serverId);
   return res.json({ roles });
 });
@@ -97,12 +97,12 @@ router.put('/:serverId/roles/reorder', authRateLimit, requireAuth, mutationRateL
 router.patch('/:serverId/roles/:roleId', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   const serverId = req.params.serverId;
   const role = storage.getServerRole(serverId, req.params.roleId);
-  if (!role) return res.status(404).json({ error: 'Rol bulunamadı.' });
+  if (!role) return res.status(404).json({ error: 'Role not found.' });
 
   if (role.isDefault) {
     const allowedKeys = new Set(['permissions']);
     if (Object.keys(req.body).some(key => !allowedKeys.has(key))) {
-      return res.status(400).json({ error: '@everyone rolünde yalnızca izinler değiştirilebilir.' });
+      return res.status(400).json({ error: 'Only permissions can be changed on the @everyone role.' });
     }
   }
 
@@ -113,7 +113,7 @@ router.patch('/:serverId/roles/:roleId', authRateLimit, requireAuth, mutationRat
       .map(item => item.id);
     const currentIndex = currentIds.indexOf(role.id);
     const requestedIndex = Math.max(0, Math.min(currentIds.length - 1, Number(req.body.position) - 1));
-    if (!Number.isInteger(requestedIndex)) return res.status(400).json({ error: 'Rol konumu geçersiz.' });
+    if (!Number.isInteger(requestedIndex)) return res.status(400).json({ error: 'The role position is invalid.' });
     currentIds.splice(currentIndex, 1);
     currentIds.splice(requestedIndex, 0, role.id);
     storage.reorderServerRoles(serverId, currentIds);
@@ -127,7 +127,7 @@ router.patch('/:serverId/roles/:roleId', authRateLimit, requireAuth, mutationRat
     mentionable: req.body.mentionable,
     permissions: req.body.permissions,
   });
-  if (!updated) return res.status(400).json({ error: 'Rol güncellenemedi.' });
+  if (!updated) return res.status(400).json({ error: 'The role could not be updated.' });
 
   emitRolesChanged(req, serverId);
   writeAudit(req, serverId, 'ROLE_UPDATE', 'role', updated.id, { name: updated.name });
@@ -137,7 +137,7 @@ router.patch('/:serverId/roles/:roleId', authRateLimit, requireAuth, mutationRat
 
 router.delete('/:serverId/roles/:roleId', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   if (!storage.deleteServerRole(req.params.serverId, req.params.roleId)) {
-    return res.status(400).json({ error: '@everyone rolü silinemez veya rol bulunamadı.' });
+    return res.status(400).json({ error: 'The @everyone role cannot be deleted, or the role was not found.' });
   }
   emitRolesChanged(req, req.params.serverId);
   writeAudit(req, req.params.serverId, 'ROLE_DELETE', 'role', req.params.roleId);
@@ -147,7 +147,7 @@ router.delete('/:serverId/roles/:roleId', authRateLimit, requireAuth, mutationRa
 
 router.get('/:serverId/members/:userId/permissions', authRateLimit, requireAuth, readRateLimit, requireServerMember, (req, res) => {
   const member = storage.getServerMemberDetails(req.params.serverId, req.params.userId);
-  if (!member) return res.status(404).json({ error: 'Üye bulunamadı.' });
+  if (!member) return res.status(404).json({ error: 'Member not found.' });
   return res.json({
     userId: req.params.userId,
     roleIds: member.roleIds,
@@ -158,12 +158,12 @@ router.get('/:serverId/members/:userId/permissions', authRateLimit, requireAuth,
 
 router.patch('/:serverId/members/:userId/roles', authRateLimit, requireAuth, mutationRateLimit, requireServerOwner, (req, res) => {
   if (!storage.isServerMember(req.params.serverId, req.params.userId)) {
-    return res.status(404).json({ error: 'Üye bulunamadı.' });
+    return res.status(404).json({ error: 'Member not found.' });
   }
-  if (!Array.isArray(req.body.roleIds)) return res.status(400).json({ error: 'roleIds bir dizi olmalıdır.' });
+  if (!Array.isArray(req.body.roleIds)) return res.status(400).json({ error: 'roleIds must be an array.' });
 
   const member = storage.setMemberRoles(req.params.serverId, req.params.userId, req.body.roleIds);
-  if (!member) return res.status(400).json({ error: 'Rol atamaları geçersiz.' });
+  if (!member) return res.status(400).json({ error: 'Role assignments are invalid.' });
   emitMemberUpdated(req, req.params.serverId, req.params.userId);
   writeAudit(req, req.params.serverId, 'MEMBER_ROLES_UPDATE', 'user', req.params.userId, { roleIds: req.body.roleIds });
   return res.json({ member });
@@ -175,10 +175,10 @@ router.post('/:serverId/members/:userId/moderate', authRateLimit, requireAuth, m
   const action = String(req.body.action || '').toLowerCase();
   const definition = MODERATION_ACTIONS[action];
 
-  if (!definition) return res.status(400).json({ error: 'Geçersiz moderasyon işlemi.' });
-  if (!storage.isServerMember(serverId, targetUserId)) return res.status(404).json({ error: 'Üye bulunamadı.' });
+  if (!definition) return res.status(400).json({ error: 'Invalid moderation action.' });
+  if (!storage.isServerMember(serverId, targetUserId)) return res.status(404).json({ error: 'Member not found.' });
   if (!storage.canModerateMember(serverId, req.user.id, targetUserId, definition.permission)) {
-    return res.status(403).json({ error: 'Bu üyeyi yönetmek için yetkin veya rol hiyerarşin yeterli değil.' });
+    return res.status(403).json({ error: 'You do not have sufficient permission or role hierarchy to manage this member.' });
   }
 
   const io = req.app.get('io');
@@ -211,7 +211,7 @@ router.post('/:serverId/members/:userId/moderate', authRateLimit, requireAuth, m
     if (definition.timeout) {
       const durationMinutes = Number(req.body.durationMinutes);
       if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 10080) {
-        return res.status(400).json({ error: 'Susturma süresi 1 ile 10080 dakika arasında olmalıdır.' });
+        return res.status(400).json({ error: 'The mute duration must be between 1 and 10080 minutes.' });
       }
       changes = { timeoutUntil: Date.now() + (durationMinutes * 60 * 1000) };
     }
@@ -248,7 +248,7 @@ router.post('/:serverId/members/:userId/moderate', authRateLimit, requireAuth, m
     return res.json({ success: true, action, member });
   }
 
-  // "disconnect" aktif ses kanalından çıkarmak için istemciye hedefli olay gönderir.
+  // "disconnect" aktif ses kanalından çıkarmak has istemciye hedefli olay gönderir.
   disconnectUserFromServerVoice(io, serverId, targetUserId);
   io?.to(`user:${targetUserId}`).emit('voice:moderated', {
     action: 'disconnect',

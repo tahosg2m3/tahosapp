@@ -81,10 +81,10 @@ export default function FriendsList() {
       setActiveDM({ ...conversation, otherUser });
       setCurrentServer(null);
       window.dispatchEvent(new CustomEvent('tahosapp:navigate-to-dm', { detail: { conversation } }));
-      toast.success('Direkt mesaj açıldı.');
+      toast.success('Direct message opened.');
     } catch (error) {
-      console.error('DM başlatılamadı:', error);
-      toast.error('Direkt mesaj başlatılamadı.');
+      console.error('Could not start DM:', error);
+      toast.error('Could not start a direct message.');
     }
   };
 
@@ -192,8 +192,8 @@ export default function FriendsList() {
                 pendingRequests.map(req => {
                   // --- KRİTİK DÜZELTME BURADA ---
                   // Eğer sunucu yeniden başlatıldıysa kullanıcı verisi silinmiş olabilir.
-                  // Bu durumda fromUser 'undefined' olur ve uygulama çöker.
-                  // Bunu engellemek için kontrol ekliyoruz:
+                  // Bu durumda fromUser 'undefined' olur and uygulama çöker.
+                  // Bunu block has kontrol ekliyoruz:
                   if (!req.fromUser) return null;
 
                   return (

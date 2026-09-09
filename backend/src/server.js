@@ -4,7 +4,7 @@
 try {
   if (process.report && 'excludeEnv' in process.report) process.report.excludeEnv = true;
 } catch (_) {
-  // Eski Node sürümlerinde desteklenmiyorsa normal başlangıç devam eder.
+  // Eski Node sürümlerinde not supportedsa normal başlangıç devam eder.
 }
 
 const express = require('express');
@@ -14,7 +14,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Route/middleware modülleri yüklenmeden önce .env'i oku; JWT ve APP_DATA_DIR
+// Route/middleware modülleri yüklenmeden önce .env'i oku; JWT and APP_DATA_DIR
 // gibi güvenlik/persist ayarları modül yüklenirken kullanılır.
 dotenv.config();
 if (process.env.RUNTIME_ENV_FILE || process.env.SMTP_ENV_FILE) {
@@ -37,6 +37,7 @@ const friendRoutes = require('./routes/friends');
 const uploadRoutes = require('./routes/upload');
 const gifRoutes = require('./routes/gifs');
 const richPresenceRoutes = require('./routes/richPresence');
+const spotifyRoutes = require('./routes/spotify');
 const turnRoutes = require('./routes/turn');
 const platformRoutes = require('./routes/platform');
 const feedbackRoutes = require('./routes/feedback');
@@ -58,7 +59,7 @@ app.set('query parser', 'simple');
 app.set('trust proxy', 'loopback');
 const server = http.createServer(app);
 const DESKTOP_CLIENT_ORIGIN = 'tahosapp://app';
-// Eski masaüstü sürümlerinin otomatik güncellemeyi alabilmesi için geçici
+// Eski masaüstü sürümlerinin otomatik güncellemeyi alabilmesi has geçici
 // uyumluluk. En az bir sürüm döngüsünden sonra kaldırılabilir.
 const LEGACY_DESKTOP_CLIENT_ORIGIN = 'discord-clone://app';
 const configuredClientOrigins = new Set(String(process.env.CLIENT_URL || 'http://localhost:5173')
@@ -90,7 +91,7 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  // Dosyalar HTTP upload endpoint'inden gider. Socket paketleri yalnız mesaj ve
+  // Filelar HTTP upload endpoint'inden gider. Socket paketleri yalnız mesaj ve
   // sinyal verisi taşır; bu sınır bellek tüketimi saldırılarını daraltır.
   maxHttpBufferSize: 1024 * 1024,
 });
@@ -119,11 +120,11 @@ app.use((req, res, next) => {
     const value = pending.pop();
     inspectedNodes += 1;
     if (inspectedNodes > 10_000) {
-      return res.status(413).json({ error: 'İstek yapısı izin verilenden daha karmaşık.' });
+      return res.status(413).json({ error: 'The request structure is more complex than allowed.' });
     }
     for (const key of Object.keys(value)) {
       if (['__proto__', 'prototype', 'constructor'].includes(key)) {
-        return res.status(400).json({ error: 'İstek güvenli olmayan bir alan adı içeriyor.' });
+        return res.status(400).json({ error: 'The request contains an unsafe field name.' });
       }
       const child = value[key];
       if (child && typeof child === 'object') pending.push(child);
@@ -158,11 +159,12 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/gifs', gifRoutes);
 app.use('/api/rich-presence', richPresenceRoutes);
+app.use('/api/spotify', spotifyRoutes);
 app.use('/api/turn-credentials', turnRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 // Yeni platform özellikleri tam API yollarını kendi router'ında tanımlar.
-// Eski endpoint'ler yukarıda kalır ve geriye dönük uyumluluğunu korur.
+// Eski endpoint'ler yukarıda kalır and geriye dönük uyumluluğunu korur.
 app.use('/api', platformRoutes);
 
 app.get('/health', (req, res) => {
@@ -203,7 +205,7 @@ async function migrateLegacyPlaintextPasswords() {
   const legacyUsers = storage.getAllUsers().filter(user => isLegacyPlaintextPassword(user.password));
   if (!legacyUsers.length) return 0;
 
-  // Düz metin bırakılmış çok eski kayıtları servis istek kabul etmeden önce
+  // Düz text bırakılmış çok eski kayıtları servis istek kabul etmeden önce
   // Argon2id'e çevir. Bcrypt hashleri parola bilinmeden dönüştürülemez; onlar
   // başarılı ilk girişte auth akışı tarafından yükseltilir.
   let migratedCount = 0;
@@ -212,11 +214,11 @@ async function migrateLegacyPlaintextPasswords() {
     const passwordHash = await hashPassword(user.password);
     // Hash çalışırken kapanış başladıysa kapanmış storage'a yazma yapma.
     if (isShuttingDown) break;
-    storage.updateUserPassword(user.id, passwordHash, { invalidateSessions: false });
+    storage.updateUserPassword(user.id, passwordHash, { invalidateVoicesions: false });
     migratedCount += 1;
   }
   if (isShuttingDown) return migratedCount;
-  if (!storage.flush()) throw new Error('Argon2id parola geçişi diske kaydedilemedi.');
+  if (!storage.flush()) throw new Error('The Argon2id password migration could not be saved to disk.');
   return migratedCount;
 }
 
@@ -251,12 +253,12 @@ async function startServices() {
   const migratedPasswordCount = await migrateLegacyPlaintextPasswords();
   if (isShuttingDown) return;
   if (migratedPasswordCount) {
-    console.log('🔐 Eski parolalar Argon2id biçimine güvenle taşındı.');
+    console.log('🔐 Eski parolalar Argon2id biçimine güvenle moved.');
   }
   const migratedArchivedPasswordCount = await migrateArchivedPlaintextPasswords();
   if (isShuttingDown) return;
   if (migratedArchivedPasswordCount) {
-    console.log("🔐 Eski şifreli snapshot'lardaki parolalar Argon2id biçimine taşındı.");
+    console.log("🔐 Eski şifreli snapshot'lardaki parolalar Argon2id biçimine moved.");
   }
 
   server.listen(PORT, HOST, () => {
