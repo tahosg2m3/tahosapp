@@ -6,7 +6,7 @@ const { createRateLimitOptions } = require('../middleware/rateLimit');
 const { spotifyService } = require('../services/spotifyService');
 
 const router = express.Router();
-const spotifyRateLimit = rateLimit(createRateLimitOptions('api', 'spotify'));
+const spotifyRateLimit = rateLimit(createRateLimitOptions('external', 'spotify'));
 
 function errorResponse(res, error) {
   return res.status(Number(error.status) || 400).json({
