@@ -1755,7 +1755,7 @@ class PlatformService {
       const options = isRecord(arguments[2]) ? arguments[2] : {};
       if (!requestedTemplate || !creatorId) return null;
       const createdServer = this.storage.createServer(
-        text(options.name, 100, requestedTemplate.name || 'Yeni sunucu'),
+        text(options.name, 100, requestedTemplate.name || 'New server'),
         creatorId,
       );
       const templateResult = this.applyServerTemplate(createdServer.id, requestedTemplate.id);
@@ -1990,7 +1990,7 @@ class PlatformService {
       const creatorId = text(options.creatorId, 128);
       if (!creatorId) return null;
       server = this.storage.createServer(
-        text(options.name, 100, backup.snapshot.server?.name || 'Restorenen sunucu'),
+        text(options.name, 100, backup.snapshot.server?.name || 'Restored server'),
         creatorId,
       );
       serverId = server.id;

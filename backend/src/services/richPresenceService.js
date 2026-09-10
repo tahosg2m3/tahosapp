@@ -167,7 +167,7 @@ class RichPresenceService {
     this.lastTokenUse = new Map();
     this.io = null;
     this.ensurePersistentState();
-    this.cleanupTimer = setInterval(() => this.pruneExpiredVoicesions(true), 15_000);
+    this.cleanupTimer = setInterval(() => this.pruneExpiredSessions(true), 15_000);
     this.cleanupTimer.unref?.();
   }
 
@@ -272,22 +272,22 @@ class RichPresenceService {
       error.code = 'RICH_PRESENCE_DISABLED';
       throw error;
     }
-    const userVoicesions = this.sessions.get(userId) || new Map();
-    const requestedVoicesionId = oneLine(input?.sessionId || 'primary', 64, 'primary');
-    const previous = userVoicesions.get(requestedVoicesionId) || null;
-    if (!previous && userVoicesions.size >= MAX_SESSIONS_PER_USER) {
+    const userSessions = this.sessions.get(userId) || new Map();
+    const requestedSessionId = oneLine(input?.sessionId || 'primary', 64, 'primary');
+    const previous = userSessions.get(requestedSessionId) || null;
+    if (!previous && userSessions.size >= MAX_SESSIONS_PER_USER) {
       throw new Error(`You can share up to ${MAX_SESSIONS_PER_USER} activity sessions at once.`);
     }
     const activity = normalizeActivity(input, previous);
-    userVoicesions.set(activity.sessionId, activity);
-    this.sessions.set(userId, userVoicesions);
+    userSessions.set(activity.sessionId, activity);
+    this.sessions.set(userId, userSessions);
     this.broadcast(userId);
     return publicActivity(activity);
   }
 
   heartbeat(userId, sessionId, ttlSeconds = DEFAULT_TTL_SECONDS) {
-    const normalizedVoicesionId = oneLine(sessionId || 'primary', 64, 'primary');
-    const activity = this.sessions.get(userId)?.get(normalizedVoicesionId);
+    const normalizedSessionId = oneLine(sessionId || 'primary', 64, 'primary');
+    const activity = this.sessions.get(userId)?.get(normalizedSessionId);
     if (!activity) return null;
     const now = Date.now();
     activity.updatedAt = now;
@@ -297,10 +297,10 @@ class RichPresenceService {
   }
 
   clear(userId, sessionId, { broadcast = true } = {}) {
-    const normalizedVoicesionId = oneLine(sessionId || 'primary', 64, 'primary');
-    const userVoicesions = this.sessions.get(userId);
-    const removed = Boolean(userVoicesions?.delete(normalizedVoicesionId));
-    if (userVoicesions && userVoicesions.size === 0) this.sessions.delete(userId);
+    const normalizedSessionId = oneLine(sessionId || 'primary', 64, 'primary');
+    const userSessions = this.sessions.get(userId);
+    const removed = Boolean(userSessions?.delete(normalizedSessionId));
+    if (userSessions && userSessions.size === 0) this.sessions.delete(userId);
     if (removed && broadcast) this.broadcast(userId);
     return removed;
   }
@@ -312,22 +312,22 @@ class RichPresenceService {
   }
 
   pruneExpiredForUser(userId, broadcast = true) {
-    const userVoicesions = this.sessions.get(userId);
-    if (!userVoicesions) return false;
+    const userSessions = this.sessions.get(userId);
+    if (!userSessions) return false;
     const now = Date.now();
     let changed = false;
-    userVoicesions.forEach((activity, sessionId) => {
+    userSessions.forEach((activity, sessionId) => {
       if (activity.expiresAt <= now || (activity.endsAt && activity.endsAt <= now)) {
-        userVoicesions.delete(sessionId);
+        userSessions.delete(sessionId);
         changed = true;
       }
     });
-    if (!userVoicesions.size) this.sessions.delete(userId);
+    if (!userSessions.size) this.sessions.delete(userId);
     if (changed && broadcast) this.broadcast(userId);
     return changed;
   }
 
-  pruneExpiredVoicesions(broadcast = true) {
+  pruneExpiredSessions(broadcast = true) {
     [...this.sessions.keys()].forEach(userId => this.pruneExpiredForUser(userId, broadcast));
   }
 
@@ -360,7 +360,7 @@ class RichPresenceService {
       token: this.tokenInfo(userId),
       activities: this.getActivities(userId, { includeHidden: true }),
       limits: {
-        maxVoicesions: MAX_SESSIONS_PER_USER,
+        maxSessions: MAX_SESSIONS_PER_USER,
         ttlSeconds: { minimum: MIN_TTL_SECONDS, default: DEFAULT_TTL_SECONDS, maximum: MAX_TTL_SECONDS },
       },
     };

@@ -4,13 +4,13 @@ import { clearRichPresenceActivity, getRichPresenceSettings, setRichPresenceActi
 import {
   AUTOMATIC_PRESENCE_PREFERENCES_EVENT,
   filterAutomaticPresenceActivities,
-  isAutomaticPresenceVoicesionId,
+  isAutomaticPresenceSessionId,
   readAutomaticPresencePreferences,
 } from '../../utils/automaticPresencePreferences';
 
 export default function AutomaticRichPresence() {
   const { user } = useAuth();
-  const activeVoicesionsRef = useRef(new Set());
+  const activeSessionsRef = useRef(new Set());
   const queueRef = useRef(Promise.resolve());
   const latestSnapshotRef = useRef([]);
   const preferencesRef = useRef(readAutomaticPresencePreferences());
@@ -20,14 +20,14 @@ export default function AutomaticRichPresence() {
     if (!bridge || !user?.id) return undefined;
     let active = true;
     // Eski sürümün sabit oturum kimlikleri de ilk yayında temizlenir.
-    activeVoicesionsRef.current = new Set(['auto-game', 'auto-media']);
+    activeSessionsRef.current = new Set(['auto-game', 'auto-media']);
 
     const publishSnapshot = snapshot => {
       latestSnapshotRef.current = Array.isArray(snapshot) ? snapshot : [];
       const activities = filterAutomaticPresenceActivities(latestSnapshotRef.current, preferencesRef.current);
       queueRef.current = queueRef.current.then(async () => {
         if (!active) return;
-        const nextVoicesions = new Set(activities.map(activity => activity.sessionId));
+        const nextSessions = new Set(activities.map(activity => activity.sessionId));
         for (const activity of activities) {
           if (!active) return;
           try {
@@ -37,15 +37,15 @@ export default function AutomaticRichPresence() {
             // yoksa bir sonraki yaklaşık 3 saniyelik tarama sessizce tekrar dener.
           }
         }
-        for (const sessionId of activeVoicesionsRef.current) {
-          if (nextVoicesions.has(sessionId)) continue;
+        for (const sessionId of activeSessionsRef.current) {
+          if (nextSessions.has(sessionId)) continue;
           try {
             await clearRichPresenceActivity(sessionId);
           } catch (_) {
             // Sunucuya ulaşılamıyorsa 60 saniyelik TTL eski durumu temizler.
           }
         }
-        if (active) activeVoicesionsRef.current = nextVoicesions;
+        if (active) activeSessionsRef.current = nextSessions;
       });
     };
 
@@ -61,8 +61,8 @@ export default function AutomaticRichPresence() {
         if (!active) return;
         if (managementResult.status === 'fulfilled') {
           (managementResult.value?.activities || [])
-            .filter(activity => isAutomaticPresenceVoicesionId(activity?.sessionId))
-            .forEach(activity => activeVoicesionsRef.current.add(activity.sessionId));
+            .filter(activity => isAutomaticPresenceSessionId(activity?.sessionId))
+            .forEach(activity => activeSessionsRef.current.add(activity.sessionId));
         }
         publishSnapshot(scannerResult.status === 'fulfilled' ? scannerResult.value?.activities || [] : []);
       });
@@ -72,9 +72,9 @@ export default function AutomaticRichPresence() {
       unsubscribe?.();
       window.removeEventListener(AUTOMATIC_PRESENCE_PREFERENCES_EVENT, handlePreferencesChanged);
       bridge.stop().catch(() => {});
-      const staleVoicesions = [...activeVoicesionsRef.current];
-      activeVoicesionsRef.current = new Set();
-      staleVoicesions.forEach(sessionId => clearRichPresenceActivity(sessionId).catch(() => {}));
+      const staleSessions = [...activeSessionsRef.current];
+      activeSessionsRef.current = new Set();
+      staleSessions.forEach(sessionId => clearRichPresenceActivity(sessionId).catch(() => {}));
     };
   }, [user?.id]);
 

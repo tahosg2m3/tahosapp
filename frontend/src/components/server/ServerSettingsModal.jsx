@@ -65,7 +65,7 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
   const visibleTabs = isOwner
     ? ownerTabs
     : ownerTabs.filter(tab => tab.id === 'community');
-  const serverColor = useMemo(() => getColorForString(currentServer?.name || 'Sunucu'), [currentServer?.name]);
+  const serverColor = useMemo(() => getColorForString(currentServer?.name || 'Server'), [currentServer?.name]);
   const safeServerIconUrl = resolveSafeMediaUrl(serverIcon);
   const serverIconPreviewUrl = safeServerIconUrl === failedServerIconUrl ? null : safeServerIconUrl;
 
@@ -160,7 +160,7 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
 
   const handleDelete = async () => {
     if (!isOwner) return;
-    const confirmation = window.prompt(`To delete the server, type “${currentServer.name}” yaz.`);
+    const confirmation = window.prompt(`To delete the server, type “${currentServer.name}”.`);
     if (confirmation !== currentServer.name) {
       if (confirmation !== null) toast.error('The server name does not match.');
       return;
@@ -172,10 +172,10 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
       setServers((previous) => previous.filter((server) => server.id !== currentServer.id));
       setCurrentServer(null);
       setCurrentChannel(null);
-      toast.success('Sunucu silindi.');
+      toast.success('Server deleted.');
       onClose?.();
     } catch (error) {
-      toast.error(error.message || 'Sunucu silinemedi.');
+      toast.error(error.message || 'The server could not be deleted.');
     } finally {
       setIsSaving(false);
     }
@@ -227,7 +227,7 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
             ))}
           </nav>
 
-          {isOwner && <div className="mt-auto border-t border-black/25 px-3 pt-4"><div className="flex items-center gap-2 text-xs text-[#B5BAC1]"><Crown className="h-4 w-4 text-[#FEE75C]" /> Sunucu sahibi</div></div>}
+          {isOwner && <div className="mt-auto border-t border-black/25 px-3 pt-4"><div className="flex items-center gap-2 text-xs text-[#B5BAC1]"><Crown className="h-4 w-4 text-[#FEE75C]" /> Server owner</div></div>}
         </aside>
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#313338]">
@@ -244,7 +244,7 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
                 <div className="mt-7 rounded-lg border border-black/25 bg-[#2B2D31] p-5">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                     <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[28px] text-3xl font-bold text-white shadow-lg" style={{ backgroundColor: serverColor }}>
-                      {serverIconPreviewUrl ? <img src={serverIconPreviewUrl} alt="Sunucu ikonu" className="h-full w-full object-cover" onError={() => setFailedServerIconUrl(serverIconPreviewUrl)} /> : serverName.slice(0, 2).toUpperCase()}
+                      {serverIconPreviewUrl ? <img src={serverIconPreviewUrl} alt="Server icon" className="h-full w-full object-cover" onError={() => setFailedServerIconUrl(serverIconPreviewUrl)} /> : serverName.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#B5BAC1]">Server name</label>
@@ -309,10 +309,10 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
                   <div className="flex gap-4">
                     <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-[#F23F42]" />
                     <div>
-                      <h2 className="font-bold text-[#F23F42]">Sunucuyu Sil</h2>
+                      <h2 className="font-bold text-[#F23F42]">Delete Server</h2>
                       <p className="mt-1 text-sm leading-6 text-[#DBDEE1]">Channels, messages, roles, and membership data will be permanently deleted. This action cannot be undone.</p>
                       <button type="button" onClick={handleDelete} disabled={isSaving} className="mt-4 rounded bg-[#DA373C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#A12828] disabled:opacity-50">
-                        <Trash2 className="mr-2 inline h-4 w-4" /> Sunucuyu Sil
+                        <Trash2 className="mr-2 inline h-4 w-4" /> Delete Server
                       </button>
                     </div>
                   </div>

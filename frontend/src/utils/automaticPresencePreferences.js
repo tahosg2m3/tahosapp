@@ -49,7 +49,7 @@ export function saveAutomaticPresencePreferences(value) {
   return preferences;
 }
 
-export function isAutomaticPresenceVoicesionId(value) {
+export function isAutomaticPresenceSessionId(value) {
   return value === 'auto-game'
     || value === 'auto-media'
     || /^auto-(?:media|video)-[a-f0-9]{12}$/.test(String(value || ''));
@@ -86,7 +86,7 @@ function filterVideo(activity, preferences) {
   if (activity.playbackStatus === 'paused' && !preferences.showPausedVideos) return null;
 
   const next = { ...activity, metadata: { ...(activity.metadata || {}) } };
-  if (!preferences.showVideoTitle) next.details = 'Bir video izliyor';
+  if (!preferences.showVideoTitle) next.details = 'Watching a video';
   if (!preferences.showVideoCreator) next.state = activity.playbackStatus === 'paused' ? 'Paused' : '';
   if (!preferences.showVideoProgress) next.progress = null;
   next.hideElapsed = !preferences.showVideoElapsed;
@@ -98,7 +98,7 @@ export function filterAutomaticPresenceActivities(value, preferencesValue) {
   if (!preferences.enabled) return [];
 
   return (Array.isArray(value) ? value : [])
-    .filter(activity => activity && isAutomaticPresenceVoicesionId(activity.sessionId) && activity.name)
+    .filter(activity => activity && isAutomaticPresenceSessionId(activity.sessionId) && activity.name)
     .map(activity => {
       if (activity.category === 'music' || activity.type === 'listening') return filterMusic(activity, preferences);
       if (activity.category === 'video' || activity.type === 'watching') return filterVideo(activity, preferences);

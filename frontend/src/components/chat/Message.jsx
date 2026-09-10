@@ -268,7 +268,7 @@ export default function Message({
           {isOwn && !isEditing && <button onClick={() => setIsEditing(true)} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#DBDEE1]" title="Edit" aria-label="Edit">
             <Pencil className="h-4 w-4" />
           </button>}
-          {(isOwn || canManageMessages) && !isEditing && <button onClick={handleDelete} className="rounded-r-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#fb7185]" title="Sil" aria-label="Sil">
+          {(isOwn || canManageMessages) && !isEditing && <button onClick={handleDelete} className="rounded-r-md p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#fb7185]" title="Delete" aria-label="Delete">
             <Trash2 className="h-4 w-4" />
           </button>}
           {!isOwn && currentServer?.id && (

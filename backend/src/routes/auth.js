@@ -232,11 +232,11 @@ const rateLimits = Object.freeze({
     scope: 'confirm-email-change', kind: 'account', windowMs: 15 * 60 * 1000, limit: 8,
     subject: req => req.body?.emailChangeTicket,
   })),
-  verifyVoicesionIp: rateLimit(authRateLimitOptions({
+  verifySessionIp: rateLimit(authRateLimitOptions({
     scope: 'verify-session', kind: 'ip', windowMs: 15 * 60 * 1000, limit: 300,
     subject: requestRemoteAddress,
   })),
-  verifyVoicesionAccount: rateLimit(authRateLimitOptions({
+  verifySessionAccount: rateLimit(authRateLimitOptions({
     scope: 'verify-session', kind: 'account', windowMs: 15 * 60 * 1000, limit: 180,
     subject: req => req.user?.id,
   })),
@@ -332,7 +332,7 @@ async function checkPasswordAndMigrate(user, password) {
   // oturum almadığı has mevcut tokenVersion değiştirilmez.
   if (result.needsRehash) {
     storage.updateUserPassword(user.id, await hashPassword(password), {
-      invalidateVoicesions: false,
+      invalidateSessions: false,
     });
   }
 
@@ -815,9 +815,9 @@ router.post(
 
 router.get(
   '/verify',
-  rateLimits.verifyVoicesionIp,
+  rateLimits.verifySessionIp,
   requireAuth,
-  rateLimits.verifyVoicesionAccount,
+  rateLimits.verifySessionAccount,
   (req, res) => res.json({ user: publicUser(req.user) }),
 );
 

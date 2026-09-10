@@ -214,7 +214,7 @@ async function migrateLegacyPlaintextPasswords() {
     const passwordHash = await hashPassword(user.password);
     // Hash çalışırken kapanış başladıysa kapanmış storage'a yazma yapma.
     if (isShuttingDown) break;
-    storage.updateUserPassword(user.id, passwordHash, { invalidateVoicesions: false });
+    storage.updateUserPassword(user.id, passwordHash, { invalidateSessions: false });
     migratedCount += 1;
   }
   if (isShuttingDown) return migratedCount;
@@ -253,12 +253,12 @@ async function startServices() {
   const migratedPasswordCount = await migrateLegacyPlaintextPasswords();
   if (isShuttingDown) return;
   if (migratedPasswordCount) {
-    console.log('🔐 Eski parolalar Argon2id biçimine güvenle moved.');
+    console.log('🔐 Legacy passwords were safely migrated to Argon2id.');
   }
   const migratedArchivedPasswordCount = await migrateArchivedPlaintextPasswords();
   if (isShuttingDown) return;
   if (migratedArchivedPasswordCount) {
-    console.log("🔐 Eski şifreli snapshot'lardaki parolalar Argon2id biçimine moved.");
+    console.log('🔐 Passwords in legacy encrypted snapshots were migrated to Argon2id.');
   }
 
   server.listen(PORT, HOST, () => {
@@ -274,7 +274,7 @@ async function startServices() {
 }
 
 startServices().catch(error => {
-  console.error(`Güvenli backend başlangıcı tamamlanamadı: ${error.message}`);
+  console.error(`Secure backend startup failed: ${error.message}`);
   storage.close();
   process.exit(1);
 });
@@ -288,7 +288,7 @@ function shutdown(signal) {
   // Paketli Electron, Windows'ta da çalışan IPC kapanış mesajını kullanır.
   let persistenceFailed = storage.flush() !== true;
   if (persistenceFailed) {
-    console.error('Kapanış sırasında son uygulama durumu kalıcı depolamaya yazılamadı.');
+    console.error('The final application state could not be persisted during shutdown.');
   }
 
   let pendingServers = 2;

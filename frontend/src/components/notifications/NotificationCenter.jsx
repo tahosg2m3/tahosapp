@@ -63,7 +63,7 @@ export default function NotificationCenter() {
           setIsOpen(previous => !previous);
           setNotifications(previous => previous.map(item => ({ ...item, read: true })));
         }}
-        aria-label="Bildirimler"
+        aria-label="Notifications"
         className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.09] bg-[#151b27]/95 text-[#cbd5e1] shadow-xl backdrop-blur transition hover:bg-[#243045] hover:text-white"
       >
         {unreadCount ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
@@ -78,7 +78,7 @@ export default function NotificationCenter() {
         <section className="absolute right-0 mt-2 w-[340px] overflow-hidden rounded-xl border border-white/[0.09] bg-[#111827] shadow-2xl">
           <header className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
             <div>
-              <h2 className="text-sm font-bold text-[#f8fafc]">Bildirimler</h2>
+              <h2 className="text-sm font-bold text-[#f8fafc]">Notifications</h2>
               <p className="text-[11px] text-[#94a3b8]">Mentions and new messages</p>
             </div>
             <button
@@ -97,7 +97,7 @@ export default function NotificationCenter() {
               onClick={requestPermission}
               className="mx-3 mt-3 w-[calc(100%-1.5rem)] rounded-lg bg-[#2563eb] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1d4ed8]"
             >
-              Desktop notificationsne izin ver
+              Allow desktop notifications
             </button>
           )}
 

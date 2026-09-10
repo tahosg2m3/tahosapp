@@ -245,7 +245,7 @@ export default function ChannelList({ onNavigate }) {
       setOpenChannelMenu(null);
       toast.success('Kanal silindi.');
     } catch (error) {
-      toast.error(error.message || 'Kanal silinemedi.');
+      toast.error(error.message || 'The channel could not be deleted.');
     }
   };
 

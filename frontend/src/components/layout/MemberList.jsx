@@ -144,7 +144,7 @@ export default function MemberList() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  {member.isOwner && <Shield className="h-3.5 w-3.5 shrink-0 text-[#fbbf24]" title="Sunucu sahibi" />}
+                  {member.isOwner && <Shield className="h-3.5 w-3.5 shrink-0 text-[#fbbf24]" title="Server owner" />}
                   <div className={`truncate text-[14px] font-medium ${online ? 'text-[#e2e8f0]' : 'text-[#718096]'} ${nameAppearance.className}`} style={nameAppearance.style}>
                     {member.nickname || member.username}
                   </div>

@@ -29,7 +29,7 @@ export default function ServerProfileModal({ server, member, user, onUpdated, on
         serverBio: serverBio.trim(),
       });
       onUpdated?.(result.member || result);
-      toast.success('Sunucu profilin kaydedildi.');
+      toast.success('Your server profile was saved.');
       onClose?.();
     } catch (error) {
       toast.error(error.message);
@@ -50,7 +50,7 @@ export default function ServerProfileModal({ server, member, user, onUpdated, on
           </div>
           <button type="button" onClick={onClose} className="absolute right-4 top-4 rounded-full bg-black/20 p-2 text-white/80 hover:bg-black/30 hover:text-white" aria-label="Close"><X className="h-5 w-5" /></button>
           <div className="pt-16">
-            <div className="flex items-center gap-2"><UserRound className="h-5 w-5 text-[#60a5fa]" /><h2 className="text-xl font-bold text-white">Sunucu Profili</h2></div>
+            <div className="flex items-center gap-2"><UserRound className="h-5 w-5 text-[#60a5fa]" /><h2 className="text-xl font-bold text-white">Server Profile</h2></div>
             <p className="mt-1 text-xs text-[#64748b]">This information is visible only in {server.name} and is completely free.</p>
             <form onSubmit={save} className="mt-5 space-y-4">
               <label className="block text-xs font-bold uppercase text-[#94a3b8]">Server nickname<input maxLength="32" value={nickname} onChange={event => setNickname(event.target.value)} placeholder={user?.username} className={inputClass} /></label>

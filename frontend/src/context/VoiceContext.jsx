@@ -184,7 +184,7 @@ async function createProcessedVoiceStream(
   }
 
   const nodes = [];
-  let rnnoiseVoicesion = null;
+  let rnnoiseSession = null;
   try {
     const source = context.createMediaStreamSource(rawStream);
     const highPass = context.createBiquadFilter();
@@ -247,12 +247,12 @@ async function createProcessedVoiceStream(
         };
 
         try {
-          rnnoiseVoicesion = await createRnnoiseProcessor(context, {
+          rnnoiseSession = await createRnnoiseProcessor(context, {
             onProcessorError: handleRuntimeFailure,
           });
-          nodes.push(rnnoiseVoicesion.node);
-          highPass.connect(rnnoiseVoicesion.node);
-          rnnoiseVoicesion.node.connect(rnnoiseGain);
+          nodes.push(rnnoiseSession.node);
+          highPass.connect(rnnoiseSession.node);
+          rnnoiseSession.node.connect(rnnoiseGain);
           rnnoiseGain.connect(lowPass);
           const now = context.currentTime;
           rnnoiseApplied = true;
@@ -260,8 +260,8 @@ async function createProcessedVoiceStream(
           fallbackGain.gain.setTargetAtTime(0, now, 0.015);
         } catch (error) {
           fallbackReason = error?.message || 'RNNoise could not be started.';
-          rnnoiseVoicesion?.destroy();
-          rnnoiseVoicesion = null;
+          rnnoiseSession?.destroy();
+          rnnoiseSession = null;
         }
       } else {
         fallbackReason = 'AudioWorklet/WebAssembly support is unavailable.';
@@ -297,13 +297,13 @@ async function createProcessedVoiceStream(
       outputStream: new MediaStream([outputTrack]),
       context,
       nodes,
-      disposeProcessor: () => rnnoiseVoicesion?.destroy(),
+      disposeProcessor: () => rnnoiseSession?.destroy(),
       rnnoiseApplied,
       fallbackReason,
       processingEngine: rnnoiseApplied ? 'rnnoise' : 'web-audio',
     };
   } catch (error) {
-    rnnoiseVoicesion?.destroy();
+    rnnoiseSession?.destroy();
     nodes.forEach(node => {
       try { node.disconnect?.(); } catch { /* Connected olmayan düğüm. */ }
     });
@@ -328,7 +328,7 @@ async function enableNativeVoiceProcessingFallback(stream) {
   }
 }
 
-function disposeVoiceProcessingVoicesion(session = {}) {
+function disposeVoiceProcessingSession(session = {}) {
   try { session.disposeListeners?.(); } catch { /* Dinleyiciler zaten kaldırılmış olabilir. */ }
   try { session.disposeProcessor?.(); } catch { /* İşlemci zaten kapanmış olabilir. */ }
   (session.nodes || []).forEach(node => {
@@ -384,7 +384,7 @@ export const VoiceProvider = ({ children }) => {
   const voiceCapabilitiesRef = useRef(DEFAULT_CAPABILITIES);
   const audioStreamRef = useRef(null);
   const sourceAudioStreamRef = useRef(null);
-  const audioProcessingVoicesionRef = useRef(null);
+  const audioProcessingSessionRef = useRef(null);
   const microphoneRequestIdRef = useRef(0);
   const cameraStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
@@ -806,14 +806,14 @@ export const VoiceProvider = ({ children }) => {
 
   const releaseMicrophone = () => {
     microphoneRequestIdRef.current += 1;
-    const currentVoicesion = audioProcessingVoicesionRef.current || {
+    const currentSession = audioProcessingSessionRef.current || {
       outputStream: audioStreamRef.current,
       rawStream: sourceAudioStreamRef.current,
     };
-    audioProcessingVoicesionRef.current = null;
+    audioProcessingSessionRef.current = null;
     audioStreamRef.current = null;
     sourceAudioStreamRef.current = null;
-    disposeVoiceProcessingVoicesion(currentVoicesion);
+    disposeVoiceProcessingSession(currentSession);
     setMyStream(null);
     setVoiceProcessingStatus('idle');
     setEffectiveVoiceIsolationMode('off');
@@ -896,15 +896,15 @@ export const VoiceProvider = ({ children }) => {
     const previousOutgoingStream = audioStreamRef.current;
     const previousRawStream = sourceAudioStreamRef.current;
     const hasPreviousStream = hasLiveAudioTrack(previousOutgoingStream);
-    const previousVoicesion = hasPreviousStream
-      ? (audioProcessingVoicesionRef.current || {
+    const previousSession = hasPreviousStream
+      ? (audioProcessingSessionRef.current || {
         outputStream: previousOutgoingStream,
         rawStream: previousRawStream,
       })
       : null;
-    const previousEffectiveMode = previousVoicesion?.effectiveMode || effectiveVoiceIsolationMode;
-    const previousProcessingStatus = previousVoicesion?.processingStatus || voiceProcessingStatus;
-    const previousProcessingEngine = previousVoicesion?.processingEngine || voiceProcessingEngine;
+    const previousEffectiveMode = previousSession?.effectiveMode || effectiveVoiceIsolationMode;
+    const previousProcessingStatus = previousSession?.processingStatus || voiceProcessingStatus;
+    const previousProcessingEngine = previousSession?.processingEngine || voiceProcessingEngine;
     const requestId = microphoneRequestIdRef.current + 1;
     microphoneRequestIdRef.current = requestId;
     setVoiceProcessingStatus('starting');
@@ -963,17 +963,17 @@ export const VoiceProvider = ({ children }) => {
         try { track.contentHint = 'speech'; } catch { /* Bazı tarayıcılar salt okunur uygular. */ }
       });
 
-      let processingVoicesion;
+      let processingSession;
       let processingFallback = capture.usedConstraintFallback;
       try {
-        processingVoicesion = await createProcessedVoiceStream(rawStream, isolationMode, quality, {
+        processingSession = await createProcessedVoiceStream(rawStream, isolationMode, quality, {
           onRnnoiseRuntimeError: (error) => {
-            const currentVoicesion = audioProcessingVoicesionRef.current;
-            if (!currentVoicesion || currentVoicesion.rawStream !== rawStream) return;
-            currentVoicesion.rnnoiseApplied = false;
-            currentVoicesion.effectiveMode = 'standard';
-            currentVoicesion.processingStatus = 'fallback';
-            currentVoicesion.processingEngine = 'browser-fallback';
+            const currentSession = audioProcessingSessionRef.current;
+            if (!currentSession || currentSession.rawStream !== rawStream) return;
+            currentSession.rnnoiseApplied = false;
+            currentSession.effectiveMode = 'standard';
+            currentSession.processingStatus = 'fallback';
+            currentSession.processingEngine = 'browser-fallback';
             void enableNativeVoiceProcessingFallback(rawStream);
             setEffectiveVoiceIsolationMode('standard');
             setVoiceProcessingStatus('fallback');
@@ -984,7 +984,7 @@ export const VoiceProvider = ({ children }) => {
       } catch (processingError) {
         console.warn('Voice isolation could not be applied through Web Audio; browser processing is being used:', processingError);
         processingFallback = true;
-        processingVoicesion = {
+        processingSession = {
           outputStream: rawStream,
           context: null,
           nodes: [],
@@ -993,22 +993,22 @@ export const VoiceProvider = ({ children }) => {
           fallbackReason: processingError?.message || 'The audio processing pipeline could not be started.',
         };
       }
-      processingVoicesion.rawStream = rawStream;
+      processingSession.rawStream = rawStream;
       const rawTrack = rawStream.getAudioTracks()[0];
       if (rawTrack?.addEventListener) {
         const handleUnexpectedTrackEnd = () => {
-          if (audioProcessingVoicesionRef.current !== processingVoicesion || !isInVoiceRef.current) return;
+          if (audioProcessingSessionRef.current !== processingSession || !isInVoiceRef.current) return;
           setVoiceError('The microphone disconnected; reconnecting…');
           releaseMicrophone();
           void ensureMicrophone({ skipCapabilityRefresh: true, forceReplace: true });
         };
         rawTrack.addEventListener('ended', handleUnexpectedTrackEnd);
-        processingVoicesion.disposeListeners = () => rawTrack.removeEventListener('ended', handleUnexpectedTrackEnd);
+        processingSession.disposeListeners = () => rawTrack.removeEventListener('ended', handleUnexpectedTrackEnd);
       }
 
-      if (isolationMode === 'strong' && !processingVoicesion.rnnoiseApplied) {
+      if (isolationMode === 'strong' && !processingSession.rnnoiseApplied) {
         processingFallback = true;
-        processingVoicesion.processingEngine = 'browser-fallback';
+        processingSession.processingEngine = 'browser-fallback';
         await enableNativeVoiceProcessingFallback(rawStream);
       }
 
@@ -1017,25 +1017,25 @@ export const VoiceProvider = ({ children }) => {
         || !isInVoiceRef.current
         || !sameId(activeVoiceChannelRef.current?.id, activeChannel.id)
       ) {
-        disposeVoiceProcessingVoicesion(processingVoicesion);
+        disposeVoiceProcessingSession(processingSession);
         return false;
       }
 
-      const outgoingStream = processingVoicesion.outputStream;
-      const nextEffectiveMode = isolationMode === 'strong' && !processingVoicesion.rnnoiseApplied
+      const outgoingStream = processingSession.outputStream;
+      const nextEffectiveMode = isolationMode === 'strong' && !processingSession.rnnoiseApplied
         ? 'standard'
         : isolationMode;
       const nextProcessingStatus = processingFallback ? 'fallback' : 'active';
-      const nextProcessingEngine = processingVoicesion.processingEngine
+      const nextProcessingEngine = processingSession.processingEngine
         || (nextEffectiveMode === 'off' ? 'none' : 'web-audio');
-      processingVoicesion.effectiveMode = nextEffectiveMode;
-      processingVoicesion.processingStatus = nextProcessingStatus;
-      processingVoicesion.processingEngine = nextProcessingEngine;
+      processingSession.effectiveMode = nextEffectiveMode;
+      processingSession.processingStatus = nextProcessingStatus;
+      processingSession.processingEngine = nextProcessingEngine;
       outgoingStream.getAudioTracks().forEach((track) => {
         track.enabled = !isMutedRef.current && (voiceModeRef.current !== 'push-to-talk' || pushToTalkActiveRef.current);
       });
       sourceAudioStreamRef.current = rawStream;
-      audioProcessingVoicesionRef.current = processingVoicesion;
+      audioProcessingSessionRef.current = processingSession;
       audioStreamRef.current = outgoingStream;
       setMyStream(outgoingStream);
       setEffectiveVoiceIsolationMode(nextEffectiveMode);
@@ -1049,7 +1049,7 @@ export const VoiceProvider = ({ children }) => {
       if (!result?.success) {
         if (hasPreviousStream) {
           sourceAudioStreamRef.current = previousRawStream;
-          audioProcessingVoicesionRef.current = previousVoicesion;
+          audioProcessingSessionRef.current = previousSession;
           audioStreamRef.current = previousOutgoingStream;
           setMyStream(previousOutgoingStream);
           setEffectiveVoiceIsolationMode(previousEffectiveMode);
@@ -1057,14 +1057,14 @@ export const VoiceProvider = ({ children }) => {
           setVoiceProcessingEngine(previousProcessingEngine);
         } else {
           sourceAudioStreamRef.current = null;
-          audioProcessingVoicesionRef.current = null;
+          audioProcessingSessionRef.current = null;
           audioStreamRef.current = null;
           setMyStream(null);
           setEffectiveVoiceIsolationMode('off');
           setVoiceProcessingStatus('error');
           setVoiceProcessingEngine('none');
         }
-        disposeVoiceProcessingVoicesion(processingVoicesion);
+        disposeVoiceProcessingSession(processingSession);
         return false;
       }
 
@@ -1072,8 +1072,8 @@ export const VoiceProvider = ({ children }) => {
         inputDeviceIdRef.current = '';
         setInputDeviceId('');
       }
-      if (previousVoicesion && previousVoicesion !== processingVoicesion) {
-        disposeVoiceProcessingVoicesion(previousVoicesion);
+      if (previousSession && previousSession !== processingSession) {
+        disposeVoiceProcessingSession(previousSession);
       }
       reconnectCalls();
       return true;
@@ -1608,7 +1608,7 @@ export const VoiceProvider = ({ children }) => {
       });
 
       newPeer.on('error', (error) => {
-        console.error('PeerJS hatası:', error);
+        console.error('PeerJS error:', error);
         // `peer-unavailable` ses sunucusunun kapalı olduğunu değil, listede
         // kalmış tek bir uzak PeerJS kimliğinin artık bulunamadığını anlatır.
         // Sunucu yeni snapshot yayımlayacağı has aktif ses oturumunu yanlış bir

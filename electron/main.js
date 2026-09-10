@@ -96,10 +96,10 @@ function requireCleanUrl(value, label, { secureOnly = false } = {}) {
     throw new Error(`${label} must contain only an origin, without a path.`);
   }
   if (secureOnly && parsed.protocol !== 'https:') {
-    throw new Error(`${label} uzak modda https:// ile başlamalı.`);
+    throw new Error(`${label} must use https:// in remote mode.`);
   }
   if (!secureOnly && !['http:', 'https:'].includes(parsed.protocol)) {
-    throw new Error(`${label} http:// veya https:// ile başlamalı.`);
+    throw new Error(`${label} must begin with http:// or https://.`);
   }
   return parsed.origin;
 }
@@ -683,7 +683,7 @@ async function startPackagedBackend() {
         console.error(`Backend process exited with code ${code}.`);
         if (mainWindow && !mainWindow.isDestroyed()) {
           dialog.showErrorBox(
-            'Yerel servis durdu',
+            'Local service stopped',
             'The local service stopped unexpectedly. The app will close to protect your data.',
           );
           app.quit();
@@ -801,8 +801,8 @@ function chooseDisplaySource(request, callback) {
       });
     };
 
-    appendGroup('Ekranlar', sources.filter(source => source.id.startsWith('screen:')));
-    appendGroup('Pencereler', sources.filter(source => source.id.startsWith('window:')));
+    appendGroup('Screens', sources.filter(source => source.id.startsWith('screen:')));
+    appendGroup('Windows', sources.filter(source => source.id.startsWith('window:')));
     menuItems.push({ type: 'separator' }, { label: 'Cancel', click: () => complete({}) });
 
     const picker = Menu.buildFromTemplate(menuItems);
@@ -905,7 +905,7 @@ function initializeDesktopUpdater() {
     status: supported ? 'idle' : 'disabled',
     automaticChecks: desktopUpdatePreferences.automaticChecks,
     message: supported
-      ? 'Updates otomatik olarak denetlenir.'
+      ? 'Updates are checked automatically.'
       : 'Automatic updates are available only in the installed Windows app.',
   });
   if (!supported) return;
@@ -920,7 +920,7 @@ function initializeDesktopUpdater() {
     setDesktopUpdateState({
       status: 'checking',
       progress: null,
-      message: 'Updates denetleniyor…',
+      message: 'Checking for updates…',
     });
   });
   autoUpdater.on('update-available', info => {
@@ -1102,14 +1102,14 @@ function stopAutomaticPresence() {
 function configurePermissions() {
   const allowedPermissions = new Set(['media', 'display-capture', 'speaker-selection']);
 
-  session.defaultVoicesion.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     return allowedPermissions.has(permission)
       && details?.isMainFrame !== false
       && isTrustedAppWebContents(webContents, requestingOrigin)
       && (!details?.embeddingOrigin || isTrustedRendererOrigin(details.embeddingOrigin));
   });
 
-  session.defaultVoicesion.setPermissionRequestHandler((webContents, permission, callback, details) => {
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const requestingUrl = details?.requestingUrl || webContents?.getURL() || '';
     callback(
       allowedPermissions.has(permission)
@@ -1118,7 +1118,7 @@ function configurePermissions() {
     );
   });
 
-  session.defaultVoicesion.setDisplayMediaRequestHandler(chooseDisplaySource, { useSystemPicker: true });
+  session.defaultSession.setDisplayMediaRequestHandler(chooseDisplaySource, { useSystemPicker: true });
 }
 
 const ownsSingleInstance = isDev || app.requestSingleInstanceLock();
@@ -1152,6 +1152,10 @@ if (!ownsSingleInstance) {
     createWindow();
   }).catch(error => {
     console.error('Application startup failed:', error);
+    dialog.showErrorBox(
+      'tahosapp could not start',
+      'An unexpected startup error occurred. Please reinstall the latest version or contact support if the problem continues.',
+    );
     app.quit();
   });
 

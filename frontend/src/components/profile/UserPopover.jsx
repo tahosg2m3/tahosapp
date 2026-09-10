@@ -126,7 +126,7 @@ function ProfileBadges({ verified, isOwner, isFriend }) {
   return (
     <span className="inline-flex items-center gap-1.5 align-middle">
       {verified && <BadgeCheck className="h-4 w-4 fill-[#23cdb5]/20 text-[#23cdb5]" aria-label="Verified profile" />}
-      {isOwner && <Crown className="h-4 w-4 fill-[#f0b232]/20 text-[#f0b232]" aria-label="Sunucu sahibi" />}
+      {isOwner && <Crown className="h-4 w-4 fill-[#f0b232]/20 text-[#f0b232]" aria-label="Server owner" />}
       {isFriend && <ShieldCheck className="h-4 w-4 fill-[#5865f2]/20 text-[#8b93ff]" aria-label="Friend" />}
     </span>
   );
@@ -319,7 +319,7 @@ function FullProfileModal({
   const tabItems = [
     { id: 'activity', label: 'Activelik', count: null },
     { id: 'friends', label: 'Mutual Friends', count: mutualFriends.length },
-    { id: 'servers', label: 'Ortak Sunucu', count: mutualServers.length },
+    { id: 'servers', label: 'Mutual Servers', count: mutualServers.length },
   ];
 
   return (
@@ -327,7 +327,7 @@ function FullProfileModal({
       <section
         role="dialog"
         aria-modal="true"
-        aria-label={`${displayName} tam profili`}
+        aria-label={`${displayName} full profile`}
         className="relative flex h-[calc(100vh-48px)] max-h-[780px] w-[calc(100vw-48px)] max-w-[1160px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#070708] shadow-[0_30px_100px_rgba(0,0,0,.75)]"
         onMouseDown={stopEvent}
       >
@@ -335,7 +335,7 @@ function FullProfileModal({
           type="button"
           onClick={onClose}
           className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.1] bg-[#1e1f22] text-[#dbdee1] hover:bg-[#2b2d31] hover:text-white"
-          aria-label="Profili kapat"
+          aria-label="Close profile"
         >
           <X className="h-5 w-5" />
         </button>
@@ -488,7 +488,7 @@ function FullProfileModal({
 
             {activeTab === 'servers' && (
               <section className="pt-8">
-                <h2 className="mb-4 text-base font-medium text-[#949ba4]">{mutualServers.length} Ortak Sunucu</h2>
+                <h2 className="mb-4 text-base font-medium text-[#949ba4]">{mutualServers.length} Mutual Servers</h2>
                 <div className="grid gap-3 xl:grid-cols-2">
                   {mutualServers.map(server => {
                     const icon = resolveSafeMediaUrl(server.icon);
@@ -718,7 +718,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
       <section
         role="dialog"
         aria-modal="true"
-        aria-label={`${displayName} profili`}
+        aria-label={`${displayName} profile`}
         title="Click the card again to open the full profile"
         onMouseDown={stopEvent}
         onClick={() => setExpanded(true)}
@@ -778,7 +778,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
             <MutualAvatars users={mutualFriends} />
             <span>{mutualFriends.length} Mutual Friends</span>
             <span>•</span>
-            <span>{mutualServers.length} Ortak Sunucu</span>
+            <span>{mutualServers.length} Mutual Servers</span>
           </button>
 
           <div className="mt-4">

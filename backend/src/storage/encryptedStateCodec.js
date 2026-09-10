@@ -117,7 +117,7 @@ function parseKeyMaterial(value, sourceName) {
 
   if (!key || key.length !== KEY_LENGTH) {
     throw new StateEncryptionError(
-      `${sourceName} tam olarak 32 baytlık bir anahtar olmalıdır (64 karakter hex veya base64).`,
+      `${sourceName} must be exactly 32 bytes (64-character hex or base64).`,
       'DATA_ENCRYPTION_KEY_INVALID',
     );
   }
@@ -173,11 +173,11 @@ function enforcePrivateFilePermissions(filePath) {
     fs.chmodSync(filePath, 0o600);
     const mode = fs.statSync(filePath).mode & 0o777;
     if (mode !== 0o600) {
-      throw new Error(`beklenen izin 0600, mevcut izin 0${mode.toString(8)}`);
+      throw new Error(`expected permission 0600, current permission 0${mode.toString(8)}`);
     }
   } catch (error) {
     throw new StateEncryptionError(
-      `Custom veri dosyasının erişim izinleri güvenli hale getirilemedi (${filePath}): ${error.message}`,
+      `The custom data file permissions could not be secured (${filePath}): ${error.message}`,
       'DATA_PRIVATE_FILE_PERMISSIONS',
       error,
     );
@@ -193,7 +193,7 @@ function readKeyFile(keyFilePath, privateFileProtector = enforcePrivateFilePermi
   } catch (error) {
     if (error instanceof StateEncryptionError) throw error;
     throw new StateEncryptionError(
-      `Veri şifreleme anahtarı okunamadı (${keyFilePath}): ${error.message}`,
+      `The data-encryption key could not be read (${keyFilePath}): ${error.message}`,
       'DATA_ENCRYPTION_KEY_READ_FAILED',
       error,
     );
@@ -201,7 +201,7 @@ function readKeyFile(keyFilePath, privateFileProtector = enforcePrivateFilePermi
 
   const prefix = [KEY_FILE_PREFIX, LEGACY_KEY_FILE_PREFIX].find(candidate => contents.startsWith(candidate));
   const material = prefix ? contents.slice(prefix.length) : contents;
-  return parseKeyMaterial(material, 'Veri şifreleme anahtarı dosyası');
+  return parseKeyMaterial(material, 'Data-encryption key file');
 }
 
 function loadOrCreateEncryptionKey({
@@ -220,7 +220,7 @@ function loadOrCreateEncryptionKey({
 
   if (!keyFilePath) {
     throw new StateEncryptionError(
-      'DATA_ENCRYPTION_KEY tanımlı değil and anahtar dosyası yolu verilmedi.',
+      'DATA_ENCRYPTION_KEY is not configured and no key-file path was provided.',
       'DATA_ENCRYPTION_KEY_MISSING',
     );
   }
@@ -231,7 +231,7 @@ function loadOrCreateEncryptionKey({
 
   if (!allowKeyCreation) {
     throw new StateEncryptionError(
-      `Passwordli uygulama verisi mevcut fakat anahtar bulunamadı (${keyFilePath}). Yeni anahtar oluşturulmadı and hiçbir veri değiştirilmedi.`,
+      `Encrypted application data exists, but its key is missing (${keyFilePath}). No new key was created and no data was changed.`,
       'DATA_ENCRYPTION_KEY_MISSING',
     );
   }
@@ -265,7 +265,7 @@ function loadOrCreateEncryptionKey({
     }
     if (error instanceof StateEncryptionError) throw error;
     throw new StateEncryptionError(
-      `Veri şifreleme anahtarı oluşturulamadı (${keyFilePath}): ${error.message}`,
+      `The data-encryption key could not be created (${keyFilePath}): ${error.message}`,
       'DATA_ENCRYPTION_KEY_CREATE_FAILED',
       error,
     );
@@ -300,7 +300,7 @@ class EncryptedStateCodec {
 
   createMigrationMarker(status, markerType = MIGRATION_MARKER_TYPE) {
     if (!['pending', 'complete'].includes(status)) {
-      throw new StateEncryptionError('Geçersiz plaintext migration marker durumu.', 'DATA_MIGRATION_MARKER_INVALID');
+      throw new StateEncryptionError('Invalid plaintext migration marker state.', 'DATA_MIGRATION_MARKER_INVALID');
     }
     const marker = {
       type: markerType,
@@ -331,7 +331,7 @@ class EncryptedStateCodec {
       || !['pending', 'complete'].includes(marker.status)
     ) {
       throw new StateEncryptionError(
-        'Plaintext migration marker geçersiz veya farklı bir anahtara ait.',
+        'The plaintext migration marker is invalid or belongs to a different key.',
         'DATA_MIGRATION_MARKER_INVALID',
       );
     }
@@ -346,7 +346,7 @@ class EncryptedStateCodec {
       || !crypto.timingSafeEqual(suppliedMac, expectedMac)
     ) {
       throw new StateEncryptionError(
-        'Plaintext migration marker doğrulanamadı; veri değiştirilmedi.',
+        'The plaintext migration marker could not be verified; data was not changed.',
         'DATA_MIGRATION_MARKER_AUTH_FAILED',
       );
     }
@@ -359,7 +359,7 @@ class EncryptedStateCodec {
       plaintext = JSON.stringify(snapshot);
     } catch (error) {
       throw new StateEncryptionError(
-        `Uygulama verisi JSON'a dönüştürülemedi: ${error.message}`,
+        `Application data could not be converted to JSON: ${error.message}`,
         'DATA_SERIALIZATION_FAILED',
         error,
       );
@@ -384,13 +384,13 @@ class EncryptedStateCodec {
     });
   }
 
-  decodeSnapshot(serialized, sourceName = 'uygulama verisi') {
+  decodeSnapshot(serialized, sourceName = 'application data') {
     let parsed;
     try {
       parsed = JSON.parse(serialized);
     } catch (error) {
       throw new StateEncryptionError(
-        `${sourceName} geçerli JSON veya şifreli veri zarfı değil. Veri güvenliği has uygulama başlatılmadı.`,
+        `${sourceName} is not valid JSON or an encrypted data envelope. The application was not started to protect the data.`,
         'DATA_FORMAT_INVALID',
         error,
       );
@@ -399,7 +399,7 @@ class EncryptedStateCodec {
     if (!isEncryptionEnvelope(parsed)) {
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         throw new StateEncryptionError(
-          `${sourceName} geçerli bir uygulama durumu içermiyor.`,
+          `${sourceName} does not contain a valid application state.`,
           'DATA_FORMAT_INVALID',
         );
       }
@@ -408,13 +408,13 @@ class EncryptedStateCodec {
 
     if (parsed.version !== ENVELOPE_VERSION || parsed.algorithm !== ENVELOPE_ALGORITHM) {
       throw new StateEncryptionError(
-        `${sourceName} desteklenmeyen bir şifreleme sürümü veya algoritması kullanıyor.`,
+        `${sourceName} uses an unsupported encryption version or algorithm.`,
         'DATA_ENCRYPTION_VERSION_UNSUPPORTED',
       );
     }
     if (parsed.keyId !== this.keyId) {
       throw new StateEncryptionError(
-        `${sourceName} bu DATA_ENCRYPTION_KEY/anahtar dosyasıyla şifrelenmemiş. Doğru anahtarı geri yüklemeden uygulama başlatılamaz.`,
+        `${sourceName} was not encrypted with this DATA_ENCRYPTION_KEY or key file. Restore the correct key before starting the application.`,
         'DATA_ENCRYPTION_KEY_MISMATCH',
       );
     }
@@ -424,7 +424,7 @@ class EncryptedStateCodec {
     const ciphertext = decodeBase64Url(parsed.ciphertext);
     if (!iv || iv.length !== IV_LENGTH || !authTag || authTag.length !== AUTH_TAG_LENGTH || !ciphertext) {
       throw new StateEncryptionError(
-        `${sourceName} şifreli veri zarfı eksik veya bozuk.`,
+        `${sourceName} has an incomplete or corrupted encrypted data envelope.`,
         'DATA_ENCRYPTED_ENVELOPE_INVALID',
       );
     }
@@ -439,7 +439,7 @@ class EncryptedStateCodec {
       plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
     } catch (error) {
       throw new StateEncryptionError(
-        `${sourceName} çözülemedi veya doğrulanamadı. Anahtar yanlış ya da veri değiştirilmiş olabilir; veri sıfırlanmadı.`,
+        `${sourceName} could not be decrypted or authenticated. The key may be incorrect or the data may have changed; data was not reset.`,
         'DATA_DECRYPTION_FAILED',
         error,
       );
@@ -451,7 +451,7 @@ class EncryptedStateCodec {
       return { snapshot, wasPlaintext: false };
     } catch (error) {
       throw new StateEncryptionError(
-        `${sourceName} başarıyla çözüldü ancak içeriği geçerli bir uygulama durumu değil.`,
+        `${sourceName} was decrypted successfully, but it does not contain a valid application state.`,
         'DATA_DECRYPTED_FORMAT_INVALID',
         error,
       );

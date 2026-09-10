@@ -112,8 +112,8 @@ function classifyGame(processInfo) {
       sessionId: 'auto-game',
       type: 'playing',
       name,
-      details: 'Oyunda',
-      state: store?.platform ? `${store.platform} Playing via` : 'Playing a game',
+      details: 'Playing',
+      state: store?.platform ? `Playing via ${store.platform}` : 'Playing a game',
       startedAt: Number(processInfo?.startedAt) || Date.now(),
       ttlSeconds: 60,
       metadata: {
@@ -124,7 +124,7 @@ function classifyGame(processInfo) {
   };
 }
 
-function automaticMediaVoicesionId(prefix, sourceId) {
+function automaticMediaSessionId(prefix, sourceId) {
   const digest = crypto.createHash('sha256').update(sourceId || prefix).digest('hex').slice(0, 12);
   return `auto-${prefix}-${digest}`;
 }
@@ -161,7 +161,7 @@ function classifyMedia(media) {
   const mediaPrefix = category === 'video' ? 'video' : 'media';
 
   return {
-    sessionId: automaticMediaVoicesionId(mediaPrefix, sourceId),
+    sessionId: automaticMediaSessionId(mediaPrefix, sourceId),
     type: category === 'video' ? 'watching' : 'listening',
     category,
     provider: isSpotify ? 'spotify' : isYouTubeMusic ? 'youtube-music' : browserSource ? 'browser' : 'other',
@@ -188,7 +188,7 @@ function classifyMedia(media) {
     } : {}),
     metadata: {
       Source: 'Automatic detection',
-      Servis: provider,
+      Service: provider,
       State: isPaused ? 'Paused' : 'Playing',
     },
   };
@@ -196,11 +196,11 @@ function classifyMedia(media) {
 
 function classifySnapshot(snapshot) {
   const processes = Array.isArray(snapshot?.processes) ? snapshot.processes : [];
-  const mediaVoicesions = Array.isArray(snapshot?.media) ? snapshot.media : [];
+  const mediaSessions = Array.isArray(snapshot?.media) ? snapshot.media : [];
   const games = processes.map(classifyGame).filter(Boolean).sort((a, b) => (
     b.score - a.score || Number(b.activity?.startedAt || 0) - Number(a.activity?.startedAt || 0)
   ));
-  const mediaActivities = mediaVoicesions
+  const mediaActivities = mediaSessions
     .map(item => ({ item, activity: classifyMedia(item) }))
     .filter(entry => entry.activity)
     .sort((a, b) => (

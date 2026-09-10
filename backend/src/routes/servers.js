@@ -324,7 +324,7 @@ router.delete('/:id', authRateLimit, requireAuth, mutationRateLimit, requireServ
   if (!storage.deleteServer(serverId)) return res.status(404).json({ error: 'Server not found.' });
 
   req.app.get('io')?.to(`server:${serverId}`).emit('server:deleted', { serverId });
-  return res.json({ message: 'Sunucu silindi.' });
+  return res.json({ message: 'Server deleted.' });
 });
 
 module.exports = router;

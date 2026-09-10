@@ -70,7 +70,7 @@ class SQLiteStateStore {
         .map(entry => path.join(directory, entry.name));
     } catch (error) {
       if (error.code === 'ENOENT') return [];
-      this.logger.warn(`Eski veri yedekleri listelenemedi: ${error.message}`);
+      this.logger.warn(`Legacy data backups could not be listed: ${error.message}`);
       return [];
     }
   }
@@ -87,7 +87,7 @@ class SQLiteStateStore {
     } catch (error) {
       if (error.code === 'ENOENT') return [];
       throw new StateEncryptionError(
-        `Geçici veri dosyaları listelenemedi (${directory}): ${error.message}`,
+        `Temporary data files could not be listed (${directory}): ${error.message}`,
         'DATA_TEMP_FILE_SCAN_FAILED',
         error,
       );
@@ -174,7 +174,7 @@ class SQLiteStateStore {
       }
       if (error.code === 'ENOENT') return;
       throw new StateEncryptionError(
-        `Geçici veri dosyası güvenli biçimde temizlenemedi (${filePath}): ${error.message}`,
+        `The temporary data file could not be removed safely (${filePath}): ${error.message}`,
         'DATA_TEMP_FILE_CLEANUP_FAILED',
         error,
       );
@@ -207,7 +207,7 @@ class SQLiteStateStore {
     if (privateFile) this.privateFileProtector(targetPath);
     else if (process.platform !== 'win32') fs.chmodSync(targetPath, 0o600);
     validFiles.slice(1).forEach(item => this.secureDeleteTemporaryFile(item.filePath));
-    this.logger.warn(`${path.basename(targetPath)} tamamlanmış güvenli geçici dosyadan kurtarıldı.`);
+    this.logger.warn(`${path.basename(targetPath)} was recovered from a completed secure temporary file.`);
   }
 
   recoverMigrationMarkerTemporaryFiles() {
@@ -226,7 +226,7 @@ class SQLiteStateStore {
           const decoded = this.codec.decodeSnapshot(rawData, `${path.basename(filePath)} geçici dosyası`);
           if (decoded.wasPlaintext) {
             throw new StateEncryptionError(
-              'Plaintext geçici snapshot güvenlik nedeniyle kurtarılmadı.',
+              'The plaintext temporary snapshot was not recovered for security reasons.',
               'DATA_PLAINTEXT_TEMP_REJECTED',
             );
           }
@@ -243,7 +243,7 @@ class SQLiteStateStore {
     } catch (error) {
       if (error instanceof StateEncryptionError) throw error;
       throw new StateEncryptionError(
-        `Plaintext migration marker okunamadı: ${error.message}`,
+        `The plaintext migration marker could not be read: ${error.message}`,
         'DATA_MIGRATION_MARKER_INVALID',
         error,
       );
@@ -255,7 +255,7 @@ class SQLiteStateStore {
     this.writeEncryptedFileAtomic(
       this.migrationMarkerFile,
       serialized,
-      'Plaintext migration marker kaydedilemedi',
+      'The plaintext migration marker could not be saved',
       { privateFile: true },
     );
     this.migrationStatus = status;
@@ -264,7 +264,7 @@ class SQLiteStateStore {
   preparePlaintextMigrationAuthorization() {
     if (this.migrationStatus === 'complete' && this.preflight.hasPlaintextState) {
       throw new StateEncryptionError(
-        'Passwordleme migration action daha önce tamamlandı; sonradan eklenen plaintext uygulama verisi reddedildi.',
+        'Encryption migration was already completed; plaintext application data added later was rejected.',
         'PLAINTEXT_STATE_REJECTED',
       );
     }
@@ -289,7 +289,7 @@ class SQLiteStateStore {
     if (this.preflight.hasPlaintextState) {
       if (!this.explicitPlaintextMigrationAllowed) {
         throw new StateEncryptionError(
-          'Plaintext uygulama verisi mevcut fakat tek seferlik migration izni yok. Harici anahtarla kontrollü taşıma has yalnız ilk çalıştırmada ALLOW_PLAINTEXT_STATE_MIGRATION=true kullanın.',
+          'Plaintext application data exists, but one-time migration is not authorized. With an external key, use ALLOW_PLAINTEXT_STATE_MIGRATION=true only for the first controlled migration.',
           'PLAINTEXT_STATE_MIGRATION_NOT_AUTHORIZED',
         );
       }
@@ -304,7 +304,7 @@ class SQLiteStateStore {
       return;
     }
     throw new StateEncryptionError(
-      `${sourceName} plaintext biçimde bulundu fakat tek seferlik migration tamamlanmış veya yetkilendirilmemiş. Veri reddedildi and değiştirilmedi.`,
+      `${sourceName} was found in plaintext, but the one-time migration is complete or was not authorized. The data was rejected and left unchanged.`,
       'PLAINTEXT_STATE_REJECTED',
     );
   }
@@ -320,8 +320,8 @@ class SQLiteStateStore {
     // atomic JSON fallback in that runtime instead.
     const nodeMajor = Number(String(process.versions.node || '0').split('.')[0]);
     if (process.versions.electron && nodeMajor < 22) {
-      this.disableSQLite(new Error('Paketli Electron çalışma zamanı SQLite eklentisi has desteklenen Node sürümünü içermiyor.'), false);
-      this.logger.warn('Paketli Electron sürümünde uyumlu SQLite eklentisi bulunamadı; şifreli atomik JSON veri dosyası kullanılacak.');
+      this.disableSQLite(new Error('The packaged Electron runtime does not include the Node version supported by the SQLite extension.'), false);
+      this.logger.warn('No compatible SQLite extension was found in the packaged Electron build; an encrypted atomic JSON data file will be used.');
       return;
     }
 
@@ -374,7 +374,7 @@ class SQLiteStateStore {
       this.writeState = null;
       this.usingSQLite = false;
       throw new StateEncryptionError(
-        `SQLite veri tabanı başlatılamadı; JSON fallback'e geçilmedi and veri sıfırlanmadı: ${error.message}`,
+        `The SQLite database could not be initialized; the JSON fallback was not used and data was not reset: ${error.message}`,
         'DATA_SQLITE_INITIALIZATION_FAILED',
         error,
       );
@@ -396,7 +396,7 @@ class SQLiteStateStore {
     this.usingSQLite = false;
 
     if (announce) {
-      this.logger.warn(`SQLite kullanılamıyor; şifreli JSON veri dosyası kullanılacak: ${error.message}`);
+      this.logger.warn(`SQLite is unavailable; an encrypted JSON data file will be used: ${error.message}`);
     }
   }
 
@@ -441,19 +441,19 @@ class SQLiteStateStore {
       rawData = fs.readFileSync(this.legacyDataFile, 'utf8');
     } catch (error) {
       throw new StateEncryptionError(
-        `JSON veri dosyası okunamadı: ${error.message}`,
+        `The JSON data file could not be read: ${error.message}`,
         'DATA_READ_FAILED',
         error,
       );
     }
 
-    const decoded = this.codec.decodeSnapshot(rawData, 'JSON veri dosyası');
+    const decoded = this.codec.decodeSnapshot(rawData, 'JSON data file');
     if (decoded.wasPlaintext) {
-      this.assertPlaintextMigrationAllowed('JSON veri dosyası');
+      this.assertPlaintextMigrationAllowed('JSON data file');
       // Existing installations are migrated in place. The rename is atomic, so
       // a crash cannot leave a half-written encrypted JSON file behind.
       this.writeLegacySnapshot(this.codec.encodeSnapshot(decoded.snapshot));
-      this.logger.info('Eski düz text JSON uygulama verisi şifreli biçime moved.');
+      this.logger.info('Legacy plaintext JSON application data was migrated to encrypted storage.');
     }
     return decoded.snapshot;
   }
@@ -468,35 +468,35 @@ class SQLiteStateStore {
         rawData = fs.readFileSync(backupFile, 'utf8');
         parsed = JSON.parse(rawData);
       } catch (error) {
-        this.logger.warn(`${path.basename(backupFile)} geçerli JSON olmadığı has otomatik şifrelenmedi: ${error.message}`);
+        this.logger.warn(`${path.basename(backupFile)} was not encrypted automatically because it is not valid JSON: ${error.message}`);
         return;
       }
 
       if (isEncryptionEnvelope(parsed)) {
         // Verify existing encrypted backups too. A mismatched key must not be
         // silently ignored, because that would make later recovery impossible.
-        this.codec.decodeSnapshot(rawData, `${path.basename(backupFile)} yedeği`);
+        this.codec.decodeSnapshot(rawData, `${path.basename(backupFile)} backup`);
         return;
       }
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        this.logger.warn(`${path.basename(backupFile)} JSON nesnesi olmadığı has değiştirilmedi.`);
+        this.logger.warn(`${path.basename(backupFile)} was left unchanged because it is not a JSON object.`);
         return;
       }
 
-      this.assertPlaintextMigrationAllowed(`${path.basename(backupFile)} yedeği`);
+      this.assertPlaintextMigrationAllowed(`${path.basename(backupFile)} backup`);
       const encrypted = this.codec.encodeSnapshot(parsed);
       this.writeEncryptedFileAtomic(
         backupFile,
         encrypted,
-        `${path.basename(backupFile)} yedeği şifrelenemedi`,
+        `${path.basename(backupFile)} backup could not be encrypted`,
       );
-      this.logger.info(`${path.basename(backupFile)} düz text yedeği şifreli biçime moved.`);
+      this.logger.info(`${path.basename(backupFile)} plaintext backup was migrated to encrypted storage.`);
     });
   }
 
   async transformLegacySnapshots(transformer) {
     if (typeof transformer !== 'function') {
-      throw new TypeError('Eski snapshot dönüştürücüsü bir fonksiyon olmalıdır.');
+      throw new TypeError('The legacy snapshot converter must be a function.');
     }
 
     const files = [...new Set([
@@ -513,14 +513,14 @@ class SQLiteStateStore {
         rawData = fs.readFileSync(filePath, 'utf8');
       } catch (error) {
         throw new StateEncryptionError(
-          `${path.basename(filePath)} güvenli dönüşüm has okunamadı: ${error.message}`,
+          `${path.basename(filePath)} could not be read for secure conversion: ${error.message}`,
           'DATA_READ_FAILED',
           error,
         );
       }
 
-      const decoded = this.codec.decodeSnapshot(rawData, `${path.basename(filePath)} snapshot'ı`);
-      if (decoded.wasPlaintext) this.assertPlaintextMigrationAllowed(`${path.basename(filePath)} snapshot'ı`);
+      const decoded = this.codec.decodeSnapshot(rawData, `${path.basename(filePath)} snapshot`);
+      if (decoded.wasPlaintext) this.assertPlaintextMigrationAllowed(`${path.basename(filePath)} snapshot`);
       const result = await transformer(decoded.snapshot, { filePath });
       if (!result?.changed && !decoded.wasPlaintext) continue;
 
@@ -528,7 +528,7 @@ class SQLiteStateStore {
       this.writeEncryptedFileAtomic(
         filePath,
         this.codec.encodeSnapshot(nextSnapshot),
-        `${path.basename(filePath)} güvenli biçimde güncellenemedi`,
+        `${path.basename(filePath)} could not be updated safely`,
       );
       transformedItems += Number(result.changedCount) || 0;
     }
@@ -545,7 +545,7 @@ class SQLiteStateStore {
       this.db.pragma('wal_checkpoint(TRUNCATE)');
     } catch (error) {
       throw new StateEncryptionError(
-        `SQLite düz text kalıntıları güvenli biçimde temizlenemedi: ${error.message}`,
+        `Plaintext SQLite remnants could not be removed safely: ${error.message}`,
         'DATA_PLAINTEXT_PURGE_FAILED',
         error,
       );
@@ -553,13 +553,13 @@ class SQLiteStateStore {
   }
 
   migratePlaintextSQLiteSnapshot(snapshot) {
-    this.assertPlaintextMigrationAllowed('SQLite uygulama verisi');
+    this.assertPlaintextMigrationAllowed('SQLite application data');
     const encrypted = this.codec.encodeSnapshot(snapshot);
     try {
       this.writeState(encrypted, Date.now());
     } catch (error) {
       throw new StateEncryptionError(
-        `SQLite uygulama verisi şifreli biçime taşınamadı: ${error.message}`,
+        `SQLite application data could not be migrated to encrypted storage: ${error.message}`,
         'DATA_MIGRATION_FAILED',
         error,
       );
@@ -567,7 +567,7 @@ class SQLiteStateStore {
     // Keep the authenticated marker pending until WAL truncation and VACUUM
     // both succeed. A crash/failure is retried on the next startup.
     this.sqlitePurgeRequired = true;
-    this.logger.info('Eski düz text SQLite uygulama verisi şifreli biçime moved.');
+    this.logger.info('Legacy plaintext SQLite application data was migrated to encrypted storage.');
   }
 
   load() {
@@ -587,14 +587,14 @@ class SQLiteStateStore {
       row = this.selectState.get();
     } catch (error) {
       throw new StateEncryptionError(
-        `SQLite uygulama verisi okunamadı; veri sıfırlanmadı: ${error.message}`,
+        `SQLite application data could not be read; data was not reset: ${error.message}`,
         'DATA_READ_FAILED',
         error,
       );
     }
 
     if (row) {
-      const decoded = this.codec.decodeSnapshot(row.state_json, 'SQLite uygulama verisi');
+      const decoded = this.codec.decodeSnapshot(row.state_json, 'SQLite application data');
       if (decoded.wasPlaintext) this.migratePlaintextSQLiteSnapshot(decoded.snapshot);
       state = decoded.snapshot;
       // data.json may remain from an older SQLite import. It is not the active
@@ -607,7 +607,7 @@ class SQLiteStateStore {
       state = this.readLegacySnapshot();
       if (state && !this.save(state)) {
         throw new StateEncryptionError(
-          'Eski JSON verisi SQLite içine aktarılamadı; veri sıfırlanmadı.',
+          'Legacy JSON data could not be imported into SQLite; data was not reset.',
           'DATA_MIGRATION_FAILED',
         );
       }
@@ -641,7 +641,7 @@ class SQLiteStateStore {
         // Once SQLite was selected it remains authoritative for this process.
         // Writing a newer JSON fallback here would create two divergent states
         // and could rolesl data back on restart, so fail closed instead.
-        this.logger.error(`SQLite uygulama verisi kaydedilemedi; JSON fallback yazılmadı: ${error.message}`);
+        this.logger.error(`SQLite application data could not be saved; the JSON fallback was not written: ${error.message}`);
         return false;
       }
     }
@@ -659,7 +659,7 @@ class SQLiteStateStore {
     return this.writeEncryptedFileAtomic(
       this.legacyDataFile,
       encrypted,
-      'Veriler şifreli JSON dosyasına kaydedilemedi',
+      'Data could not be saved to the encrypted JSON file',
     );
   }
 

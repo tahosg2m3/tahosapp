@@ -253,7 +253,7 @@ export default function MemberManagementModal({
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-sm font-semibold text-[#F2F3F5]">{name}</span>
-                        {member.isOwner && <Crown className="h-4 w-4 shrink-0 text-[#FEE75C]" title="Sunucu sahibi" />}
+                        {member.isOwner && <Crown className="h-4 w-4 shrink-0 text-[#FEE75C]" title="Server owner" />}
                         {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muteuldu" />}
                         {member.serverDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Deafened" />}
                         {member.isTimedOut && <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#FEE75C]" title="Timed out" />}

@@ -407,7 +407,7 @@ exports.handleSend = async (io, socket, data = {}) => {
       });
     }
   } catch (error) {
-    console.error('Send messagesilirken sunucuda hata oluştu:', error);
+    console.error('Server error while sending a message:', error);
     socket.emit('message:error', { message: 'Message could not be sent.', code: 'MESSAGE_SEND_FAILED' });
   }
 };
@@ -431,7 +431,7 @@ exports.handleEdit = (io, socket, data = {}) => {
       return;
     }
     if (!originalMessage || originalMessage.userId !== userId) {
-      socket.emit('message:error', { message: 'Editnecek mesaj not found.', code: 'MESSAGE_NOT_FOUND' });
+      socket.emit('message:error', { message: 'The message to edit was not found.', code: 'MESSAGE_NOT_FOUND' });
       return;
     }
     if (!cleanContent && !(originalMessage.attachments || []).length) {
@@ -584,6 +584,6 @@ exports.handleSearch = (io, socket, data = {}, callback) => {
     if (typeof callback === 'function') callback(payload);
     socket.emit('message:search:results', payload);
   } catch (error) {
-    console.error('Message araması başarısız:', error);
+    console.error('Message search failed:', error);
   }
 };

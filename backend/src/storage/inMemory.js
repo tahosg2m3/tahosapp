@@ -328,14 +328,14 @@ class InMemoryStorage {
       // kalıcı veri asla "boş kurulum" sayılmaz. Aksi halde seedData mevcut
       // verinin üzerine yazıp gerçek kaybı gizleyebilirdi. Başlangıcı fail-closed
       // durdurur and operatöre asıl hatayı açıkça gösteririz.
-      console.error('Kalıcı uygulama verisi güvenli biçimde yüklenemedi; veri sıfırlanmadı:', error.message);
+      console.error('Persistent application data could not be loaded safely; data was not reset:', error.message);
       throw error;
     }
   }
 
   saveData() {
     if (this.isClosed) {
-      console.error('Veriler kaydedilemedi: kalıcı depolama daha önce kapatıldı.');
+      console.error('Data could not be saved because persistent storage was already closed.');
       return;
     }
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
@@ -344,10 +344,10 @@ class InMemoryStorage {
       try {
         const persisted = this.stateStore.save(this.createPersistedSnapshot());
         if (!persisted) {
-          console.error('Veriler kaydedilemedi: kalıcı depolama yazma action başarısız oldu.');
+          console.error('Data could not be saved because the persistent storage write failed.');
         }
       } catch (error) {
-        console.error('Veriler kaydedilemedi:', error.message);
+        console.error('Data could not be saved:', error.message);
       } finally {
         this.saveTimeout = null;
       }
@@ -359,7 +359,7 @@ class InMemoryStorage {
   // durumda çağrılır.
   flush() {
     if (this.isClosed) {
-      console.error('Veriler kaydedilemedi: kalıcı depolama daha önce kapatıldı.');
+      console.error('Data could not be saved because persistent storage was already closed.');
       return false;
     }
     if (this.saveTimeout) {
@@ -370,11 +370,11 @@ class InMemoryStorage {
     try {
       const persisted = this.stateStore.save(this.createPersistedSnapshot());
       if (!persisted) {
-        console.error('Veriler kapatılırken kaydedilemedi: kalıcı depolama yazma action başarısız oldu.');
+        console.error('Data could not be saved during shutdown because the persistent storage write failed.');
       }
       return persisted;
     } catch (error) {
-      console.error('Veriler kapatılırken kaydedilemedi:', error.message);
+      console.error('Data could not be saved during shutdown:', error.message);
       return false;
     }
   }
@@ -388,7 +388,7 @@ class InMemoryStorage {
     try {
       this.stateStore.close();
     } catch (error) {
-      console.error('Kalıcı depolama güvenli biçimde kapatılamadı:', error.message);
+      console.error('Persistent storage could not be closed safely:', error.message);
       closed = false;
     }
     this.isClosed = true;
@@ -601,7 +601,7 @@ class InMemoryStorage {
       const normalized = {
         id: isDefault ? defaultRoleId : role.id,
         serverId,
-        name: isDefault ? '@everyone' : String(role.name || 'Yeni roles').trim().slice(0, 100) || 'Yeni roles',
+        name: isDefault ? '@everyone' : String(role.name || 'New role').trim().slice(0, 100) || 'New role',
         color: typeof role.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(role.color) ? role.color : null,
         icon: isDefault ? null : (role.icon ? String(role.icon).slice(0, 1000) : null),
         hoist: isDefault ? false : Boolean(role.hoist),
@@ -722,7 +722,7 @@ class InMemoryStorage {
       const code = crypto.randomBytes(10).toString('hex').toUpperCase();
       if (!this.getServerByInviteCode(code)) return code;
     }
-    throw new Error('Benzersiz sunucu davet kodu could not be created.');
+    throw new Error('A unique server invite code could not be created.');
   }
 
   createServer(name, creatorId) {
@@ -1358,11 +1358,11 @@ class InMemoryStorage {
   updateUserStatus(id, status) { this.userStatuses.set(id, status); }
   getUserStatus(id) { return this.userStatuses.get(id) || 'offline'; }
 
-  updateUserPassword(userId, passwordHash, { invalidateVoicesions = true } = {}) {
+  updateUserPassword(userId, passwordHash, { invalidateSessions = true } = {}) {
     const user = this.getUserById(userId);
     if (!user) return null;
     user.password = passwordHash;
-    if (invalidateVoicesions) user.tokenVersion = (user.tokenVersion || 0) + 1;
+    if (invalidateSessions) user.tokenVersion = (user.tokenVersion || 0) + 1;
     this.saveData();
     return user;
   }

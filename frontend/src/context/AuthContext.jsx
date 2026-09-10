@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const restoreVoicesion = async () => {
+    const restoreSession = async () => {
       try {
         const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('chat_token');
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    restoreVoicesion();
+    restoreSession();
     return () => { isMounted = false; };
   }, []);
 

@@ -80,7 +80,7 @@ import { apiFetch } from '../../services/httpClient';
 
 const SETTING_GROUPS = [
   {
-    label: 'KULLANICI AYARLARI',
+    label: 'USER SETTINGS',
     items: [
       { id: 'account', label: 'My Account', icon: User, description: 'Login details and account summary' },
       { id: 'profile', label: 'Profiles', icon: Palette, description: 'Edit your public profile' },
@@ -89,7 +89,7 @@ const SETTING_GROUPS = [
     ],
   },
   {
-    label: 'UYGULAMA AYARLARI',
+    label: 'APP SETTINGS',
     items: [
       { id: 'voice', label: 'Voice & Video', icon: Headphones, description: 'Devices, quality, and voice isolation' },
       { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Alert and sound preferences' },
@@ -850,7 +850,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
           description="Turning this off immediately removes all active sessions and prevents integrations from publishing until you enable it again."
         />
         <div className="mt-4 rounded-lg border border-white/[0.06] bg-[#1E1F22] p-4 text-sm text-[#949BA4]">
-          <p><strong className="text-[#DBDEE1]">Live sessions:</strong> {richPresenceState.activities?.length || 0} / {richPresenceState.limits?.maxVoicesions || 5}</p>
+          <p><strong className="text-[#DBDEE1]">Live sessions:</strong> {richPresenceState.activities?.length || 0} / {richPresenceState.limits?.maxSessions || 5}</p>
           <p className="mt-1 text-xs">Windows media information refreshes about every three seconds. Detailed options affect automatic detection on this device only.</p>
         </div>
       </SettingsSection>
@@ -1220,7 +1220,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       <div className="flex h-full min-h-0 w-full">
         <aside className="hidden w-[260px] shrink-0 justify-end bg-[#2B2D31] md:flex">
           <div className="custom-scrollbar h-full w-[230px] overflow-y-auto px-3 py-8">
-            <div className="mb-6 px-2"><p className="text-lg font-extrabold text-[#F2F3F5]">Ayarlar</p><p className="mt-1 truncate text-xs text-[#949BA4]">{user.username}</p></div>
+            <div className="mb-6 px-2"><p className="text-lg font-extrabold text-[#F2F3F5]">Settings</p><p className="mt-1 truncate text-xs text-[#949BA4]">{user.username}</p></div>
             {settingGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? 'mt-6' : ''}><p className="mb-2 px-2 text-[11px] font-bold tracking-wide text-[#949BA4]">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium transition ' + (activeTab === item.id ? 'bg-[#404249] text-white' : 'text-[#B5BAC1] hover:bg-[#35373C] hover:text-[#DBDEE1]')}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="truncate">{item.label}</span></button>; })}</div></div>)}
           </div>
         </aside>

@@ -172,7 +172,7 @@ router.use(authRateLimit, requireAuth);
 router.post('/file', uploadRateLimit, reserveUploadCapacity, upload.single('file'), validateUploadedFile, (req, res) => {
   res.status(201).json({
     url: `/uploads/${req.file.filename}`,
-    filename: path.basename(String(req.file.originalname || 'dosya')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 255),
+    filename: path.basename(String(req.file.originalname || 'file')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 255),
     size: req.file.size,
     mimetype: req.file.mimetype,
   });
