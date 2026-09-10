@@ -177,7 +177,7 @@ export default function VoicePanel() {
             title={isVoiceViewOpen ? 'Return to chat' : 'Show voice room'}
           >
             {isVoiceViewOpen ? <MessageSquare className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-            <span className="hidden xl:inline">{isVoiceViewOpen ? 'Sohbet' : 'Oda'}</span>
+            <span className="hidden xl:inline">{isVoiceViewOpen ? 'Chat' : 'Room'}</span>
             {liveVideoCount > 0 && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ef4444] px-1 text-[9px] text-white">{liveVideoCount}</span>}
             {liveVideoCount === 0 && voiceParticipants.length > 0 && <span className="text-[9px] text-[#94a3b8]">{voiceParticipants.length}</span>}
           </button>

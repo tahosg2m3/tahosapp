@@ -81,7 +81,7 @@ export default function ForgotPasswordForm({ onBackToLogin }) {
 
       {!resetTicket ? (
         <form onSubmit={requestCode} className="space-y-4">
-          <label className="block text-xs font-bold uppercase tracking-wide text-[#b5bac1]">E-posta</label>
+          <label className="block text-xs font-bold uppercase tracking-wide text-[#b5bac1]">Email</label>
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoFocus className="w-full rounded-lg border border-white/[0.08] bg-[#0f172a] px-3 py-3 text-[#e2e8f0] outline-none focus:border-[#60a5fa]" placeholder="ornek@mail.com" />
           <button disabled={isLoading} className="w-full rounded-lg bg-[#5865f2] py-2.5 font-semibold text-white transition hover:bg-[#4752c4] disabled:opacity-60">{isLoading ? 'Sending code...' : 'Send reset code'}</button>
         </form>

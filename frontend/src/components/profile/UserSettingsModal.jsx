@@ -77,6 +77,7 @@ import {
 import RichPresenceCard from './RichPresenceCard';
 import { API_ORIGIN, API_URL } from '../../config/runtimeConfig';
 import { apiFetch } from '../../services/httpClient';
+import { useI18n } from '../../i18n/I18nContext';
 
 const SETTING_GROUPS = [
   {
@@ -189,6 +190,7 @@ function OptionGrid({ label, options, value, onChange, renderPreview }) {
 
 export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const { user, updateUserData } = useAuth();
+  const { locale: activeLocale, setLocale: applyLocale, t, locales } = useI18n();
   const { socket } = useSocket();
   const voice = useVoice();
   const {
@@ -236,7 +238,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const [bio, setBio] = useState(user.bio || '');
   const [customStatus, setCustomStatus] = useState(user.customStatus || '');
   const [presenceStatus, setPresenceStatus] = useState(user.presenceStatus || user.status || 'online');
-  const [locale, setLocale] = useState(user.locale || localStorage.getItem('chat:locale') || 'en');
+  const [locale, setLocale] = useState(activeLocale);
   const [theme, setTheme] = useState(user.theme || localStorage.getItem('chat:theme') || 'dark');
   const [profileTheme, setProfileTheme] = useState(user.profileTheme || 'default');
   const [profileAccentColor, setProfileAccentColor] = useState(user.profileAccentColor || '#7c5cff');
@@ -537,6 +539,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
           customStatus: customStatus.trim(),
           presenceStatus,
           locale,
+          localeExplicit: true,
           theme,
           profileTheme,
           profileAccentColor,
@@ -548,6 +551,8 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       });
       updateUserData(result.user || result);
       localStorage.setItem('chat:locale', locale);
+      localStorage.setItem('tahosapp:locale:explicit', '1');
+      applyLocale(locale);
       localStorage.setItem('chat:theme', theme);
       document.documentElement.lang = locale;
       document.documentElement.dataset.theme = theme;
@@ -563,9 +568,11 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const handleSaveInterface = async message => {
     setIsInterfaceSaving(true);
     try {
-      const result = await platformRequest('/users/me', { method: 'PATCH', body: JSON.stringify({ locale, theme }) });
+      const result = await platformRequest('/users/me', { method: 'PATCH', body: JSON.stringify({ locale, localeExplicit: true, theme }) });
       updateUserData(result.user || result);
       localStorage.setItem('chat:locale', locale);
+      localStorage.setItem('tahosapp:locale:explicit', '1');
+      applyLocale(locale);
       localStorage.setItem('chat:theme', theme);
       document.documentElement.lang = locale;
       document.documentElement.dataset.theme = theme;
@@ -1057,10 +1064,10 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   );
 
   const renderLanguage = () => (
-    <SettingsSection icon={Globe2} title="App Language" description="Your language preference is saved to your account and applied to page language metadata.">
-      <SelectField icon={Globe2} label="Language" value={locale} onChange={event => setLocale(event.target.value)}><option value="en">English</option></SelectField>
-      <div className="mt-5 rounded-lg border border-white/[0.05] bg-[#1E1F22] p-4 text-sm leading-6 text-[#949BA4]">Community and user-written content is not translated. This choice controls interface language and accessibility metadata.</div>
-      <div className="mt-5 flex justify-end"><button type="button" onClick={() => handleSaveInterface('Language preference saved.')} disabled={isInterfaceSaving} className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-medium text-white hover:bg-[#4752C4] disabled:opacity-50">{isInterfaceSaving ? 'Saving…' : 'Save Language'}</button></div>
+    <SettingsSection icon={Globe2} title={t('language.title')} description={t('language.description')}>
+      <SelectField icon={Globe2} label={t('language.field')} value={locale} onChange={event => { setLocale(event.target.value); applyLocale(event.target.value); }}>{locales.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}</SelectField>
+      <div className="mt-5 rounded-lg border border-white/[0.05] bg-[#1E1F22] p-4 text-sm leading-6 text-[#949BA4]">{t('language.help')}</div>
+      <div className="mt-5 flex justify-end"><button type="button" onClick={() => handleSaveInterface(t('language.saved'))} disabled={isInterfaceSaving} className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-medium text-white hover:bg-[#4752C4] disabled:opacity-50">{isInterfaceSaving ? t('language.saving') : t('language.save')}</button></div>
     </SettingsSection>
   );
 
@@ -1068,11 +1075,11 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     const statusLabels = {
       disabled: 'Unavailable',
       idle: 'Ready',
-      checking: 'Denetleniyor',
+      checking: 'Checking',
       available: 'New version available',
       downloading: 'Downloading',
       downloaded: 'Ready to install',
-      installing: 'Uploadniyor',
+      installing: 'Installing',
       'up-to-date': 'Up to date',
       error: 'Connection error',
     };

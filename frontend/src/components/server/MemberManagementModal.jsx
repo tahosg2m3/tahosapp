@@ -187,7 +187,7 @@ export default function MemberManagementModal({
         <header className="flex items-center justify-between border-b border-black/30 bg-[#2B2D31] px-5 py-4">
           <div>
             <h2 className="text-lg font-bold text-[#F2F3F5]">Manage Members</h2>
-            <p className="mt-0.5 text-xs text-[#949BA4]">Sunucudaki rolesler and moderasyon actionsi</p>
+            <p className="mt-0.5 text-xs text-[#949BA4]">Server roles and moderation actions</p>
           </div>
           <button type="button" onClick={onClose} className="rounded p-1.5 text-[#949BA4] transition hover:bg-[#404249] hover:text-white">
             <X className="h-5 w-5" />
@@ -254,7 +254,7 @@ export default function MemberManagementModal({
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-sm font-semibold text-[#F2F3F5]">{name}</span>
                         {member.isOwner && <Crown className="h-4 w-4 shrink-0 text-[#FEE75C]" title="Server owner" />}
-                        {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muteuldu" />}
+                        {member.serverMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muted" />}
                         {member.serverDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Deafened" />}
                         {member.isTimedOut && <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#FEE75C]" title="Timed out" />}
                       </div>
@@ -273,7 +273,7 @@ export default function MemberManagementModal({
                         type="button"
                         onClick={() => setOpenMenuId(menuOpen ? null : id)}
                         className="rounded p-1.5 text-[#949BA4] transition hover:bg-[#404249] hover:text-white"
-                        title="Member actionsi"
+                        title="Member actions"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </button>
@@ -328,12 +328,12 @@ export default function MemberManagementModal({
                           )}
                           {canKick && (
                             <button type="button" onClick={() => handleModeration(member, 'kick')} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-[#F23F42] hover:bg-[#F23F42]/10">
-                              <UserMinus className="h-3.5 w-3.5" /> Sunucudan at
+                              <UserMinus className="h-3.5 w-3.5" /> Remove from server
                             </button>
                           )}
                           {canBan && (
                             <button type="button" onClick={() => handleModeration(member, 'ban')} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs font-semibold text-[#F23F42] hover:bg-[#F23F42]/10">
-                              <ShieldAlert className="h-3.5 w-3.5" /> Sunucudan yasakla
+                              <ShieldAlert className="h-3.5 w-3.5" /> Ban from server
                             </button>
                           )}
                         </div>

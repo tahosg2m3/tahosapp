@@ -174,7 +174,7 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="w-full bg-[#1E1F22] text-[#DBDEE1] px-3 py-2.5 rounded"
-          placeholder="E-posta"
+          placeholder="Email"
           required
         />
 

@@ -10,7 +10,7 @@ function formatNotificationTime(timestamp) {
   }).format(new Date(timestamp));
 }
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ visible = true }) {
   const { socket } = useSocket();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -54,6 +54,12 @@ export default function NotificationCenter() {
   };
 
   const visibleNotifications = useMemo(() => notifications.slice(0, 12), [notifications]);
+
+  useEffect(() => {
+    if (!visible) setIsOpen(false);
+  }, [visible]);
+
+  if (!visible) return null;
 
   return (
     <div className="fixed right-5 top-4 z-[80]">

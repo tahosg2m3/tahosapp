@@ -264,7 +264,7 @@ export default function DMArea() {
         <div className="mb-7 mt-5 border-b border-white/[0.06] pb-6">
           {groupDM ? <div className="mb-4"><GroupDMAvatar conversation={activeDM} size={80} /></div> : directAvatarUrl ? <img src={directAvatarUrl} className="mb-4 h-20 w-20 rounded-full object-cover" alt="" /> : <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white" style={{ backgroundColor: avatarColor }}>{initial}</div>}
           <h1 className="mb-2 text-3xl font-bold text-[#f8fafc]">{title}</h1>
-          <p className="text-[15px] text-[#94a3b8]">{groupDM ? <>Bu, <strong>{title}</strong> is the beginning of this group conversation.</> : <>Bu, <strong>{directUser.username}</strong> is the beginning of your message history.</>}</p>
+          <p className="text-[15px] text-[#94a3b8]">{groupDM ? <>This is the beginning of the <strong>{title}</strong> group conversation.</> : <>This is the beginning of your message history with <strong>{directUser.username}</strong>.</>}</p>
         </div>
 
         {messages.map((message, index) => {

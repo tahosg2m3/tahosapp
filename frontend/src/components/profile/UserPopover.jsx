@@ -317,7 +317,7 @@ function FullProfileModal({
   };
 
   const tabItems = [
-    { id: 'activity', label: 'Activelik', count: null },
+    { id: 'activity', label: 'Activity', count: null },
     { id: 'friends', label: 'Mutual Friends', count: mutualFriends.length },
     { id: 'servers', label: 'Mutual Servers', count: mutualServers.length },
   ];
@@ -451,7 +451,7 @@ function FullProfileModal({
 
             {activeTab === 'activity' && (
               <section className="pt-8">
-                <h2 className="mb-4 text-base font-medium text-[#949ba4]">Son Activelik</h2>
+                <h2 className="mb-4 text-base font-medium text-[#949ba4]">Recent Activity</h2>
                 <div className="space-y-3">
                   {activities.length ? activities.map(activity => (
                     <RichPresenceCard key={activity.sessionId || activity.id} activity={activity} />

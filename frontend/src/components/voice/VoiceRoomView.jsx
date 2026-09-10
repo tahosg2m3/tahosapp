@@ -250,7 +250,7 @@ export default function VoiceRoomView() {
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1220]">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] px-5">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-bold text-white">{activeVoiceChannel?.name || 'Voiceli sohbet'}</h2>
+          <h2 className="truncate text-sm font-bold text-white">{activeVoiceChannel?.name || 'Voice chat'}</h2>
           <p className="text-[11px] text-[#64748b]">{participants.length} people · Click once to enlarge and again for full screen</p>
         </div>
         <div className="rounded-full bg-[#22c55e]/10 px-3 py-1 text-[11px] font-bold text-[#4ade80]">Connected</div>

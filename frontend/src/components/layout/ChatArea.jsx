@@ -416,11 +416,11 @@ export default function ChatArea() {
           {isSearchOpen ? (
             <div className="flex items-center rounded-lg border border-white/[0.08] bg-[#1e293b] px-2">
               <Search className="h-4 w-4 text-[#64748b]" />
-              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} autoFocus placeholder="Messagesda ara" className="w-40 bg-transparent px-2 py-1.5 text-sm text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
+              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} autoFocus placeholder="Search messages" className="w-40 bg-transparent px-2 py-1.5 text-sm text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
               <button type="button" onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }} className="rounded p-0.5 hover:bg-white/[0.08]" aria-label="Close search"><X className="h-4 w-4" /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => setIsSearchOpen(true)} className="rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc]" title="Messagesda ara" aria-label="Messagesda ara"><Search className="h-5 w-5" /></button>
+            <button type="button" onClick={() => setIsSearchOpen(true)} className="rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc]" title="Search messages" aria-label="Search messages"><Search className="h-5 w-5" /></button>
           )}
           <button type="button" onClick={() => setShowPinned((show) => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showPinned ? 'text-[#fbbf24]' : ''}`} title="Pinned messages" aria-label="Pinned messages"><Pin className="h-5 w-5" /></button>
           <button type="button" onClick={() => setShowPolls(show => !show)} className={`rounded-lg p-2 transition-colors hover:bg-white/[0.07] hover:text-[#f8fafc] ${showPolls ? 'text-[#60a5fa]' : ''}`} title="Anketler" aria-label="Anketler"><BarChart3 className="h-5 w-5" /></button>
@@ -464,7 +464,7 @@ export default function ChatArea() {
       <div ref={messageListRef} onScroll={handleScroll} className="custom-scrollbar flex-1 overflow-y-auto px-5 py-4">
         <div className="mb-7 mt-5 border-b border-white/[0.06] pb-6">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2563eb] text-white shadow-lg shadow-blue-500/20"><Hash className="h-8 w-8" /></div>
-          <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#f8fafc]">#{currentChannel.name} Welcome to</h1>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#f8fafc]">Welcome to #{currentChannel.name}</h1>
           <p className="text-[14px] text-[#94a3b8]">Send the first message to start the conversation.</p>
         </div>
 

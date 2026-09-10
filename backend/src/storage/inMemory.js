@@ -60,7 +60,7 @@ const DEFAULT_MEMBER_PERMISSIONS = Object.freeze([
 
 const ALL_PERMISSIONS = Object.freeze([...PERMISSIONS]);
 const PRESENCE_STATUSES = Object.freeze(['online', 'idle', 'dnd', 'invisible']);
-const SUPPORTED_LOCALES = Object.freeze(['en']);
+const SUPPORTED_LOCALES = Object.freeze(['tr', 'en', 'de', 'fr', 'es', 'pt-BR', 'it', 'ru', 'ar', 'ja', 'ko', 'zh-CN']);
 const SUPPORTED_THEMES = Object.freeze([
   'dark',
   'midnight',
@@ -131,7 +131,8 @@ function normalizeStoredUserProfile(user) {
     bio: '',
     customStatus: '',
     presenceStatus: 'online',
-    locale: 'en',
+    locale: 'tr',
+    localeExplicit: false,
     theme: 'dark',
     profileTheme: 'default',
     profileAccentColor: DEFAULT_PROFILE_ACCENT,
@@ -153,7 +154,7 @@ function normalizeStoredUserProfile(user) {
     changed = true;
   }
   if (!SUPPORTED_LOCALES.includes(user.locale)) {
-    user.locale = 'en';
+    user.locale = 'tr';
     changed = true;
   }
   if (!SUPPORTED_THEMES.includes(user.theme)) {
@@ -1254,7 +1255,8 @@ class InMemoryStorage {
       bio: '',
       customStatus: '',
       presenceStatus: 'online',
-      locale: 'en',
+      locale: 'tr',
+      localeExplicit: false,
       theme: 'dark',
       profileTheme: 'default',
       profileAccentColor: DEFAULT_PROFILE_ACCENT,
@@ -1286,7 +1288,8 @@ class InMemoryStorage {
       bio: '',
       customStatus: '',
       presenceStatus: 'online',
-      locale: 'en',
+      locale: 'tr',
+      localeExplicit: false,
       theme: 'dark',
       profileTheme: 'default',
       profileAccentColor: DEFAULT_PROFILE_ACCENT,
@@ -1403,6 +1406,9 @@ class InMemoryStorage {
     if (hasOwn(updates, 'locale') && updates.locale !== undefined) {
       if (!SUPPORTED_LOCALES.includes(updates.locale)) throw new Error('Unsupported language selection.');
       next.locale = updates.locale;
+    }
+    if (hasOwn(updates, 'localeExplicit') && updates.localeExplicit !== undefined) {
+      next.localeExplicit = Boolean(updates.localeExplicit);
     }
     if (hasOwn(updates, 'theme') && updates.theme !== undefined) {
       if (!SUPPORTED_THEMES.includes(updates.theme)) throw new Error('Unsupported theme selection.');

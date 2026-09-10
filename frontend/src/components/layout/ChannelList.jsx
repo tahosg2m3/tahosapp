@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown,
   CalendarDays,
+  Bell,
   Folder,
   Image,
   Megaphone,
@@ -48,6 +49,8 @@ import {
 } from '../server/serverManagementApi';
 import { fetchChannels, leaveServer } from '../../services/api';
 import { buildInviteUrl } from '../../utils/inviteLinks';
+import ServerNotificationModal from '../notifications/ServerNotificationModal';
+import { useI18n } from '../../i18n/I18nContext';
 
 function getMemberId(member) {
   return member?.id || member?.userId || member?.user?.id;
@@ -61,6 +64,7 @@ export default function ChannelList({ onNavigate }) {
   const { currentServer, currentChannel, setCurrentChannel, setServers, setCurrentServer } = useServer();
   const { socket } = useSocket();
   const { user } = useAuth();
+  const { t } = useI18n();
   const {
     joinVoiceChannel,
     activeVoiceChannel,
@@ -79,6 +83,7 @@ export default function ChannelList({ onNavigate }) {
   const [showMemberManager, setShowMemberManager] = useState(false);
   const [settingsChannel, setSettingsChannel] = useState(null);
   const [showServerProfile, setShowServerProfile] = useState(false);
+  const [showServerNotifications, setShowServerNotifications] = useState(false);
   const [openChannelMenu, setOpenChannelMenu] = useState(null);
   const [openVoiceMenu, setOpenVoiceMenu] = useState(null);
   const [voiceDropTargetId, setVoiceDropTargetId] = useState(null);
@@ -243,7 +248,7 @@ export default function ChannelList({ onNavigate }) {
       setChannels(remaining);
       if (currentChannel?.id === channel.id) setCurrentChannel(remaining[0] || null);
       setOpenChannelMenu(null);
-      toast.success('Kanal silindi.');
+      toast.success('Channel deleted.');
     } catch (error) {
       toast.error(error.message || 'The channel could not be deleted.');
     }
@@ -495,11 +500,15 @@ export default function ChannelList({ onNavigate }) {
               </button>
 
               <button type="button" onClick={() => { setServerSettingsInitialTab('community'); setShowServerSettings(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
-                <CalendarDays className="h-4 w-4" /> Activelikler
+                <CalendarDays className="h-4 w-4" /> Events
               </button>
 
               <button type="button" onClick={() => { setShowServerProfile(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
                 <UserCog className="h-4 w-4" /> Edit server profile
+              </button>
+
+              <button type="button" onClick={() => { setShowServerNotifications(true); setShowServerMenu(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-[#DBDEE1] transition hover:bg-[#35373C] hover:text-white">
+                <Bell className="h-4 w-4" /> {t('serverNotifications.menu')}
               </button>
 
               {isOwner && (
@@ -555,7 +564,7 @@ export default function ChannelList({ onNavigate }) {
 
           <section className="pt-2">
             <div className="mb-1 flex items-center justify-between px-4">
-              <span className="flex items-center text-[11px] font-bold uppercase tracking-wide text-[#949BA4]"><ChevronDown className="mr-0.5 h-3.5 w-3.5" /> Voiceli Kanallar</span>
+              <span className="flex items-center text-[11px] font-bold uppercase tracking-wide text-[#949BA4]"><ChevronDown className="mr-0.5 h-3.5 w-3.5" /> Voice Channels</span>
               {canManageChannels && (
                 <button type="button" onClick={() => { const opening = createType !== 'voice'; setCreateType(opening ? 'voice' : null); if (opening) setChannelKind('voice'); }} title="Create a voice or Stage channel" className="rounded p-1 text-[#949BA4] transition hover:bg-[#35373C] hover:text-white"><Plus className="h-4 w-4" /></button>
               )}
@@ -622,11 +631,11 @@ export default function ChannelList({ onNavigate }) {
                             <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white ${isSpeaking ? 'bg-[#34D399]' : 'bg-[#475569]'}`}>{displayName[0]?.toUpperCase() || '?'}</div>
                             <span className={`min-w-0 flex-1 truncate text-[12px] ${isSpeaking ? 'font-semibold text-[#D1FAE5]' : 'text-[#CBD5E1]'}`}>{displayName}</span>
                             {participant.requestedToSpeak && <span className="shrink-0 rounded-full bg-[#f59e0b]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#fbbf24]">Requesting to speak</span>}
-                            {isMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muteuldu" />}
+                            {isMuted && <MicOff className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Muted" />}
                             {isDeafened && <Headphones className="h-3.5 w-3.5 shrink-0 text-[#ED4245]" title="Deafened" />}
                             {isSpeaking && !isMuted && <VolumeX className="h-3.5 w-3.5 shrink-0 rotate-180 text-[#34D399]" />}
                             {moderatorCanAct && (
-                              <button type="button" onClick={() => { setOpenVoiceMenu(openVoiceMenu === voiceMenuKey ? null : voiceMenuKey); setOpenChannelMenu(null); }} title="Voice moderasyonu" className="rounded p-0.5 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white"><MoreHorizontal className="h-3.5 w-3.5" /></button>
+                              <button type="button" onClick={() => { setOpenVoiceMenu(openVoiceMenu === voiceMenuKey ? null : voiceMenuKey); setOpenChannelMenu(null); }} title="Voice moderation" className="rounded p-0.5 text-[#949BA4] transition hover:bg-[#1E1F22] hover:text-white"><MoreHorizontal className="h-3.5 w-3.5" /></button>
                             )}
                           </div>
                           {openVoiceMenu === voiceMenuKey && (
@@ -673,6 +682,7 @@ export default function ChannelList({ onNavigate }) {
       </div>
 
       {showServerSettings && <ServerSettingsModal initialTab={serverSettingsInitialTab} onClose={() => setShowServerSettings(false)} />}
+      {showServerNotifications && <ServerNotificationModal server={currentServer} onClose={() => setShowServerNotifications(false)} />}
       {settingsChannel && <ChannelSettingsModal channel={settingsChannel} channels={channels} roles={roles} members={members} onUpdated={(updated) => { setChannels(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item)); if (currentChannel?.id === updated.id) setCurrentChannel(current => ({ ...current, ...updated })); setSettingsChannel(null); }} onClose={() => setSettingsChannel(null)} />}
       {showServerProfile && <ServerProfileModal server={currentServer} member={currentMember} user={user} onUpdated={(updated) => setMembers(current => current.map(item => getMemberId(item) === user?.id ? { ...item, ...updated } : item))} onClose={() => setShowServerProfile(false)} />}
       {showMemberManager && (

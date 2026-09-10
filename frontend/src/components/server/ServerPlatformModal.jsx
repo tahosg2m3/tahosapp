@@ -71,7 +71,7 @@ const TAB_GROUPS = [
   {
     label: 'Topluluk',
     tabs: [
-      { id: 'events', label: 'Activelikler', icon: CalendarDays },
+      { id: 'events', label: 'Events', icon: CalendarDays },
       { id: 'invites', label: 'Davetler', icon: Link, permission: 'MANAGE_SERVER' },
       { id: 'onboarding', label: 'Onboarding', icon: UserCheck, owner: true },
     ],

@@ -130,6 +130,7 @@ router.patch('/me', async (req, res) => {
     'customStatus',
     'presenceStatus',
     'locale',
+    'localeExplicit',
     'theme',
     'profileTheme',
     'profileAccentColor',

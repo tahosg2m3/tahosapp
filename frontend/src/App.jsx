@@ -29,6 +29,18 @@ import AutomaticRichPresence from './components/profile/AutomaticRichPresence';
 import DesktopUpdateNotifier from './components/profile/DesktopUpdateNotifier';
 import { joinServer } from './services/api';
 import { normalizeInviteCode } from './utils/inviteLinks';
+import { useI18n } from './i18n/I18nContext';
+
+function LocaleAccountSync() {
+  const { user } = useAuth();
+  const { setLocale } = useI18n();
+
+  useEffect(() => {
+    if (user?.localeExplicit && user.locale) setLocale(user.locale, { explicit: false });
+  }, [setLocale, user?.locale, user?.localeExplicit]);
+
+  return null;
+}
 
 function AppContent() {
   const { user } = useAuth();
@@ -135,7 +147,7 @@ function AppContent() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0f172a] text-[#e2e8f0] font-sans selection:bg-[#2563eb] selection:text-white">
-      <NotificationCenter />
+      <NotificationCenter visible={viewMode !== 'friends' && !(isInVoice && isVoiceViewOpen)} />
       <OnboardingGate />
       
       <ServerList viewMode={viewMode} setViewMode={navigateToView} />
@@ -192,6 +204,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <LocaleAccountSync />
       <SocketProvider>
         <FriendsProvider>
           <DMProvider>

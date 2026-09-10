@@ -128,7 +128,7 @@ export default function DMList({ setViewMode }) {
         <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.06] bg-[#151b27] px-3 shadow-sm">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748b]" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sohbet bul" className="w-full rounded-lg border border-white/[0.06] bg-[#0f172a] py-2 pl-8 pr-2 text-[13px] text-[#e2e8f0] outline-none placeholder:text-[#64748b] focus:border-[#3b82f6]/60" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a conversation" className="w-full rounded-lg border border-white/[0.06] bg-[#0f172a] py-2 pl-8 pr-2 text-[13px] text-[#e2e8f0] outline-none placeholder:text-[#64748b] focus:border-[#3b82f6]/60" />
           </div>
           <button type="button" onClick={() => setShowCreateGroup(true)} className="rounded-lg p-2 text-[#94a3b8] transition-colors hover:bg-white/[0.08] hover:text-white" title="Create a group conversation" aria-label="Create a group conversation"><Plus className="h-5 w-5" /></button>
         </div>
