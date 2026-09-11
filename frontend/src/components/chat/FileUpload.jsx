@@ -23,7 +23,7 @@ export async function uploadChatFile(file) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'The file could not be uploaded.');
   const type = data.mimetype?.startsWith('image/') ? 'image' : data.mimetype?.startsWith('audio/') ? 'audio' : 'file';
-  return { ...data, url: data.url?.startsWith('http') ? data.url : `${API_ORIGIN}${data.url}`, type };
+  return { ...data, type };
 }
 
 export default function FileUpload({ onFileSelect, disabled = false }) {

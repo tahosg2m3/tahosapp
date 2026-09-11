@@ -6,10 +6,12 @@ const {
   ipcMain,
   Menu,
   net,
+  nativeImage,
   protocol,
   safeStorage,
   session,
   shell,
+  Tray,
   utilityProcess,
 } = require('electron');
 const crypto = require('crypto');
@@ -226,6 +228,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let mainWindow;
+let tray;
 let backendProcess;
 let backendInstanceToken;
 let isQuitting = false;
@@ -1068,9 +1071,41 @@ function createWindow() {
   // tamamen kaldır. Geliştirme sırasında hata ayıklama menüsü kullanılabilir.
   Menu.setApplicationMenu(isDev ? Menu.buildFromTemplate(template) : null);
 
+  mainWindow.on('close', event => {
+    if (isQuitting || !tray) return;
+    event.preventDefault();
+    mainWindow.hide();
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function createTray() {
+  if (tray) return;
+  const sourceIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'tahosapp-icon.png'));
+  const trayIcon = process.platform === 'win32'
+    ? sourceIcon.resize({ width: 16, height: 16 })
+    : sourceIcon;
+  tray = new Tray(trayIcon);
+  tray.setToolTip('tahosapp');
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Open tahosapp', click: showMainWindow },
+    { type: 'separator' },
+    { label: 'Quit tahosapp', click: () => app.quit() },
+  ]));
+  tray.on('click', showMainWindow);
 }
 
 function publishAutomaticPresence(activities) {
@@ -1128,10 +1163,7 @@ if (!ownsSingleInstance) {
 } else {
   if (!isDev) {
     app.on('second-instance', () => {
-      if (!mainWindow) return;
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
+      showMainWindow();
     });
   }
 
@@ -1150,6 +1182,7 @@ if (!ownsSingleInstance) {
     }
     initializeDesktopUpdater();
     createWindow();
+    createTray();
   }).catch(error => {
     console.error('Application startup failed:', error);
     dialog.showErrorBox(
@@ -1165,18 +1198,21 @@ if (!ownsSingleInstance) {
       clearInterval(desktopUpdateCheckTimer);
       desktopUpdateCheckTimer = null;
     }
-    if (isDev || !backendProcess || isQuitting) return;
-    event.preventDefault();
+    if (isQuitting) return;
     isQuitting = true;
+    tray?.destroy();
+    tray = null;
+    if (isDev || !backendProcess) return;
+    event.preventDefault();
     stopPackagedBackend(() => app.quit());
   });
 
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    if (!tray && process.platform !== 'darwin') app.quit();
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    showMainWindow();
   });
 
   ipcMain.handle('get-app-path', event => {

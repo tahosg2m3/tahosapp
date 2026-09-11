@@ -55,9 +55,18 @@ router.post('/accept', (req, res) => {
     return res.status(400).json({ error: 'Friend request not found.' });
   }
 
-  storage.acceptFriendRequest(request.id);
+  if (!storage.acceptFriendRequest(request.id)) {
+    return res.status(400).json({ error: 'The friend request can no longer be accepted.' });
+  }
+  const conversation = storage.getOrCreateDMConversation(request.fromUserId, request.toUserId);
   emitFriendUpdate(req, request.fromUserId);
   emitFriendUpdate(req, request.toUserId);
+  req.app.get('io')?.to(`user:${request.fromUserId}`).emit('dm:created', {
+    conversationId: conversation.id,
+  });
+  req.app.get('io')?.to(`user:${request.toUserId}`).emit('dm:created', {
+    conversationId: conversation.id,
+  });
   return res.json({ message: 'Friend request accepted.' });
 });
 

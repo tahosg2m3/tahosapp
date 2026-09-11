@@ -5,6 +5,7 @@ import { useSocket } from '../../context/SocketContext';
 import { fetchServerMembers } from '../../services/api';
 import { getColorForString } from '../../utils/colors';
 import { getAvatarDecoration, getNameAppearance } from '../../utils/profileAppearance';
+import { resolveSafeAvatarUrl } from '../../utils/safeMediaUrl';
 import UserPopover from '../profile/UserPopover';
 
 function sortMembers(members) {
@@ -116,6 +117,7 @@ export default function MemberList() {
           {group.map(member => {
             const nameAppearance = getNameAppearance(member);
             const avatarDecoration = getAvatarDecoration(member);
+            const avatarUrl = resolveSafeAvatarUrl(member.serverAvatar || member.avatar);
             return (
             <button
               type="button"
@@ -134,7 +136,7 @@ export default function MemberList() {
                   className={`flex h-9 w-9 items-center justify-center rounded-xl text-[13px] font-bold text-white ${online ? '' : 'grayscale opacity-55'}`}
                   style={{ backgroundColor: getColorForString(member.nickname || member.username) }}
                 >
-                  {member.serverAvatar || member.avatar ? <img src={member.serverAvatar || member.avatar} alt="" className="h-full w-full rounded-xl object-cover" /> : (member.nickname || member.username)?.[0]?.toUpperCase() || '?'}
+                  {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full rounded-xl object-cover" /> : (member.nickname || member.username)?.[0]?.toUpperCase() || '?'}
                 </div>
 
                 <span

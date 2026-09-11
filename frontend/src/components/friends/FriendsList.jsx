@@ -1,54 +1,46 @@
 // frontend/src/components/friends/FriendsList.jsx
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { MessageSquare, MoreVertical, Check, X, UserPlus, Search } from 'lucide-react';
-import { 
-  fetchFriends, 
-  fetchPendingRequests, 
-  sendFriendRequest, 
-  acceptFriendRequest, 
-  rejectFriendRequest,
-  createDMConversation 
-} from '../../services/api';
+import { createDMConversation } from '../../services/api';
 import { useServer } from '../../context/ServerContext';
 import { useDM } from '../../context/DMContext';
+import { useFriends } from '../../context/FriendsContext';
 import toast from 'react-hot-toast';
+import { resolveSafeAvatarUrl } from '../../utils/safeMediaUrl';
+
+function FriendAvatar({ person }) {
+  const avatarUrl = resolveSafeAvatarUrl(person?.avatar);
+  return (
+    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-blue-500 font-bold text-white">
+      {avatarUrl
+        ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        : person?.username?.[0]?.toUpperCase() || '?'}
+    </div>
+  );
+}
 
 export default function FriendsList() {
   const { user } = useAuth();
   const { setCurrentServer } = useServer();
   const { setActiveDM } = useDM();
+  const {
+    friends,
+    pendingRequests,
+    sendFriendRequest,
+    acceptFriendRequest,
+    rejectFriendRequest,
+  } = useFriends();
   const [activeTab, setActiveTab] = useState('online'); 
-  const [friends, setFriends] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [addUsername, setAddUsername] = useState('');
   const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user, activeTab]);
-
-  const loadData = async () => {
-    try {
-      const [friendsData, requestsData] = await Promise.all([
-        fetchFriends(user.id),
-        fetchPendingRequests(user.id)
-      ]);
-      setFriends(friendsData);
-      setPendingRequests(requestsData);
-    } catch (error) {
-      console.error('Failed to load friends data:', error);
-    }
-  };
 
   const handleSendRequest = async (e) => {
     e.preventDefault();
     if (!addUsername.trim()) return;
 
     try {
-      await sendFriendRequest(user.id, addUsername.trim());
+      await sendFriendRequest(addUsername.trim());
       setStatusMessage({ type: 'success', text: `Friend request sent to ${addUsername}` });
       setAddUsername('');
     } catch (error) {
@@ -59,7 +51,6 @@ export default function FriendsList() {
   const handleAccept = async (requestId) => {
     try {
       await acceptFriendRequest(requestId);
-      loadData(); 
     } catch (error) {
       console.error('Failed to accept request:', error);
     }
@@ -68,7 +59,6 @@ export default function FriendsList() {
   const handleReject = async (requestId) => {
     try {
       await rejectFriendRequest(requestId);
-      loadData();
     } catch (error) {
       console.error('Failed to reject request:', error);
     }
@@ -89,7 +79,7 @@ export default function FriendsList() {
   };
 
   const filteredFriends = friends.filter(friend => {
-    if (activeTab === 'online') return friend.status === 'online';
+    if (activeTab === 'online') return !['offline', 'invisible'].includes(friend.status);
     return true; 
   });
 
@@ -199,9 +189,7 @@ export default function FriendsList() {
                   return (
                     <div key={req.id} className="flex items-center justify-between p-3 hover:bg-gray-600/50 rounded group border-t border-gray-600">
                         <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {req.fromUser.username[0].toUpperCase()}
-                        </div>
+                        <FriendAvatar person={req.fromUser} />
                         <div>
                             <div className="text-white font-semibold">{req.fromUser.username}</div>
                             <div className="text-gray-400 text-xs">Incoming Friend Request</div>
@@ -249,11 +237,9 @@ export default function FriendsList() {
                 <div key={friend.id} className="flex items-center justify-between p-3 hover:bg-gray-600/50 rounded group border-t border-gray-600 cursor-pointer">
                     <div className="flex items-center space-x-3">
                     <div className="relative">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {friend.username[0].toUpperCase()}
-                        </div>
+                        <FriendAvatar person={friend} />
                         <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-gray-700 rounded-full ${
-                        friend.status === 'online' ? 'bg-green-500' : 'bg-gray-500'
+                        friend.status === 'online' ? 'bg-green-500' : friend.status === 'idle' ? 'bg-amber-500' : friend.status === 'dnd' ? 'bg-red-500' : 'bg-gray-500'
                         }`} />
                     </div>
                     <div>

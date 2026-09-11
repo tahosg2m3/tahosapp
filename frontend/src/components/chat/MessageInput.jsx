@@ -5,6 +5,7 @@ import FileUpload, { uploadChatFile } from './FileUpload';
 import GifPicker from './GifPicker';
 import toast from 'react-hot-toast';
 import { createSpotifyInviteFromUrl, getSpotifyCurrentlyPlaying } from '../../services/api';
+import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 
 function attachmentLabel(attachment) {
   if (attachment.type === 'gif') return 'GIF';
@@ -32,6 +33,7 @@ export default function MessageInput({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
+  const [isUploadingClipboard, setIsUploadingClipboard] = useState(false);
   const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [commandIndex, setCommandIndex] = useState(0);
@@ -95,7 +97,7 @@ export default function MessageInput({
   const handleSubmit = (event) => {
     event.preventDefault();
     const content = message.trim();
-    if ((!content && attachments.length === 0) || disabled) return;
+    if ((!content && attachments.length === 0) || disabled || isUploadingClipboard) return;
 
     // ZWSP, yalnızca ekli bir mesajın eski backend sürümlerinde reddedilmemesini sağlar.
     onSendMessage({
@@ -187,7 +189,43 @@ export default function MessageInput({
   };
 
   const addAttachment = (attachment) => {
-    setAttachments((current) => [...current, attachment]);
+    setAttachments((current) => [...current, attachment].slice(0, 10));
+  };
+
+  const handlePaste = async (event) => {
+    if (disabled || isUploadingClipboard) return;
+    const pastedImages = Array.from(event.clipboardData?.items || [])
+      .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+      .map(item => item.getAsFile())
+      .filter(Boolean);
+    if (!pastedImages.length) return;
+
+    event.preventDefault();
+    const availableSlots = Math.max(0, 10 - attachments.length);
+    if (!availableSlots) {
+      toast.error('A message can contain at most 10 attachments.');
+      return;
+    }
+
+    setIsUploadingClipboard(true);
+    try {
+      const results = await Promise.allSettled(
+        pastedImages.slice(0, availableSlots).map(file => uploadChatFile(file)),
+      );
+      const uploaded = results
+        .filter(result => result.status === 'fulfilled')
+        .map(result => result.value);
+      if (uploaded.length) {
+        setAttachments(current => [...current, ...uploaded].slice(0, 10));
+        toast.success(uploaded.length === 1
+          ? 'Pasted image attached. Press Enter to send it.'
+          : `${uploaded.length} pasted images attached. Press Enter to send them.`);
+      }
+      const failed = results.find(result => result.status === 'rejected');
+      if (failed) toast.error(failed.reason?.message || 'A pasted image could not be uploaded.');
+    } finally {
+      setIsUploadingClipboard(false);
+    }
   };
 
   const sendSpotifyInvite = async () => {
@@ -311,7 +349,7 @@ export default function MessageInput({
             {attachments.map((attachment, index) => (
               <div key={`${attachment.url}-${index}`} className="group/attachment relative flex max-w-[220px] items-center gap-2 rounded-lg bg-[#111827] px-2 py-1.5 text-xs text-[#cbd5e1]">
                 {attachment.type === 'image' || attachment.type === 'gif' ? (
-                  <img src={attachment.previewUrl || attachment.url} alt="" className="h-8 w-8 rounded object-cover" />
+                  <img src={resolveSafeMediaUrl(attachment.previewUrl || attachment.url) || ''} alt="" className="h-8 w-8 rounded object-cover" />
                 ) : (
                   <span className="flex h-8 w-8 items-center justify-center rounded bg-[#26354b] font-semibold text-[#93c5fd]">FILE</span>
                 )}
@@ -333,7 +371,7 @@ export default function MessageInput({
           onSubmit={handleSubmit}
           className={`relative flex items-center border border-white/[0.07] bg-[#1e293b] px-3 py-2.5 shadow-lg shadow-black/10 transition-colors focus-within:border-[#3b82f6]/70 ${replyTo || attachments.length > 0 ? 'rounded-b-xl' : 'rounded-xl'}`}
         >
-          <FileUpload onFileSelect={addAttachment} disabled={disabled} />
+          <FileUpload onFileSelect={addAttachment} disabled={disabled || isUploadingClipboard} />
 
           <input
             ref={inputRef}
@@ -341,11 +379,12 @@ export default function MessageInput({
             value={message}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onBlur={() => {
               // Bir emoji veya dosya düğmesine basarken yazıyor bilgisini hemen kapatma.
               window.setTimeout(stopTyping, 200);
             }}
-            placeholder={placeholder || 'Send a message...'}
+            placeholder={isUploadingClipboard ? 'Uploading pasted image…' : (placeholder || 'Send a message...')}
             disabled={disabled}
             className="min-w-0 flex-1 bg-transparent px-2 text-[15px] text-[#DBDEE1] outline-none placeholder:text-[#64748b] disabled:cursor-not-allowed"
             autoComplete="off"

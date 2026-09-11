@@ -142,7 +142,10 @@ app.use('/uploads', express.static(uploadsDirectory, {
   redirect: false,
   setHeaders: (res, filePath) => {
     res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Cross-Origin-Resource-Policy', 'same-site');
+    // Desktop builds run under tahosapp://app, so user-uploaded media must be
+    // embeddable from that isolated renderer origin. The flat, immutable upload
+    // route contains no executable content and is still protected by nosniff.
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Cache-Control', 'private, max-age=31536000, immutable');
     if (/\.(?:pdf|doc|docx|txt)$/i.test(filePath)) res.set('Content-Disposition', 'attachment');
   },

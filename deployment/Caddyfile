@@ -28,6 +28,8 @@
 api.tahosapp.com.tr {
 	import cloudflare_only
 	import common_security
+	@uploadedMedia path /uploads/*
+	header @uploadedMedia Cross-Origin-Resource-Policy "cross-origin"
 	header X-Robots-Tag "noindex, nofollow, noarchive"
 	request_body {
 		max_size 12MB

@@ -10,8 +10,7 @@ import UserPopover from '../profile/UserPopover';
 import { useServer } from '../../context/ServerContext';
 import { createReport, getMessageEditHistory } from '../../services/platformApi';
 import { registerAudioOutputTarget } from '../../services/audioOutputService';
-import { API_ORIGIN } from '../../config/runtimeConfig';
-import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
+import { resolveSafeAvatarUrl, resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 import { getNameAppearance } from '../../utils/profileAppearance';
 import { playSpotifyInvite } from '../../services/api';
 
@@ -38,10 +37,7 @@ function renderCountryFlagsWithTwemoji(content = '') {
 }
 
 function asAbsoluteUrl(url) {
-  const safeUrl = resolveSafeMediaUrl(url);
-  if (!safeUrl) return null;
-  if (safeUrl.startsWith('/uploads/')) return `${API_ORIGIN}${safeUrl}`;
-  return safeUrl;
+  return resolveSafeMediaUrl(url);
 }
 
 function normalizeReactions(reactions) {
@@ -199,6 +195,9 @@ export default function Message({
 
   const avatarColor = getColorForString(message.username || '?');
   const initial = (message.username || '?')[0].toUpperCase();
+  const avatarUrl = resolveSafeAvatarUrl(
+    message.authorAppearance?.avatar || message.author?.avatar || message.avatar,
+  );
   const messageUser = { id: message.userId, username: message.username };
   const attachments = Array.isArray(message.attachments) ? message.attachments : [];
   const spotifyInvite = message.spotifyInvite || null;
@@ -292,7 +291,9 @@ export default function Message({
               className="absolute left-4 top-0.5 flex h-10 w-10 cursor-pointer select-none items-center justify-center rounded-full text-white font-semibold shadow-sm transition-opacity hover:opacity-80"
               style={{ backgroundColor: avatarColor }}
             >
-              {initial}
+              {avatarUrl
+                ? <img src={avatarUrl} alt={`${message.username} profile picture`} className="h-full w-full rounded-full object-cover" />
+                : initial}
             </div>
           )}
 

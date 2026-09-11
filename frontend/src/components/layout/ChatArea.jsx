@@ -286,6 +286,8 @@ export default function ChatArea() {
           ...message,
           username: updatedUser.username || message.username,
           authorAppearance: {
+            ...message.authorAppearance,
+            avatar: updatedUser.avatar || null,
             profileAccentColor: updatedUser.profileAccentColor,
             nameFont: updatedUser.nameFont,
             nameEffect: updatedUser.nameEffect,

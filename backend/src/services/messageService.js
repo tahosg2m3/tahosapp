@@ -7,10 +7,16 @@ const MAX_MESSAGE_LENGTH = 4000;
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
-function authorAppearanceFor(userId) {
+function authorAppearanceFor(userId, channelId) {
   const author = storage.getPublicUserById(userId);
   if (!author) return null;
+  const channel = storage.getChannelById(channelId);
+  const server = channel ? storage.getServerById(channel.serverId) : null;
+  const serverProfile = server && !server.isDM
+    ? storage.getServerMemberProfile(server.id, userId)
+    : null;
   return {
+    avatar: serverProfile?.serverAvatar || author.avatar || null,
     profileAccentColor: author.profileAccentColor,
     nameFont: author.nameFont,
     nameEffect: author.nameEffect,
@@ -145,7 +151,7 @@ class MessageService {
       id: uuidv4(),
       username,
       userId,
-      authorAppearance: authorAppearanceFor(userId),
+      authorAppearance: authorAppearanceFor(userId, channelId),
       content: safeContent,
       channelId,
       timestamp: Date.now(),
@@ -191,7 +197,7 @@ class MessageService {
     const startIndex = Math.max(0, endIndex - limit);
     return sorted.slice(startIndex, endIndex).map(message => ({
       ...message,
-      authorAppearance: authorAppearanceFor(message.userId) || message.authorAppearance || null,
+      authorAppearance: authorAppearanceFor(message.userId, channelId) || message.authorAppearance || null,
     }));
   }
 

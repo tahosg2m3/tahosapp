@@ -20,13 +20,19 @@ function serializeConversation(server, viewerId) {
       icon: server.icon || null,
       ownerId: server.ownerId,
       memberIds: [...server.dmUserIds],
-      members: server.dmUserIds.map(id => storage.getPublicUserById(id)).filter(Boolean),
+      members: server.dmUserIds.map(id => {
+        const member = storage.getPublicUserById(id);
+        return member ? { ...member, status: storage.getUserStatus(id) } : null;
+      }).filter(Boolean),
       createdAt: server.createdAt,
       updatedAt: server.updatedAt || server.createdAt,
     };
   }
   const otherUserId = server.dmUserIds.find(id => id !== viewerId);
-  const otherUser = storage.getPublicUserById(otherUserId);
+  const publicUser = storage.getPublicUserById(otherUserId);
+  const otherUser = publicUser
+    ? { ...publicUser, status: storage.getUserStatus(otherUserId) }
+    : null;
   if (!otherUser) return null;
   return {
     id: server.id,

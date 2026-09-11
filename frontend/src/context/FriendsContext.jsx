@@ -1,5 +1,5 @@
 // frontend/src/context/FriendsContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import { useSocket } from './SocketContext';
 import { useAuth } from './AuthContext';
 import {
@@ -25,12 +25,41 @@ export const FriendsProvider = ({ children }) => {
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
 
+  const loadFriends = useCallback(async () => {
+    if (!user?.id) return [];
+    try {
+      const data = await fetchFriends(user.id);
+      const nextFriends = Array.isArray(data) ? data : [];
+      setFriends(nextFriends);
+      return nextFriends;
+    } catch (error) {
+      console.error('Failed to load friends:', error);
+      return [];
+    }
+  }, [user?.id]);
+
+  const loadPendingRequests = useCallback(async () => {
+    if (!user?.id) return [];
+    try {
+      const data = await fetchPendingRequests(user.id);
+      const nextRequests = Array.isArray(data) ? data : [];
+      setPendingRequests(nextRequests);
+      return nextRequests;
+    } catch (error) {
+      console.error('Failed to load pending requests:', error);
+      return [];
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (user) {
       loadFriends();
       loadPendingRequests();
+    } else {
+      setFriends([]);
+      setPendingRequests([]);
     }
-  }, [user]);
+  }, [loadFriends, loadPendingRequests, user]);
 
   useEffect(() => {
     if (!socket) return;
@@ -48,32 +77,23 @@ export const FriendsProvider = ({ children }) => {
         String(friend.id) === String(userId) ? { ...friend, activities: activities || [] } : friend
       )));
     };
+    const handleFriendsChanged = () => {
+      loadFriends();
+      loadPendingRequests();
+    };
+    const handleFriendRequest = () => loadPendingRequests();
     socket.on('status:update', handleStatusUpdate);
     socket.on('rich-presence:update', handleRichPresenceUpdate);
+    socket.on('friends:changed', handleFriendsChanged);
+    socket.on('friend:request', handleFriendRequest);
 
     return () => {
       socket.off('status:update', handleStatusUpdate);
       socket.off('rich-presence:update', handleRichPresenceUpdate);
+      socket.off('friends:changed', handleFriendsChanged);
+      socket.off('friend:request', handleFriendRequest);
     };
-  }, [socket]);
-
-  const loadFriends = async () => {
-    try {
-      const data = await fetchFriends(user.id);
-      setFriends(data);
-    } catch (error) {
-      console.error('Failed to load friends:', error);
-    }
-  };
-
-  const loadPendingRequests = async () => {
-    try {
-      const data = await fetchPendingRequests(user.id);
-      setPendingRequests(data);
-    } catch (error) {
-      console.error('Failed to load pending requests:', error);
-    }
-  };
+  }, [loadFriends, loadPendingRequests, socket]);
 
   const sendFriendRequest = async (targetUsername) => {
     try {
@@ -93,6 +113,7 @@ export const FriendsProvider = ({ children }) => {
       await loadPendingRequests();
     } catch (error) {
       console.error('Failed to accept friend request:', error);
+      throw error;
     }
   };
 
@@ -103,6 +124,7 @@ export const FriendsProvider = ({ children }) => {
       await loadPendingRequests();
     } catch (error) {
       console.error('Failed to reject friend request:', error);
+      throw error;
     }
   };
 
@@ -124,6 +146,8 @@ export const FriendsProvider = ({ children }) => {
     acceptFriendRequest,
     rejectFriendRequest,
     removeFriend,
+    refreshFriends: loadFriends,
+    refreshPendingRequests: loadPendingRequests,
   };
 
   return (

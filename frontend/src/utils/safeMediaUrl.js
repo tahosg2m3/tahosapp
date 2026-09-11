@@ -1,3 +1,5 @@
+import { API_ORIGIN } from '../config/runtimeConfig';
+
 const LOCAL_UPLOAD_URL_PATTERN = /^\/uploads\/[A-Za-z0-9._-]+$/;
 const GENERATED_AVATAR_HOSTNAME = 'ui-avatars.com';
 
@@ -21,7 +23,7 @@ export function resolveSafeMediaUrl(value, { excludeGeneratedAvatar = false } = 
 
   const clean = value.trim();
   if (!clean) return null;
-  if (LOCAL_UPLOAD_URL_PATTERN.test(clean)) return encodeDomMediaUrl(clean);
+  if (LOCAL_UPLOAD_URL_PATTERN.test(clean)) return encodeDomMediaUrl(`${API_ORIGIN}${clean}`);
 
   try {
     const parsed = new URL(clean);

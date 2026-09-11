@@ -75,7 +75,7 @@ import {
   unblockUser,
 } from '../../services/platformApi';
 import RichPresenceCard from './RichPresenceCard';
-import { API_ORIGIN, API_URL } from '../../config/runtimeConfig';
+import { API_URL } from '../../config/runtimeConfig';
 import { apiFetch } from '../../services/httpClient';
 import { useI18n } from '../../i18n/I18nContext';
 
@@ -230,7 +230,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const allSettings = useMemo(() => settingGroups.flatMap(group => group.items), [settingGroups]);
   const validInitialTab = allSettings.some(item => item.id === initialTab) ? initialTab : 'account';
   const [activeTab, setActiveTab] = useState(validInitialTab);
-  const initialAvatar = resolveSafeAvatarUrl(user.avatar) || '';
+  const initialAvatar = typeof user.avatar === 'string' ? user.avatar : '';
   const [username, setUsername] = useState(user.username || '');
   const [avatarUrl, setAvatarUrl] = useState(initialAvatar);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
@@ -617,7 +617,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       if (!response.ok) throw new Error(payload.error || 'The avatar could not be uploaded.');
       const uploadedUrl = String(payload.url || '');
       if (!uploadedUrl) throw new Error('The server did not return an avatar URL.');
-      setAvatarUrl(uploadedUrl.startsWith('/uploads/') ? `${API_ORIGIN}${uploadedUrl}` : uploadedUrl);
+      setAvatarUrl(uploadedUrl);
       toast.success(file.type === 'image/gif'
         ? 'Animated avatar uploaded. Save your changes.'
         : 'Avatar uploaded. Save your changes.');

@@ -52,6 +52,41 @@ export default function DMList({ setViewMode }) {
     if (!socket || !user) return undefined;
 
     const handleNotification = () => loadConversations().catch(console.error);
+    const handleStatusUpdate = ({ userId, status, customStatus } = {}) => {
+      if (!userId || !status) return;
+      setDms(current => current.map(conversation => {
+        if (isGroupDM(conversation)) {
+          return {
+            ...conversation,
+            members: (conversation.members || []).map(member => (
+              String(member.id) === String(userId)
+                ? { ...member, status, ...(customStatus !== undefined ? { customStatus } : {}) }
+                : member
+            )),
+          };
+        }
+        if (String(conversation.otherUser?.id) !== String(userId)) return conversation;
+        return {
+          ...conversation,
+          otherUser: {
+            ...conversation.otherUser,
+            status,
+            ...(customStatus !== undefined ? { customStatus } : {}),
+          },
+        };
+      }));
+      setActiveDM(current => {
+        if (String(current?.otherUser?.id) !== String(userId)) return current;
+        return {
+          ...current,
+          otherUser: {
+            ...current.otherUser,
+            status,
+            ...(customStatus !== undefined ? { customStatus } : {}),
+          },
+        };
+      });
+    };
     const handleGroupCreated = ({ conversation } = {}) => {
       if (!conversation?.id) return;
       setDms((current) => upsertConversation(current, conversation));
@@ -68,14 +103,18 @@ export default function DMList({ setViewMode }) {
     };
 
     socket.on('dm:notification', handleNotification);
+    socket.on('dm:created', handleNotification);
     socket.on('dm:group-created', handleGroupCreated);
     socket.on('dm:group-updated', handleGroupUpdated);
     socket.on('dm:group-removed', handleGroupRemoved);
+    socket.on('status:update', handleStatusUpdate);
     return () => {
       socket.off('dm:notification', handleNotification);
+      socket.off('dm:created', handleNotification);
       socket.off('dm:group-created', handleGroupCreated);
       socket.off('dm:group-updated', handleGroupUpdated);
       socket.off('dm:group-removed', handleGroupRemoved);
+      socket.off('status:update', handleStatusUpdate);
     };
   }, [loadConversations, setActiveDM, socket, user]);
 
@@ -146,7 +185,7 @@ export default function DMList({ setViewMode }) {
               if (!group && !directUser) return null;
               const isActive = activeDM?.id === dm.id;
               const label = group ? (dm.name || 'New Group') : directUser.username;
-              const status = directUser?.presenceStatus || directUser?.status;
+              const status = directUser?.status || directUser?.presenceStatus;
               const online = status && !['offline', 'invisible'].includes(status);
               const avatarUrl = group ? null : resolveSafeAvatarUrl(directUser.avatar);
 

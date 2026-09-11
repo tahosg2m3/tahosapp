@@ -1,6 +1,6 @@
 {
   "name": "tahosapp",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Tahosapp desktop communication application",
   "author": "tahosg2m3",
   "main": "electron/main.js",
