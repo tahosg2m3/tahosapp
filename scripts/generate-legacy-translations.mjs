@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const turkishRevision = process.env.TAHOSAPP_TURKISH_REVISION || '6e3b167';
+const legacyPairExclusions = new Set([
+  'Profile and chat images now load consistently, Spotify invitations work on desktop and web, and friend presence and direct messages stay synchronized.',
+]);
 
 function walk(directory, predicate) {
   return readdirSync(directory).flatMap(name => {
@@ -15,12 +18,62 @@ function walk(directory, predicate) {
 
 function decode(value, quote) {
   if (quote === '`' && value.includes('${')) return null;
-  try {
-    if (quote === '`') return value.replace(/\\`/g, '`').replace(/\\n/g, '\n');
-    return JSON.parse(quote === "'" ? `"${value.replace(/\\'/g, "'").replace(/"/g, '\\"')}"` : `"${value}"`);
-  } catch (_) {
-    return value.replace(/\\([\\'"`])/g, '$1');
+  const simpleEscapes = {
+    '0': '\0', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v',
+    '\\': '\\', "'": "'", '"': '"', '`': '`',
+  };
+  let output = '';
+
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] !== '\\') {
+      output += value[index];
+      continue;
+    }
+
+    const escaped = value[index + 1];
+    if (escaped === undefined) {
+      output += '\\';
+      continue;
+    }
+    index += 1;
+
+    if (escaped === '\n') continue;
+    if (escaped === '\r') {
+      if (value[index + 1] === '\n') index += 1;
+      continue;
+    }
+    if (Object.hasOwn(simpleEscapes, escaped)) {
+      output += simpleEscapes[escaped];
+      continue;
+    }
+
+    const remaining = value.slice(index);
+    const codePoint = escaped === 'u'
+      ? remaining.match(/^u\{([0-9A-Fa-f]{1,6})\}/)
+      : null;
+    if (codePoint && Number.parseInt(codePoint[1], 16) <= 0x10FFFF) {
+      output += String.fromCodePoint(Number.parseInt(codePoint[1], 16));
+      index += codePoint[0].length - 1;
+      continue;
+    }
+
+    const fixedEscape = escaped === 'u'
+      ? remaining.match(/^u([0-9A-Fa-f]{4})/)
+      : escaped === 'x'
+        ? remaining.match(/^x([0-9A-Fa-f]{2})/)
+        : null;
+    if (fixedEscape) {
+      output += String.fromCharCode(Number.parseInt(fixedEscape[1], 16));
+      index += fixedEscape[0].length - 1;
+      continue;
+    }
+
+    // JavaScript permits escaping a non-special character; its value is the
+    // character itself. Keeping that behavior avoids evaluating source text.
+    output += escaped;
   }
+
+  return output;
 }
 
 function sourceTokens(source) {
@@ -74,6 +127,8 @@ function collectPairs(oldTokens, currentTokens, output) {
     currentGap.forEach((english, index) => {
       const turkish = oldGap[index];
       if (!english || !turkish || english === turkish || english.length > 500 || turkish.length > 500) return;
+      if (legacyPairExclusions.has(english)) return;
+      if (/\b(?:v|tahosapp\s+)?\d+\.\d+\.\d+\b/i.test(english)) return;
       if (!/[A-Za-z]/.test(english) || !/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(turkish)) return;
       if (/[{}]|className|=>|\b(?:const|return|function|import|socket|set[A-Z])\b/.test(english)) return;
       output.set(english, turkish);

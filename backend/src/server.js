@@ -106,6 +106,7 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'no-referrer',
+    'Cross-Origin-Resource-Policy': 'same-site',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
   });
   next();

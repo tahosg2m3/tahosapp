@@ -12,9 +12,15 @@
 
   const core = {
     tr: {
-      'v1.2.0 · Windows 10/11 · 64-bit · Web version · Independent and free': 'v1.2.0 · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz',
-      'Multilingual app and website with 12 languages, automatic locale detection, server-wide notification controls, and a context-aware notification center.': '12 dil, otomatik dil algılama, sunucu geneli bildirim kontrolleri ve yalnızca ilgili ekranlarda görünen bildirim merkeziyle çok dilli uygulama ve web sitesi.',
-      'Download 1.2.0': "1.2.0'ı indir",
+      'Profile and chat images now load consistently, Spotify invitations work on desktop and web, and friend presence and direct messages stay synchronized.': 'Profil ve sohbet görselleri artık tutarlı biçimde yükleniyor; Spotify davetleri masaüstü ve webde çalışıyor, arkadaş durumları ve direkt mesajlar eşitleniyor.',
+      'Fixed uploaded profile pictures and chat images in the desktop app and web app.': 'Yüklenen profil fotoğrafları ve sohbet görselleri masaüstü ve web uygulamasında düzeltildi.',
+      'Replaced the unsupported Spotify prompt with an in-app track-link form.': 'Desteklenmeyen Spotify açılır penceresi uygulama içi parça bağlantısı formuyla değiştirildi.',
+      'Kept friend presence and newly accepted direct messages synchronized.': 'Arkadaş durumları ve yeni kabul edilen direkt mesajlar eşitlenmiş halde tutuldu.',
+      'Removed the high-severity CodeQL warning from the legacy translation generator.': 'Eski çeviri üreticisindeki yüksek önem dereceli CodeQL uyarısı kaldırıldı.',
+      'Added image paste support and Discord-style background tray behavior.': 'Görsel yapıştırma desteği ve Discord benzeri arka plan sistem tepsisi davranışı eklendi.',
+      'Normalized uploaded media URLs for desktop and browser clients.': 'Yüklenen medya adresleri masaüstü ve tarayıcı istemcileri için standartlaştırıldı.',
+      'Created a direct-message entry as soon as a friend request is accepted.': 'Arkadaşlık isteği kabul edilir edilmez direkt mesaj kaydı oluşturulması sağlandı.',
+      'Made friend presence use the same live status data as server member lists.': 'Arkadaş durumlarının sunucu üye listeleriyle aynı canlı durum verisini kullanması sağlandı.',
       'Added 12 selectable interface languages to the app and website.': 'Uygulama ve web sitesine seçilebilir 12 arayüz dili eklendi.',
       'Added automatic language detection from browser and regional settings while preserving manual choices.': 'Kullanıcının seçimini koruyan tarayıcı ve bölge ayarı tabanlı otomatik dil algılama eklendi.',
       'Made Turkish the default for new accounts and migrated the earlier forced-English preference safely.': 'Yeni hesaplarda Türkçe varsayılan yapıldı ve önceki zorunlu İngilizce tercihi güvenle düzeltildi.',
@@ -81,6 +87,20 @@
     return core[locale] || {};
   }
 
+  function dynamicTranslation(locale, value) {
+    const brandedVersion = /^tahosapp\s+(\d+\.\d+\.\d+)$/.exec(value);
+    if (brandedVersion) return value;
+
+    const downloadVersion = /^Download\s+(\d+\.\d+\.\d+)$/.exec(value);
+    if (downloadVersion && locale === 'tr') return `${downloadVersion[1]}'yi indir`;
+
+    const releaseSummary = /^(v\d+\.\d+\.\d+) · Windows 10\/11 · 64-bit · Web version · Independent and free$/.exec(value);
+    if (releaseSummary && locale === 'tr') {
+      return `${releaseSummary[1]} · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz`;
+    }
+    return '';
+  }
+
   function localize(locale) {
     const translations = dictionary(locale);
     document.documentElement.lang = locale;
@@ -92,7 +112,7 @@
       const original = originalText.get(node) || node.nodeValue;
       originalText.set(node, original);
       const clean = original.trim();
-      const replacement = locale === 'en' ? clean : translations[clean];
+      const replacement = locale === 'en' ? clean : dynamicTranslation(locale, clean) || translations[clean];
       if (replacement) node.nodeValue = `${original.match(/^\s*/)?.[0] || ''}${replacement}${original.match(/\s*$/)?.[0] || ''}`;
       else if (locale === 'en') node.nodeValue = original;
     }

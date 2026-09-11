@@ -35,6 +35,8 @@ export default function MessageInput({
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
   const [isUploadingClipboard, setIsUploadingClipboard] = useState(false);
   const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
+  const [showSpotifyLinkInput, setShowSpotifyLinkInput] = useState(false);
+  const [spotifyUrl, setSpotifyUrl] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
   const [commandIndex, setCommandIndex] = useState(0);
   const typingRef = useRef(false);
@@ -228,6 +230,16 @@ export default function MessageInput({
     }
   };
 
+  const sendSpotifyMessage = async (invite) => {
+    await Promise.resolve(onSendMessage({
+      content: `Open this on Spotify: ${invite.name}${invite.artist ? ` — ${invite.artist}` : ''}`,
+      attachments: [],
+      replyTo: null,
+      spotifyInvite: invite,
+    }));
+    toast.success('Spotify listening invite sent.');
+  };
+
   const sendSpotifyInvite = async () => {
     if (disabled || isSpotifyLoading) return;
     setIsSpotifyLoading(true);
@@ -241,19 +253,29 @@ export default function MessageInput({
       }
 
       if (!invite) {
-        const spotifyUrl = window.prompt('Paste the Spotify track link you want to share:');
-        if (!spotifyUrl?.trim()) return;
-        const payload = await createSpotifyInviteFromUrl(spotifyUrl.trim());
-        invite = payload.invite;
+        setShowSpotifyLinkInput(true);
+        return;
       }
 
-      onSendMessage({
-        content: `Open this on Spotify: ${invite.name}${invite.artist ? ` — ${invite.artist}` : ''}`,
-        attachments: [],
-        replyTo: null,
-        spotifyInvite: invite,
-      });
-      toast.success('Spotify listening invite sent.');
+      await sendSpotifyMessage(invite);
+    } catch (error) {
+      toast.error(error.message || 'Spotify listening invite could not be sent.');
+    } finally {
+      setIsSpotifyLoading(false);
+    }
+  };
+
+  const submitSpotifyLink = async (event) => {
+    event.preventDefault();
+    const url = spotifyUrl.trim();
+    if (!url || disabled || isSpotifyLoading) return;
+
+    setIsSpotifyLoading(true);
+    try {
+      const payload = await createSpotifyInviteFromUrl(url);
+      await sendSpotifyMessage(payload.invite);
+      setSpotifyUrl('');
+      setShowSpotifyLinkInput(false);
     } catch (error) {
       toast.error(error.message || 'Spotify listening invite could not be sent.');
     } finally {
@@ -307,6 +329,53 @@ export default function MessageInput({
       )}
 
       <div className="relative">
+        {showSpotifyLinkInput && (
+          <form
+            onSubmit={submitSpotifyLink}
+            className="absolute bottom-[calc(100%+8px)] right-0 z-[78] w-[min(420px,100%)] rounded-xl border border-[#1ed760]/30 bg-[#151d2c] p-3 shadow-2xl shadow-black/40"
+            role="dialog"
+            aria-label="Share a Spotify track"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-bold text-white"><Music2 className="h-4 w-4 text-[#1ed760]" /> Share a Spotify track</p>
+                <p className="mt-0.5 text-xs text-[#94a3b8]">Paste a Spotify track link, then send the invitation.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowSpotifyLinkInput(false); setSpotifyUrl(''); }}
+                className="rounded-md p-1 text-[#94a3b8] hover:bg-white/[0.08] hover:text-white"
+                aria-label="Close Spotify invitation"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={spotifyUrl}
+                onChange={event => setSpotifyUrl(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Escape') {
+                    setShowSpotifyLinkInput(false);
+                    setSpotifyUrl('');
+                  }
+                }}
+                placeholder="https://open.spotify.com/track/..."
+                className="min-w-0 flex-1 rounded-lg border border-white/[0.09] bg-[#0f172a] px-3 py-2 text-sm text-white outline-none placeholder:text-[#64748b] focus:border-[#1ed760]/70"
+                autoFocus
+                required
+              />
+              <button
+                type="submit"
+                disabled={isSpotifyLoading || !spotifyUrl.trim()}
+                className="rounded-lg bg-[#1ed760] px-4 py-2 text-sm font-extrabold text-[#07130b] transition hover:bg-[#3be477] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSpotifyLoading ? 'Sending…' : 'Send'}
+              </button>
+            </div>
+          </form>
+        )}
         {visibleCommands.length > 0 && (
           <div className="absolute bottom-[calc(100%+8px)] left-0 z-[76] w-80 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151d2c] p-1.5 shadow-2xl shadow-black/40">
             <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">App commands</p>

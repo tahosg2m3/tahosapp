@@ -20,7 +20,6 @@
 		X-Frame-Options "DENY"
 		X-Permitted-Cross-Domain-Policies "none"
 		Cross-Origin-Opener-Policy "same-origin"
-		Cross-Origin-Resource-Policy "same-site"
 		-Server
 	}
 }
@@ -28,8 +27,6 @@
 api.tahosapp.com.tr {
 	import cloudflare_only
 	import common_security
-	@uploadedMedia path /uploads/*
-	header @uploadedMedia Cross-Origin-Resource-Policy "cross-origin"
 	header X-Robots-Tag "noindex, nofollow, noarchive"
 	request_body {
 		max_size 12MB
@@ -45,7 +42,10 @@ api.tahosapp.com.tr {
 voice.tahosapp.com.tr {
 	import cloudflare_only
 	import common_security
-	header X-Robots-Tag "noindex, nofollow, noarchive"
+	header {
+		X-Robots-Tag "noindex, nofollow, noarchive"
+		Cross-Origin-Resource-Policy "same-site"
+	}
 	reverse_proxy 127.0.0.1:9000 {
 		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
 		header_up X-Real-IP {http.request.header.Cf-Connecting-Ip}
@@ -61,6 +61,7 @@ tahosapp.com.tr {
 	import cloudflare_only
 	import common_security
 	header {
+		Cross-Origin-Resource-Policy "same-site"
 		Content-Security-Policy "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https://api.tahosapp.com.tr wss://api.tahosapp.com.tr https://voice.tahosapp.com.tr wss://voice.tahosapp.com.tr; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		Permissions-Policy "camera=(self), microphone=(self), display-capture=(self), geolocation=()"
 	}

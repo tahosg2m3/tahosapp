@@ -55,6 +55,11 @@ const COMMON_TEXT = {
   Accessibility: { tr: 'Erişilebilirlik', de: 'Barrierefreiheit', fr: 'Accessibilité', es: 'Accesibilidad', 'pt-BR': 'Acessibilidade', it: 'Accessibilità', ru: 'Специальные возможности', ar: 'إمكانية الوصول', ja: 'アクセシビリティ', ko: '접근성', 'zh-CN': '辅助功能' },
   Language: { tr: 'Dil', de: 'Sprache', fr: 'Langue', es: 'Idioma', 'pt-BR': 'Idioma', it: 'Lingua', ru: 'Язык', ar: 'اللغة', ja: '言語', ko: '언어', 'zh-CN': '语言' },
   Updates: { tr: 'Güncellemeler', de: 'Updates', fr: 'Mises à jour', es: 'Actualizaciones', 'pt-BR': 'Atualizações', it: 'Aggiornamenti', ru: 'Обновления', ar: 'التحديثات', ja: 'アップデート', ko: '업데이트', 'zh-CN': '更新' },
+  'Share a Spotify track': { tr: 'Spotify parçası paylaş' },
+  'Paste a Spotify track link, then send the invitation.': { tr: 'Spotify parça bağlantısını yapıştır ve daveti gönder.' },
+  'Close Spotify invitation': { tr: 'Spotify davetini kapat' },
+  Send: { tr: 'Gönder' },
+  'Sending…': { tr: 'Gönderiliyor…' },
 };
 
 function initialLocale() {
