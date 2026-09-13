@@ -21,6 +21,11 @@ Sunucular, kanallar, doğrudan mesajlar, sesli/görüntülü iletişim, ekran pa
 * 🔍 Mesaj arama
 * 🤖 AutoMod ve özel eğik çizgi (slash) komutları
 * 📅 Sunucu etkinlikleri ve katılım durumu (RSVP) sistemi
+* ⏰ Kişisel mesaj koleksiyonları, hatırlatıcılar ve zamanlanmış mesajlar
+* 🎮 Oyun ekibi bulma (LFG) ilanları ve otomatik geçici ses odaları
+* 📚 Özel destek talepleri, sunucu wiki'si ve ortak çizim tahtası
+* ✨ Son 24 saat için kanal özeti ve önemli mesajlara hızlı dönüş
+* 🔑 Passkey girişi, cihaz oturumları ve arka plan Web Push bildirimleri
 * 🌙 Açık (Light), Koyu (Dark) ve Gece Yarısı (Midnight) temaları
 * 🖥️ Windows, macOS ve Linux masaüstü uygulaması
 

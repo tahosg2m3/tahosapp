@@ -12,6 +12,14 @@ const savedTheme = supportedThemes.has(requestedTheme) ? requestedTheme : 'dark'
 document.documentElement.dataset.theme = savedTheme
 applyAccessibilityPreferences(readAccessibilityPreferences())
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(error => {
+      console.warn('Background notifications could not be initialized:', error.message)
+    })
+  })
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <I18nProvider>

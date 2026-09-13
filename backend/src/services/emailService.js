@@ -35,17 +35,18 @@ function getSmtpSecure(port) {
 function createTransporter() {
   loadRuntimeEmailConfig();
 
-  const missing = ['SMTP_USER', 'SMTP_PASS'].filter(key => !String(process.env[key] || '').trim());
+  // Brevo's SMTP login is separate from the verified sender address.
+  const missing = ['SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'].filter(key => !String(process.env[key] || '').trim());
   if (missing.length) {
     throw configurationError(`SMTP configuration is incomplete: ${missing.join(', ')} must be configured.`);
   }
 
-  const port = Number(process.env.SMTP_PORT || 465);
+  const port = Number(process.env.SMTP_PORT || 587);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw configurationError('SMTP_PORT must be a valid number between 1 and 65535.');
   }
 
-  const host = String(process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+  const host = String(process.env.SMTP_HOST || 'smtp-relay.brevo.com').trim();
   const secure = getSmtpSecure(port);
 
   return nodemailer.createTransport({
@@ -84,7 +85,7 @@ async function sendSecurityCode(email, username, code, { subject, heading, descr
   const safeUsername = escapeHtml(username);
 
   await transporter.sendMail({
-    from: process.env.MAIL_FROM || process.env.SMTP_USER,
+    from: process.env.MAIL_FROM.trim(),
     to: email,
     subject,
     text: `Hello ${username},\n\n${description}\n\nYour code: ${code}\n\nThis code is valid for 10 minutes. If you did not start this action, you can ignore this email.`,

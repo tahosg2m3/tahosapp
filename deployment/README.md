@@ -56,12 +56,37 @@ Kurulu Windows uygulaması açılıştan kısa süre sonra ve her 30 dakikada bi
 SHA-512 doğrulamasından geçtikten sonra arka planda indirilir. Kullanıcı isterse
 hemen yeniden başlatır; aksi halde güncelleme normal kapanışta kurulur.
 
-Bilgisayardaki `backend/.env` içinde yalnızca SMTP kullanıcı adı veya uygulama
-şifresi değiştiyse, diğer üretim sırlarına dokunmadan canlı sunucuyu güncelle:
+## Brevo ile e-posta gönderimi
+
+SMTP bilgilerini proje içindeki `backend/.env` dosyasına gir:
+
+```dotenv
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=brevo_smtp_login
+SMTP_PASS=brevo_smtp_key
+MAIL_FROM="tahosapp <dogrulanmis-gonderen@alanadiniz.com>"
+```
+
+`SMTP_USER`, Brevo'nun SMTP ayarlarındaki **Login** değeridir. `SMTP_PASS` için
+**SMTP key** kullan; API anahtarı veya Brevo hesap parolası bu alana girilmez.
+`MAIL_FROM`, Brevo'da doğruladığın gönderen e-posta adresini içermelidir; SMTP
+kullanıcı adından farklı olabilir ve ayrıca girilmesi zorunludur. `587` portunda
+`SMTP_SECURE=false` kullanılır; backend bağlantıyı STARTTLS ile şifrelemeyi zorunlu
+tutar.
+
+Bu bilgileri frontend'e veya `app-config.json` dosyasına yazma; `backend/.env`
+sunucu tarafındaki gizli yapılandırmadır. Yerel backend çalışıyorsa dosyayı
+kaydettikten sonra yeniden başlat. Tarayıcıda Brevo'ya giriş yapmak backend'in
+SMTP kimlik doğrulamasını yapılandırmaz.
+
+Yalnızca bu SMTP ayarlarını canlı sunucuya aktarmak istediğinde:
 
 ```powershell
 npm run smtp:production
 ```
 
-Bu komut yalnızca `SMTP_*` ve `MAIL_FROM` satırlarını aktarır, Gmail bağlantısını
-sunucudan sınar ve geçici sır dosyasını bilgisayardan kaldırır.
+Bu komut yalnızca `SMTP_*` ve `MAIL_FROM` satırlarını aktarır, Brevo SMTP bağlantısını
+sunucudan sınar ve geçici sır dosyasını bilgisayardan kaldırır. Bağlantı kontrolü
+e-posta göndermez.

@@ -42,7 +42,9 @@ const turnRoutes = require('./routes/turn');
 const platformRoutes = require('./routes/platform');
 const feedbackRoutes = require('./routes/feedback');
 const adminRoutes = require('./routes/admin');
+const communityHubRoutes = require('./routes/communityHub');
 const { richPresenceService } = require('./services/richPresenceService');
+const { startCommunityWorkers } = require('./services/communityHubService');
 
 const setupSocketHandlers = require('./sockets');
 const { disconnectPeerFromVoice } = require('./sockets/handlers/voiceHandler');
@@ -167,6 +169,7 @@ app.use('/api/spotify', spotifyRoutes);
 app.use('/api/turn-credentials', turnRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/hub', communityHubRoutes);
 // Yeni platform özellikleri tam API yollarını kendi router'ında tanımlar.
 // Eski endpoint'ler yukarıda kalır and geriye dönük uyumluluğunu korur.
 app.use('/api', platformRoutes);
@@ -187,6 +190,7 @@ richPresenceService.setIo(io);
 setupSocketHandlers(io, {
   isPeerAvailable: peerId => Boolean(peerServerController?.hasClient(peerId)),
 });
+startCommunityWorkers(io);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;

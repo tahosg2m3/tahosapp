@@ -4,6 +4,7 @@ const { ipKeyGenerator, rateLimit } = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 
 const storage = require('../storage/inMemory');
+const { createSession } = require('../services/communityHubService');
 const {
   sendTwoFactorCode,
   sendPasswordResetCode,
@@ -606,7 +607,8 @@ router.post('/verify-2fa', rateLimits.verifyTwoFactorIp, rateLimits.verifyTwoFac
     });
   }
 
-  return res.json({ user: publicUser(user), token: signAuthToken(user) });
+  const session = createSession(user.id, req, result.pending.registration ? 'registration' : 'password');
+  return res.json({ user: publicUser(user), token: signAuthToken(user, { sid: session.id }) });
 });
 
 router.post('/resend-2fa', rateLimits.resendTwoFactorIp, rateLimits.resendTwoFactorAccount, async (req, res) => {

@@ -9,6 +9,7 @@ const { messageModerationService } = require('../../services/messageModerationSe
 const { platformService } = require('../../services/platformService');
 const storage = require('../../storage/inMemory');
 const { emitAudit, emitToChannelViewers } = require('../authorizedEmit');
+const { notifyUserPush } = require('../../services/communityHubService');
 
 function getChannelAccess(channelId, userId, permission = 'VIEW_CHANNEL') {
   const channel = storage.getChannelById(channelId);
@@ -142,7 +143,7 @@ function notifyRecipients(io, message, server, senderId) {
     const decision = notificationDecision(recipientId, message, server, mentioned);
     if (!decision.allowed) return;
 
-    io.to(`user:${recipientId}`).emit('notification:new', {
+    const notification = {
       id: `message-${message.id}-${recipientId}`,
       messageId: message.id,
       channelId: message.channelId,
@@ -152,7 +153,14 @@ function notifyRecipients(io, message, server, senderId) {
       isMention: mentioned,
       desktop: decision.prefs?.desktop !== false,
       sound: decision.prefs?.sound !== false,
-    });
+      url: `/?channel=${encodeURIComponent(message.channelId)}&message=${encodeURIComponent(message.id)}`,
+    };
+    io.to(`user:${recipientId}`).emit('notification:new', notification);
+    if (decision.prefs?.desktop !== false) {
+      notifyUserPush(recipientId, notification).catch(error => {
+        console.warn(`Push notification could not be delivered: ${error.message}`);
+      });
+    }
   });
 }
 

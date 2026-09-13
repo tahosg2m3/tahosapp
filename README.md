@@ -20,6 +20,11 @@ It includes servers, channels, direct messages, voice/video communication, scree
 * 🤖 AutoMod and custom slash commands
 * 📅 Server events and RSVP system
 * 🎵 Spotify listening invites with synchronized playback
+* ⏰ Personal message collections, reminders and scheduled messages
+* 🎮 Looking-for-group posts with automatic temporary voice rooms
+* 📚 Private support tickets, server wiki pages and shared whiteboards
+* ✨ 24-hour channel catch-up summaries with direct message links
+* 🔑 Passkey login, device sessions and background Web Push notifications
 * 🌙 Light, Dark and Midnight themes
 * 🖥️ Windows, macOS and Linux desktop application
 

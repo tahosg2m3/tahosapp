@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { Plus, Compass, MessageSquare, Users } from 'lucide-react';
+import { Plus, Compass, MessageSquare, Users, LayoutGrid } from 'lucide-react';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
@@ -7,13 +7,15 @@ import { fetchServers } from '../../services/api';
 import ServerIcon from '../server/ServerIcon';
 import CreateServerModal from '../server/CreateServerModal';
 import DiscoveryModal from '../server/DiscoveryModal';
+import CommunityHub from '../hub/CommunityHub';
 
 export default function ServerList({ viewMode, setViewMode }) {
-  const { servers, setServers, currentServer, setCurrentServer, setCurrentChannel } = useServer();
+  const { servers, setServers, currentServer, currentChannel, setCurrentServer, setCurrentChannel } = useServer();
   const { user } = useAuth();
   const { socket } = useSocket();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDiscovery, setShowDiscovery] = useState(false);
+  const [showCommunityHub, setShowCommunityHub] = useState(false);
 
   useEffect(() => {
     if (user?.id) fetchServers(user.id).then(setServers).catch(console.error);
@@ -71,6 +73,17 @@ export default function ServerList({ viewMode, setViewMode }) {
       </div>
 
       <div className="relative group flex items-center justify-center w-[72px] h-[48px] mb-2 cursor-pointer">
+        <div className="absolute left-0 w-1 bg-white rounded-r-md transition-all duration-300 h-2 opacity-0 group-hover:h-5 group-hover:opacity-100" />
+        <button onClick={() => setShowCommunityHub(true)} className="w-[48px] h-[48px] bg-[#313338] hover:bg-[#7c3aed] rounded-[24px] hover:rounded-[16px] transition-all duration-300 flex items-center justify-center text-[#a78bfa] hover:text-white" aria-label="Topluluk Merkezi">
+          <LayoutGrid className="w-6 h-6" />
+        </button>
+        <div className="absolute left-[76px] px-3 py-2 bg-[#111214] text-[#DBDEE1] text-[14px] font-semibold rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-all duration-150 scale-95 group-hover:scale-100 shadow-xl flex items-center">
+          <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#111214] rotate-45" />
+          Topluluk Merkezi
+        </div>
+      </div>
+
+      <div className="relative group flex items-center justify-center w-[72px] h-[48px] mb-2 cursor-pointer">
         <div className={`absolute left-0 w-1 bg-white rounded-r-md transition-all duration-300 ease-in-out ${viewMode === 'friends' ? 'h-10 opacity-100' : 'h-2 opacity-0 group-hover:h-5 group-hover:opacity-100'}`} />
         <button
           onClick={() => { setViewMode('friends'); setCurrentServer(null); setCurrentChannel(null); }}
@@ -119,6 +132,7 @@ export default function ServerList({ viewMode, setViewMode }) {
 
       {showCreateModal && <CreateServerModal onClose={() => setShowCreateModal(false)} onCreated={() => setViewMode('servers')} />}
       {showDiscovery && <DiscoveryModal onClose={() => setShowDiscovery(false)} onJoined={() => setViewMode('servers')} />}
+      {showCommunityHub && <CommunityHub onClose={() => setShowCommunityHub(false)} server={currentServer} channel={currentChannel} user={user} socket={socket} />}
     </div>
   );
 }

@@ -19,7 +19,7 @@ $remoteUser = 'tahosdeploy'
 $sshKey = 'C:\Users\User\.ssh\tahosapp_deploy_ed25519'
 $knownHosts = 'C:\Users\User\.ssh\tahosapp_known_hosts'
 $allowedKeys = @('SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM')
-$requiredKeys = @('SMTP_USER', 'SMTP_PASS')
+$requiredKeys = @('SMTP_USER', 'SMTP_PASS', 'MAIL_FROM')
 
 if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
   throw "SMTP kaynak dosyasi bulunamadi: $sourcePath"
@@ -57,7 +57,7 @@ try {
   & scp @sshOptions (Join-Path $PSScriptRoot 'verify-smtp.js') "${remote}:$remoteVerifyPath"
   if ($LASTEXITCODE -ne 0) { throw 'SMTP dogrulama yardimcisi sunucuya aktarilamadi.' }
 
-  $remoteCommand = "chmod 600 $remotePath; printf '[Service]\nEnvironmentFile=\nEnvironmentFile=/etc/tahosapp/tahosapp.env\nEnvironmentFile=/etc/tahosapp/smtp.env\n' > /tmp/tahosapp-smtp-override.conf; sudo install -o root -g tahosapp -m 0640 $remotePath /etc/tahosapp/smtp.env; sudo install -o root -g root -m 0644 -D /tmp/tahosapp-smtp-override.conf /etc/systemd/system/tahosapp.service.d/20-smtp.conf; sudo systemctl daemon-reload; sudo systemctl restart tahosapp; sleep 2; sudo -u tahosapp /opt/node22/bin/node $remoteVerifyPath; sudo systemctl is-active tahosapp"
+  $remoteCommand = "set -e; chmod 600 $remotePath; printf '[Service]\nEnvironmentFile=\nEnvironmentFile=/etc/tahosapp/tahosapp.env\nEnvironmentFile=/etc/tahosapp/smtp.env\n' > /tmp/tahosapp-smtp-override.conf; sudo install -o root -g tahosapp -m 0640 $remotePath /etc/tahosapp/smtp.env; sudo install -o root -g root -m 0644 -D /tmp/tahosapp-smtp-override.conf /etc/systemd/system/tahosapp.service.d/20-smtp.conf; sudo systemctl daemon-reload; sudo systemctl restart tahosapp; sleep 2; sudo -u tahosapp /opt/node22/bin/node $remoteVerifyPath; sudo systemctl is-active tahosapp"
   & ssh @sshOptions $remote $remoteCommand
   if ($LASTEXITCODE -ne 0) { throw 'SMTP dogrulamasi basarisiz oldu.' }
 }
@@ -70,4 +70,4 @@ finally {
   }
 }
 
-Write-Host 'Canli SMTP ayarlari guncellendi ve Gmail baglantisi dogrulandi.' -ForegroundColor Green
+Write-Host 'Canli SMTP ayarlari guncellendi ve Brevo baglantisi dogrulandi.' -ForegroundColor Green

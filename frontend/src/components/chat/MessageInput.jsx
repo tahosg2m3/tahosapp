@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
-import { Image as ImageIcon, Mic, Music2, SmilePlus, Square, X } from 'lucide-react';
+import { CalendarClock, Image as ImageIcon, Mic, Music2, SmilePlus, Square, X } from 'lucide-react';
 import FileUpload, { uploadChatFile } from './FileUpload';
 import GifPicker from './GifPicker';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ function attachmentLabel(attachment) {
 
 export default function MessageInput({
   onSendMessage,
+  onScheduleMessage,
   placeholder,
   onTypingStart,
   onTypingStop,
@@ -36,6 +37,12 @@ export default function MessageInput({
   const [isUploadingClipboard, setIsUploadingClipboard] = useState(false);
   const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
   const [showSpotifyLinkInput, setShowSpotifyLinkInput] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState(() => {
+    const date = new Date(Date.now() + 60 * 60 * 1000);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().slice(0, 16);
+  });
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
   const [commandIndex, setCommandIndex] = useState(0);
@@ -117,6 +124,19 @@ export default function MessageInput({
     setShowEmojiPicker(false);
     stopTyping();
     onCancelReply?.();
+  };
+
+  const handleSchedule = async () => {
+    const content = message.trim();
+    if (!content || !scheduleAt || !onScheduleMessage || disabled) return;
+    try {
+      await onScheduleMessage({ content, sendAt: new Date(scheduleAt).toISOString() });
+      setMessage('');
+      setShowSchedule(false);
+      if (draftKey) localStorage.removeItem(`chat:draft:${draftKey}`);
+    } catch (error) {
+      toast.error(error.message || 'Mesaj zamanlanamadı.');
+    }
   };
 
   const handleChange = (event) => {
@@ -329,6 +349,14 @@ export default function MessageInput({
       )}
 
       <div className="relative">
+        {showSchedule && (
+          <div className="absolute bottom-[calc(100%+8px)] right-0 z-[79] w-[min(360px,100%)] rounded-xl border border-white/[0.1] bg-[#151d2c] p-3 shadow-2xl shadow-black/40">
+            <div className="mb-2 flex items-center justify-between"><p className="text-sm font-bold text-white">Mesajı zamanla</p><button type="button" onClick={() => setShowSchedule(false)} className="rounded p-1 text-[#94a3b8] hover:bg-white/[0.08]"><X className="h-4 w-4" /></button></div>
+            <p className="mb-3 line-clamp-2 text-xs text-[#94a3b8]">{message.trim() || 'Önce gönderilecek mesajı yazın.'}</p>
+            <div className="flex gap-2"><input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-[#0f172a] px-3 py-2 text-sm text-white outline-none focus:border-[#3b82f6]" /><button type="button" disabled={!message.trim() || attachments.length > 0} onClick={handleSchedule} className="rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-bold text-white disabled:opacity-40">Zamanla</button></div>
+            {attachments.length > 0 && <p className="mt-2 text-xs text-[#fbbf24]">İlk sürümde zamanlanmış mesajlar yalnızca metin içerebilir.</p>}
+          </div>
+        )}
         {showSpotifyLinkInput && (
           <form
             onSubmit={submitSpotifyLink}
@@ -463,6 +491,7 @@ export default function MessageInput({
           {message.length >= 3500 && <span className={`mr-1 shrink-0 text-[10px] font-semibold ${message.length >= 3950 ? 'text-[#f87171]' : 'text-[#94a3b8]'}`}>{message.length}/4000</span>}
 
           <div className="ml-2 flex items-center gap-1">
+            {onScheduleMessage && <button type="button" onClick={() => setShowSchedule(show => !show)} disabled={disabled} className="rounded-lg p-1.5 text-[#B5BAC1] transition-colors hover:bg-white/[0.08] hover:text-[#DBDEE1] disabled:opacity-50" aria-label="Mesajı zamanla" title="Mesajı zamanla"><CalendarClock className="h-5 w-5" /></button>}
             <button
               type="button"
               onClick={sendSpotifyInvite}

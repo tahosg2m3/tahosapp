@@ -63,12 +63,13 @@ function getJwtSecret() {
   return cachedJwtSecret;
 }
 
-function signAuthToken(user) {
+function signAuthToken(user, session = {}) {
   return jwt.sign(
     {
       sub: user.id,
       username: user.username,
       tokenVersion: user.tokenVersion || 0,
+      ...(session.sid ? { sid: session.sid } : {}),
     },
     getJwtSecret(),
     {
@@ -105,6 +106,20 @@ function verifyAuthToken(token) {
       const error = new Error('The session is no longer valid.');
       error.code = 'AUTH_INVALID';
       throw error;
+    }
+
+    if (payload.sid) {
+      const hub = storage.platformState?.communityHub;
+      const session = hub?.sessions?.[payload.sid];
+      if (!session || session.userId !== user.id || session.revokedAt || Number(session.expiresAt) <= Date.now()) {
+        const error = new Error('The session is no longer valid.');
+        error.code = 'AUTH_INVALID';
+        throw error;
+      }
+      if (Date.now() - Number(session.lastSeenAt || 0) > 5 * 60 * 1000) {
+        session.lastSeenAt = Date.now();
+        storage.saveData();
+      }
     }
 
     if (storage.isUserPlatformBanned(user.id)) {

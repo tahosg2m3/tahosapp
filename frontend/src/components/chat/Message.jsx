@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { CornerUpLeft, ExternalLink, FileText, Flag, History, Music2, Pencil, Pin, Play, SmilePlus, Trash2, X } from 'lucide-react';
+import { AlarmClock, Bookmark, CornerUpLeft, ExternalLink, FileText, Flag, History, Music2, Pencil, Pin, Play, SmilePlus, Trash2, X } from 'lucide-react';
 import { formatTime } from '../../utils/formatTime';
 import { getColorForString } from '../../utils/colors';
 import { useSocket } from '../../context/SocketContext';
@@ -13,6 +13,7 @@ import { registerAudioOutputTarget } from '../../services/audioOutputService';
 import { resolveSafeAvatarUrl, resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
 import { getNameAppearance } from '../../utils/profileAppearance';
 import { playSpotifyInvite } from '../../services/api';
+import { createReminder, saveMessage } from '../../services/communityHubApi';
 
 const QUICK_REACTIONS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F525}'];
 const COUNTRY_FLAG_PATTERN = /(\p{Regional_Indicator}{2})/gu;
@@ -147,6 +148,24 @@ export default function Message({
 
   const handlePin = () => onPin?.(message);
 
+  const handleSaveMessage = async () => {
+    const collection = window.prompt('Koleksiyon adı', 'Genel');
+    if (collection === null) return;
+    try {
+      await saveMessage({ channelId: message.channelId, messageId: message.id, collection: collection.trim() || 'Genel' });
+      toast.success('Mesaj kişisel koleksiyonunuza kaydedildi.');
+    } catch (error) { toast.error(error.message); }
+  };
+
+  const handleReminder = async () => {
+    const minutes = Number(window.prompt('Kaç dakika sonra hatırlatılsın?', '60'));
+    if (!Number.isFinite(minutes) || minutes <= 0) return;
+    try {
+      await createReminder({ channelId: message.channelId, messageId: message.id, remindAt: new Date(Date.now() + minutes * 60 * 1000).toISOString() });
+      toast.success('Mesaj hatırlatıcısı oluşturuldu.');
+    } catch (error) { toast.error(error.message); }
+  };
+
   const handleShowHistory = async () => {
     setHistoryLoading(true);
     try {
@@ -256,6 +275,8 @@ export default function Message({
               </div>
             )}
           </div>
+          <button type="button" onClick={handleSaveMessage} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#fbbf24]" title="Kişisel koleksiyona kaydet" aria-label="Kişisel koleksiyona kaydet"><Bookmark className="h-4 w-4" /></button>
+          <button type="button" onClick={handleReminder} className="p-2 text-[#B5BAC1] transition-colors hover:bg-[#334155] hover:text-[#a78bfa]" title="Bu mesajı hatırlat" aria-label="Bu mesajı hatırlat"><AlarmClock className="h-4 w-4" /></button>
           {canPinMessages && <button onClick={handlePin} className={`p-2 transition-colors hover:bg-[#334155] ${message.isPinned ? 'text-[#fbbf24]' : 'text-[#B5BAC1] hover:text-[#DBDEE1]'}`} title={message.isPinned ? 'Unpin message' : 'Pin message'} aria-label={message.isPinned ? 'Unpin message' : 'Pin message'}>
             <Pin className="h-4 w-4" />
           </button>}

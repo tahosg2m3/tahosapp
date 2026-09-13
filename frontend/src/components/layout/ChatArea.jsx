@@ -12,6 +12,7 @@ import ThreadPanel from '../chat/ThreadPanel';
 import AnnouncementFollowModal from '../server/AnnouncementFollowModal';
 import toast from 'react-hot-toast';
 import { getNotificationPreferences, listChannelPermissions, listCommands, listServerAssets, saveChannelNotificationPreferences, saveServerNotificationPreferences } from '../../services/platformApi';
+import { scheduleMessage } from '../../services/communityHubApi';
 
 function updateMessageInList(messages, update) {
   const messageId = update.messageId || update.id;
@@ -396,6 +397,12 @@ export default function ChatArea() {
     shouldScrollToBottomRef.current = true;
   };
 
+  const handleScheduleMessage = async ({ content, sendAt }) => {
+    const scheduled = await scheduleMessage({ channelId, content, sendAt });
+    toast.success(`Mesaj ${new Date(scheduled.sendAt).toLocaleString('tr-TR')} için zamanlandı.`);
+    return scheduled;
+  };
+
   const handleReaction = (message, emoji) => {
     if (!canSendMessages) return;
     socket?.emit('message:reaction:toggle', { channelId, messageId: message.id, emoji, userId: user.id });
@@ -493,6 +500,7 @@ export default function ChatArea() {
       <div className="shrink-0 px-5 pb-5 pt-2">
           <MessageInput
             onSendMessage={handleSendMessage}
+            onScheduleMessage={handleScheduleMessage}
           onTypingStart={() => socket?.emit('typing:start', { channelId })}
           onTypingStop={() => socket?.emit('typing:stop', { channelId })}
           replyTo={replyTo}
