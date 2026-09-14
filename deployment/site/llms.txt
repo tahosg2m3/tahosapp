@@ -1,6 +1,6 @@
 # tahosapp
 
-> tahosapp is an independent communication platform for messaging, voice chat, and community management. It runs in web browsers and on Windows. Its official website is tahosapp.com.tr and its official source repository is github.com/tahosg2m3/tahosapp.
+> tahosapp is an independent communication platform for messaging, voice chat, and community management. It runs in web browsers, on Windows, and on Android. Its official website is tahosapp.com.tr and its official source repository is github.com/tahosg2m3/tahosapp.
 
 ## Official identity
 

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
-import { CalendarClock, Image as ImageIcon, Mic, Music2, SmilePlus, Square, X } from 'lucide-react';
+import { CalendarClock, Image as ImageIcon, Mic, Music2, Send, SmilePlus, Square, X } from 'lucide-react';
 import FileUpload, { uploadChatFile } from './FileUpload';
 import GifPicker from './GifPicker';
 import toast from 'react-hot-toast';
 import { createSpotifyInviteFromUrl, getSpotifyCurrentlyPlaying } from '../../services/api';
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
+import { useI18n } from '../../i18n/I18nContext';
 
 function attachmentLabel(attachment) {
   if (attachment.type === 'gif') return 'GIF';
@@ -28,6 +29,7 @@ export default function MessageInput({
   serverStickers = [],
   commandSuggestions = [],
 }) {
+  const { t } = useI18n();
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -466,7 +468,7 @@ export default function MessageInput({
 
         <form
           onSubmit={handleSubmit}
-          className={`relative flex items-center border border-white/[0.07] bg-[#1e293b] px-3 py-2.5 shadow-lg shadow-black/10 transition-colors focus-within:border-[#3b82f6]/70 ${replyTo || attachments.length > 0 ? 'rounded-b-xl' : 'rounded-xl'}`}
+          className={`message-composer relative flex items-center border border-white/[0.07] bg-[#1e293b] px-3 py-2.5 shadow-lg shadow-black/10 transition-colors focus-within:border-[#3b82f6]/70 ${replyTo || attachments.length > 0 ? 'rounded-b-xl' : 'rounded-xl'}`}
         >
           <FileUpload onFileSelect={addAttachment} disabled={disabled || isUploadingClipboard} />
 
@@ -485,12 +487,16 @@ export default function MessageInput({
             disabled={disabled}
             className="min-w-0 flex-1 bg-transparent px-2 text-[15px] text-[#DBDEE1] outline-none placeholder:text-[#64748b] disabled:cursor-not-allowed"
             autoComplete="off"
+            enterKeyHint="send"
+            aria-label={t('mobile.writeMessage')}
             maxLength={4000}
           />
 
           {message.length >= 3500 && <span className={`mr-1 shrink-0 text-[10px] font-semibold ${message.length >= 3950 ? 'text-[#f87171]' : 'text-[#94a3b8]'}`}>{message.length}/4000</span>}
 
-          <div className="ml-2 flex items-center gap-1">
+          <button type="submit" className="mobile-send-button" aria-label={t('mobile.send')} disabled={disabled || (!message.trim() && attachments.length === 0)}><Send className="h-5 w-5" /></button>
+
+          <div className="message-composer-actions ml-2 flex items-center gap-1">
             {onScheduleMessage && <button type="button" onClick={() => setShowSchedule(show => !show)} disabled={disabled} className="rounded-lg p-1.5 text-[#B5BAC1] transition-colors hover:bg-white/[0.08] hover:text-[#DBDEE1] disabled:opacity-50" aria-label="Mesajı zamanla" title="Mesajı zamanla"><CalendarClock className="h-5 w-5" /></button>}
             <button
               type="button"

@@ -1,6 +1,10 @@
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
 
+!define MUI_ABORTWARNING
+!define MUI_UNABORTWARNING
+BrandingText "tahosapp  •  güvenli kurulum"
+
 !ifndef BUILD_UNINSTALLER
   Var TahosappDesktopShortcutCheckbox
   Var TahosappStartupCheckbox
@@ -22,6 +26,8 @@
 !endif
 
 !macro customWelcomePage
+  !define MUI_WELCOMEPAGE_TITLE "tahosapp'e hoş geldin"
+  !define MUI_WELCOMEPAGE_TEXT "Kurulum için gereken sıkıştırılmış uygulama dosyaları güvenli bağlantı üzerinden indirilecek.$\r$\n$\r$\nDevam etmek için İleri'yi seç."
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 
@@ -30,6 +36,8 @@
 !macroend
 
 !macro customUnWelcomePage
+  !define MUI_WELCOMEPAGE_TITLE "tahosapp'i kaldır"
+  !define MUI_WELCOMEPAGE_TEXT "tahosapp bu bilgisayardan kaldırılacak. İstersen yerel oturum ve ayar verilerini de silebilirsin."
   !insertmacro MUI_UNPAGE_WELCOME
   UninstPage custom un.TahosappUninstallSurveyCreate un.TahosappUninstallSurveyLeave
 !macroend
@@ -50,20 +58,20 @@
         Abort
       ${EndIf}
 
-      !insertmacro MUI_HEADER_TEXT "Installation options" "Choose how tahosapp integrates with Windows."
+      !insertmacro MUI_HEADER_TEXT "Kurulum seçenekleri" "tahosapp'in Windows ile nasıl çalışacağını seç."
 
-      ${NSD_CreateLabel} 0 0 100% 28u "You can change these options later in Windows Settings or by removing the shortcuts."
+      ${NSD_CreateLabel} 0 0 100% 28u "Bu seçenekleri daha sonra Windows ayarlarından veya kısayolları silerek değiştirebilirsin."
       Pop $0
 
-      ${NSD_CreateCheckbox} 0 38u 100% 14u "Create a tahosapp desktop shortcut"
+      ${NSD_CreateCheckbox} 0 38u 100% 14u "Masaüstüne tahosapp kısayolu ekle"
       Pop $TahosappDesktopShortcutCheckbox
       ${NSD_SetState} $TahosappDesktopShortcutCheckbox $TahosappDesktopShortcutState
 
-      ${NSD_CreateCheckbox} 0 64u 100% 14u "Start tahosapp automatically when I sign in to Windows"
+      ${NSD_CreateCheckbox} 0 64u 100% 14u "Windows oturumu açıldığında tahosapp'i başlat"
       Pop $TahosappStartupCheckbox
       ${NSD_SetState} $TahosappStartupCheckbox $TahosappStartupState
 
-      ${NSD_CreateLabel} 18u 83u 92% 32u "You can open tahosapp from the Start menu at any time, even when automatic startup is disabled."
+      ${NSD_CreateLabel} 18u 83u 92% 32u "Otomatik başlatma kapalı olsa da tahosapp'i Başlat menüsünden açabilirsin."
       Pop $0
 
       nsDialogs::Show
@@ -81,36 +89,36 @@
         Abort
       ${EndIf}
 
-      !insertmacro MUI_HEADER_TEXT "Uninstall feedback" "Optionally tell us why you are uninstalling tahosapp."
+      !insertmacro MUI_HEADER_TEXT "Kaldırma seçenekleri" "İstersen tahosapp'i neden kaldırdığını anonim olarak paylaş."
 
-      ${NSD_CreateLabel} 0 0 100% 18u "Choose the reason that fits best:"
+      ${NSD_CreateLabel} 0 0 100% 18u "Sana en uygun nedeni seç:"
       Pop $0
 
-      ${NSD_CreateRadioButton} 0 20u 100% 12u "I had a technical problem or the app did not work"
+      ${NSD_CreateRadioButton} 0 20u 100% 12u "Teknik bir sorun yaşadım veya uygulama çalışmadı"
       Pop $TahosappUninstallTechnicalRadio
-      ${NSD_CreateRadioButton} 0 36u 100% 12u "Performance or resource usage was a problem"
+      ${NSD_CreateRadioButton} 0 36u 100% 12u "Performans veya kaynak kullanımı sorun oldu"
       Pop $TahosappUninstallPerformanceRadio
-      ${NSD_CreateRadioButton} 0 52u 100% 12u "Features I needed were missing"
+      ${NSD_CreateRadioButton} 0 52u 100% 12u "İhtiyacım olan özellikler eksikti"
       Pop $TahosappUninstallFeaturesRadio
-      ${NSD_CreateRadioButton} 0 68u 100% 12u "I no longer use it"
+      ${NSD_CreateRadioButton} 0 68u 100% 12u "Artık kullanmıyorum"
       Pop $TahosappUninstallUnusedRadio
-      ${NSD_CreateRadioButton} 0 84u 100% 12u "Privacy or security concerns"
+      ${NSD_CreateRadioButton} 0 84u 100% 12u "Gizlilik veya güvenlik endişem var"
       Pop $TahosappUninstallPrivacyRadio
-      ${NSD_CreateRadioButton} 0 100u 100% 12u "I am going to reinstall it"
+      ${NSD_CreateRadioButton} 0 100u 100% 12u "Yeniden kuracağım"
       Pop $TahosappUninstallReinstallRadio
-      ${NSD_CreateRadioButton} 0 116u 100% 12u "Other / prefer not to say"
+      ${NSD_CreateRadioButton} 0 116u 100% 12u "Diğer / belirtmek istemiyorum"
       Pop $TahosappUninstallOtherRadio
       ${NSD_SetState} $TahosappUninstallOtherRadio ${BST_CHECKED}
 
-      ${NSD_CreateCheckbox} 0 140u 100% 12u "Send my selected reason anonymously to tahosapp"
+      ${NSD_CreateCheckbox} 0 140u 100% 12u "Seçtiğim nedeni tahosapp'e anonim olarak gönder"
       Pop $TahosappUninstallSendFeedbackCheckbox
       ${NSD_SetState} $TahosappUninstallSendFeedbackCheckbox ${BST_CHECKED}
 
-      ${NSD_CreateCheckbox} 0 158u 100% 12u "Also remove my session, settings, and cache from this computer"
+      ${NSD_CreateCheckbox} 0 158u 100% 12u "Oturumumu, ayarlarımı ve önbelleği de bu bilgisayardan sil"
       Pop $TahosappUninstallRemoveDataCheckbox
       ${NSD_SetState} $TahosappUninstallRemoveDataCheckbox ${BST_UNCHECKED}
 
-      ${NSD_CreateLabel} 0 178u 100% 24u "Feedback contains only the selected reason and app version; no account or device identifier is sent."
+      ${NSD_CreateLabel} 0 178u 100% 24u "Geri bildirim yalnız seçilen neden ve uygulama sürümünü içerir; hesap veya cihaz kimliği gönderilmez."
       Pop $0
 
       nsDialogs::Show

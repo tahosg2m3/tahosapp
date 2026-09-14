@@ -1,6 +1,10 @@
 ﻿node_modules/
 .env
 .env.local
+.env.*
+!.env.example
+!**/.env.example
+!frontend/.env.production
 dist/
 build/
 release/
@@ -36,3 +40,34 @@ data-encryption-migration.json.*.tmp
 backend/datayedek*.json
 .deploy/
 .tmp.driveupload/
+
+# Android local tooling, generated assets and signing secrets
+.android/
+.build-tools/
+frontend/dist-android/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/capacitor-cordova-android-plugins/
+*.jks
+*.keystore
+android/keystore.properties
+mobile/signing/
+mobile/releases/
+mobile/qa-*.png
+
+# Packaged installers, update payloads and signing credentials
+*.apk
+*.aab
+*.apks
+*.exe
+*.msi
+*.7z
+*.blockmap
+*.p12
+*.pfx
+*.pem
+*.key
+android/key.properties

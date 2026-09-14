@@ -118,6 +118,13 @@ npm run build
 
 ```
 
+* **Android APK:**
+```bash
+npm run build:android:apk
+```
+
+Android paketi `mobile/releases` klasörüne yazılır. İlk geliştirme kurulumu için Java 21 ile Android SDK 36 gerekir. Telefona doğrudan kurulum adımları için `mobile/DIRECT-INSTALL.tr.md` dosyasına bakın.
+
 
 
 ---

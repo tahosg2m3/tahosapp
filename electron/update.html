@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>tahosapp güncelleniyor</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; color: #f5f7ff; font-family: Inter, "Segoe UI", sans-serif; background: #090d1a; user-select: none; }
+    body { position: relative; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.1); background: radial-gradient(circle at 16% 12%,rgba(119,91,255,.27),transparent 36%),linear-gradient(150deg,#12182e,#080b15 70%); }
+    .hide { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.1); border-radius: 11px; color: #8993ab; background: rgba(255,255,255,.04); font-size: 20px; cursor: pointer; }
+    main { width: 100%; padding: 38px 38px 30px; }
+    .head { display: flex; align-items: center; gap: 15px; }
+    .logo { width: 58px; height: 58px; padding: 8px; border: 1px solid rgba(255,255,255,.1); border-radius: 18px; background: rgba(113,91,255,.16); }
+    .eyebrow { margin: 0 0 5px; color: #9e91ff; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: 22px; letter-spacing: -.025em; }
+    .message { min-height: 42px; margin: 24px 0 15px; color: #9da6bc; font-size: 13px; line-height: 1.6; }
+    .track { height: 9px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.07); }
+    .bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#7867ff,#9c55ff,#27d8dc); box-shadow: 0 0 20px rgba(120,103,255,.45); transition: width .25s ease; }
+    .meta { display: flex; justify-content: space-between; margin-top: 10px; color: #778198; font-size: 11px; font-weight: 700; }
+    .pulse .bar { width: 35%; animation: slide 1.15s ease-in-out infinite; }
+    @keyframes slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
+  </style>
+</head>
+<body><button class="hide" type="button" aria-label="Arka planda devam et" title="Arka planda devam et">−</button><main><div class="head"><img class="logo" src="assets/tahosapp-icon.png" alt="" /><div><p class="eyebrow">Güvenli güncelleme</p><h1>tahosapp yenileniyor</h1></div></div><p class="message">Yeni sürüm güvenli bağlantı üzerinden indiriliyor.</p><div class="track pulse"><div class="bar"></div></div><div class="meta"><span class="version">Yeni sürüm hazırlanıyor</span><span class="percent"></span></div></main><script src="update-renderer.js"></script></body>
+</html>

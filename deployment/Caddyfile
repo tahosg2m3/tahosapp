@@ -74,6 +74,20 @@ tahosapp.com.tr {
 		file_server
 	}
 
+	# Versioned update payloads never change after release. Let Cloudflare keep
+	# them at the edge so every client does not pull 90+ MB from the VPS.
+	@immutableWindowsUpdates path /updates/windows/*.exe /updates/windows/*.7z
+	handle @immutableWindowsUpdates {
+		uri strip_prefix /updates/windows
+		root * /var/www/tahosapp-updates/current
+		header Cache-Control "public, max-age=31536000, immutable"
+		header CDN-Cache-Control "public, max-age=31536000"
+		header X-Content-Type-Options "nosniff"
+		header X-Robots-Tag "noindex, nofollow, noarchive"
+		file_server
+	}
+
+	# Channel manifests can change on every release and must always be fresh.
 	handle_path /updates/windows/* {
 		root * /var/www/tahosapp-updates/current
 		header Cache-Control "no-store"
@@ -91,7 +105,7 @@ tahosapp.com.tr {
 		file_server
 	}
 
-	@siteAssets path /assets/* /tahosapp.ico /site.webmanifest
+	@siteAssets path /assets/* /tahosapp.ico
 	handle @siteAssets {
 		root * /var/www/tahosapp-web/current
 		header Cache-Control "public, max-age=3600, must-revalidate"

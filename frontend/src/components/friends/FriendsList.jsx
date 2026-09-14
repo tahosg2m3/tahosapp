@@ -84,7 +84,7 @@ export default function FriendsList() {
   });
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-700 min-w-0">
+    <div className="friends-surface flex-1 flex flex-col bg-gray-700 min-h-0 min-w-0">
       {/* Header */}
       <div className="h-12 flex items-center px-4 shadow-md border-b border-gray-900 bg-gray-700 shrink-0">
         <div className="flex items-center space-x-4">

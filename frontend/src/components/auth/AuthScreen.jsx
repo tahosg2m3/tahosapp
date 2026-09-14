@@ -9,7 +9,7 @@ export default function AuthScreen() {
   const { locale, setLocale, locales, t } = useI18n();
 
   return (
-    <div className="relative h-screen bg-gray-900 flex items-center justify-center">
+    <div className="auth-screen relative bg-gray-900 flex items-center justify-center">
       <label className="absolute right-5 top-5 rounded-lg border border-white/10 bg-[#151b27] px-2 text-xs font-semibold text-[#DBDEE1] shadow-lg" aria-label={t('language.field')}>
         <select value={locale} onChange={event => setLocale(event.target.value)} className="bg-transparent py-2 outline-none">
           {locales.map(option => <option key={option.code} value={option.code} className="bg-[#151b27]">{option.label}</option>)}

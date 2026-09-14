@@ -160,7 +160,7 @@ export default function UserProfile() {
         {showMenu && createPortal(
           <div
             ref={menuRef}
-            className="fixed bottom-[60px] left-[80px] w-[300px] bg-[#111214] rounded-lg shadow-2xl border border-[#1E1F22] overflow-hidden z-[9999] animate-in slide-in-from-bottom-2 duration-200 text-[#DBDEE1] font-sans"
+            className="user-profile-menu fixed bottom-[60px] left-[80px] w-[300px] bg-[#111214] rounded-lg shadow-2xl border border-[#1E1F22] overflow-hidden z-[9999] animate-in slide-in-from-bottom-2 duration-200 text-[#DBDEE1] font-sans"
           >
             <div className="p-4 border-b border-[#1E1F22] bg-[#2B2D31]">
               <div className="flex items-center space-x-3 mb-2">

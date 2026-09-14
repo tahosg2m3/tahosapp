@@ -163,7 +163,7 @@ export default function DMList({ setViewMode }) {
 
   return (
     <>
-      <div className="flex h-full w-[256px] flex-col overflow-y-auto border-r border-[#1E1F22]/50 bg-[#151b27] custom-scrollbar">
+      <div className="flex h-full w-full flex-col overflow-y-auto border-r border-[#1E1F22]/50 bg-[#151b27] custom-scrollbar">
         <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.06] bg-[#151b27] px-3 shadow-sm">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#64748b]" />

@@ -27,7 +27,7 @@ for (const file of walk(siteRoot)) {
   if (file === join(siteRoot, 'index.html')) {
     content = content
       .replace(/"softwareVersion"\s*:\s*"\d+\.\d+\.\d+"/, `"softwareVersion":"${assetVersion}"`)
-      .replace(/v\d+\.\d+\.\d+ · Windows 10\/11 · 64-bit · Web version · Independent and free/, `v${assetVersion} · Windows 10/11 · 64-bit · Web version · Independent and free`)
+      .replace(/v\d+\.\d+\.\d+ · Windows 10\/11 · Android 7\+ · Web version · Independent and free/, `v${assetVersion} · Windows 10/11 · Android 7+ · Web version · Independent and free`)
       .replace(/(<h2 id="current-release-title">tahosapp )\d+\.\d+\.\d+(<\/h2>)/, (_, prefix, suffix) => `${prefix}${assetVersion}${suffix}`)
       .replace(/(>Download )\d+\.\d+\.\d+(<\/a>)/, (_, prefix, suffix) => `${prefix}${assetVersion}${suffix}`);
   }

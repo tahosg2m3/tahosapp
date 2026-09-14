@@ -5,6 +5,7 @@ import {
   verifyTwoFactorCode,
 } from '../../services/api';
 import { loginWithPasskey } from '../../services/communityHubApi';
+import { isNativeAndroid } from '../../utils/nativePlatform';
 
 export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
   const [email, setEmail] = useState('');
@@ -214,9 +215,9 @@ export default function LoginForm({ onSwitchToRegister, onForgotPassword }) {
       </form>
 
       <div className="my-4 flex items-center gap-3 text-xs text-[#64748b]"><span className="h-px flex-1 bg-white/[0.08]" /><span>veya</span><span className="h-px flex-1 bg-white/[0.08]" /></div>
-      <button type="button" onClick={handlePasskeyLogin} disabled={isLoading || !window.PublicKeyCredential} className="w-full rounded border border-white/[0.1] bg-[#1E1F22] py-2.5 font-medium text-[#DBDEE1] transition-colors hover:bg-[#404249] disabled:opacity-50">
+      {!isNativeAndroid() && <button type="button" onClick={handlePasskeyLogin} disabled={isLoading || !window.PublicKeyCredential} className="w-full rounded border border-white/[0.1] bg-[#1E1F22] py-2.5 font-medium text-[#DBDEE1] transition-colors hover:bg-[#404249] disabled:opacity-50">
         Passkey ile giriş yap
-      </button>
+      </button>}
 
       <div className="mt-4 text-sm text-[#949BA4]">
         Need an account?{' '}

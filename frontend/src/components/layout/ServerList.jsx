@@ -9,7 +9,7 @@ import CreateServerModal from '../server/CreateServerModal';
 import DiscoveryModal from '../server/DiscoveryModal';
 import CommunityHub from '../hub/CommunityHub';
 
-export default function ServerList({ viewMode, setViewMode }) {
+export default function ServerList({ viewMode, setViewMode, onExternalNavigate = setViewMode }) {
   const { servers, setServers, currentServer, currentChannel, setCurrentServer, setCurrentChannel } = useServer();
   const { user } = useAuth();
   const { socket } = useSocket();
@@ -25,12 +25,12 @@ export default function ServerList({ viewMode, setViewMode }) {
     const navigateToDM = () => {
       setCurrentServer(null);
       setCurrentChannel(null);
-      setViewMode('dms');
+      onExternalNavigate('dms');
     };
 
     window.addEventListener('tahosapp:navigate-to-dm', navigateToDM);
     return () => window.removeEventListener('tahosapp:navigate-to-dm', navigateToDM);
-  }, [setCurrentChannel, setCurrentServer, setViewMode]);
+  }, [setCurrentChannel, setCurrentServer, onExternalNavigate]);
 
   useEffect(() => {
     if (!socket) return undefined;

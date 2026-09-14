@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { ExpressPeerServer } = require('peer');
+const { getClientOrigins, createCorsOrigin } = require('./middleware/clientOrigins');
 
 function normalizePort(value, fallback) {
   const port = Number(value || fallback);
@@ -8,27 +9,10 @@ function normalizePort(value, fallback) {
 }
 
 function createPeerCorsOrigin() {
-  const configuredOrigins = new Set(String(process.env.CLIENT_URL || 'http://localhost:5173')
-    .split(',')
-    .map(value => value.trim())
-    .filter(Boolean));
-  configuredOrigins.add('tahosapp://app');
-  // Geçiş süresince otomatik güncelleme öncesi masaüstü sürümlerini kabul et.
-  configuredOrigins.add('discord-clone://app');
-
-  return (origin, callback) => {
-    // Non-browser health checks have no Origin header. Browser clients must
-    // come from an explicitly configured renderer origin.
-    if (!origin || configuredOrigins.has(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    const error = new Error('PeerJS origin is not allowed.');
-    error.status = 403;
-    error.code = 'PEER_CORS_ORIGIN_DENIED';
-    callback(error);
-  };
+  return createCorsOrigin(getClientOrigins(), {
+    service: 'PeerJS',
+    code: 'PEER_CORS_ORIGIN_DENIED',
+  });
 }
 
 const startPeerServer = ({ onPeerDisconnect } = {}) => {

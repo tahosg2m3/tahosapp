@@ -94,9 +94,9 @@
     const downloadVersion = /^Download\s+(\d+\.\d+\.\d+)$/.exec(value);
     if (downloadVersion && locale === 'tr') return `${downloadVersion[1]}'yi indir`;
 
-    const releaseSummary = /^(v\d+\.\d+\.\d+) · Windows 10\/11 · 64-bit · Web version · Independent and free$/.exec(value);
+    const releaseSummary = /^(v\d+\.\d+\.\d+) · Windows 10\/11 · Android 7\+ · Web version · Independent and free$/.exec(value);
     if (releaseSummary && locale === 'tr') {
-      return `${releaseSummary[1]} · Windows 10/11 · 64-bit · Web sürümü · Bağımsız ve ücretsiz`;
+      return `${releaseSummary[1]} · Windows 10/11 · Android 7+ · Web sürümü · Bağımsız ve ücretsiz`;
     }
     return '';
   }

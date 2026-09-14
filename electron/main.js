@@ -228,6 +228,8 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let mainWindow;
+let splashWindow;
+let updateWindow;
 let tray;
 let backendProcess;
 let backendInstanceToken;
@@ -236,6 +238,11 @@ let automaticPresenceDetector;
 let latestAutomaticPresence = [];
 let desktopUpdateCheckTimer;
 let desktopUpdateCheckPromise;
+let updateWindowTimer;
+let updateRestartTimer;
+let updateDownloadStartedAt = 0;
+let splashShownAt = 0;
+let updateInstallStarted = false;
 let desktopUpdatePreferences = Object.freeze({ automaticChecks: true });
 let desktopUpdateState = Object.freeze({
   supported: false,
@@ -864,8 +871,13 @@ function publicDesktopUpdateState() {
 }
 
 function broadcastDesktopUpdateState() {
-  if (!mainWindow || mainWindow.isDestroyed() || !isTrustedTopLevelUrl(mainWindow.webContents.getURL())) return;
-  mainWindow.webContents.send('desktop-update:state', publicDesktopUpdateState());
+  const state = publicDesktopUpdateState();
+  if (mainWindow && !mainWindow.isDestroyed() && isTrustedTopLevelUrl(mainWindow.webContents.getURL())) {
+    mainWindow.webContents.send('desktop-update:state', state);
+  }
+  if (updateWindow && !updateWindow.isDestroyed()) {
+    updateWindow.webContents.send('desktop-update:state', state);
+  }
 }
 
 function setDesktopUpdateState(patch) {
@@ -876,8 +888,103 @@ function setDesktopUpdateState(patch) {
 
 function updateErrorMessage(error) {
   const code = String(error?.code || '');
-  if (code === 'ERR_UPDATER_INVALID_RELEASE_FEED') return 'The update information is invalid. Try again later.';
-  return 'Could not reach the update server. Check your internet connection and try again.';
+  if (code === 'ERR_UPDATER_INVALID_RELEASE_FEED') return 'Güncelleme bilgisi geçersiz. Daha sonra yeniden dene.';
+  return 'Güncelleme sunucusuna ulaşılamadı. İnternet bağlantını kontrol edip yeniden dene.';
+}
+
+function createSplashWindow() {
+  if (isDev || splashWindow) return;
+  splashShownAt = Date.now();
+  splashWindow = new BrowserWindow({
+    width: 420,
+    height: 330,
+    center: true,
+    frame: false,
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    show: false,
+    backgroundColor: '#090d1a',
+    roundedCorners: true,
+    icon: path.join(__dirname, 'assets', 'tahosapp-icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      devTools: false,
+    },
+  });
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  splashWindow.once('ready-to-show', () => splashWindow?.show());
+  splashWindow.on('closed', () => { splashWindow = null; });
+}
+
+function finishSplashAndShowMainWindow() {
+  const minimumVisibleTime = 900;
+  const remaining = Math.max(0, minimumVisibleTime - (Date.now() - splashShownAt));
+  setTimeout(() => {
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+    mainWindow?.show();
+    mainWindow?.focus();
+  }, remaining);
+}
+
+function createUpdateWindow() {
+  if (updateWindow && !updateWindow.isDestroyed()) return updateWindow;
+  updateWindow = new BrowserWindow({
+    width: 450,
+    height: 330,
+    center: true,
+    frame: false,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    show: false,
+    backgroundColor: '#090d1a',
+    roundedCorners: true,
+    icon: path.join(__dirname, 'assets', 'tahosapp-icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      devTools: false,
+      preload: path.join(__dirname, 'update-preload.js'),
+    },
+  });
+  updateWindow.loadFile(path.join(__dirname, 'update.html'));
+  updateWindow.once('ready-to-show', () => {
+    updateWindow?.show();
+    broadcastDesktopUpdateState();
+  });
+  updateWindow.on('closed', () => { updateWindow = null; });
+  return updateWindow;
+}
+
+function scheduleUpdateWindow() {
+  clearTimeout(updateWindowTimer);
+  updateWindowTimer = setTimeout(() => {
+    updateWindowTimer = null;
+    if (['available', 'downloading'].includes(desktopUpdateState.status)) createUpdateWindow();
+  }, 1_000);
+  updateWindowTimer.unref();
+}
+
+function restartToInstallUpdate(delay = 0) {
+  if (updateInstallStarted) return;
+  updateInstallStarted = true;
+  clearTimeout(updateWindowTimer);
+  updateWindowTimer = null;
+  setDesktopUpdateState({
+    status: 'installing',
+    progress: 100,
+    message: 'Güncelleme tamamlandı. tahosapp yeniden başlatılıyor…',
+  });
+  // Güncelleme paketi zaten markalı penceremizde indirildi ve doğrulandı.
+  // NSIS'i sessiz çalıştırarak kullanıcıya yeniden kurulum sihirbazı gösterme.
+  updateRestartTimer = setTimeout(() => autoUpdater.quitAndInstall(true, true), delay);
+  updateRestartTimer.unref();
 }
 
 async function checkForDesktopUpdates({ manual = false } = {}) {
@@ -908,8 +1015,8 @@ function initializeDesktopUpdater() {
     status: supported ? 'idle' : 'disabled',
     automaticChecks: desktopUpdatePreferences.automaticChecks,
     message: supported
-      ? 'Updates are checked automatically.'
-      : 'Automatic updates are available only in the installed Windows app.',
+      ? 'Güncellemeler otomatik olarak denetlenir.'
+      : 'Otomatik güncellemeler yalnız kurulu Windows uygulamasında kullanılabilir.',
   });
   if (!supported) return;
 
@@ -917,23 +1024,26 @@ function initializeDesktopUpdater() {
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
   autoUpdater.allowDowngrade = false;
-  autoUpdater.disableWebInstaller = true;
+  autoUpdater.disableWebInstaller = false;
 
   autoUpdater.on('checking-for-update', () => {
     setDesktopUpdateState({
       status: 'checking',
       progress: null,
-      message: 'Checking for updates…',
+      message: 'Güncellemeler denetleniyor…',
     });
   });
   autoUpdater.on('update-available', info => {
+    updateDownloadStartedAt = Date.now();
+    updateInstallStarted = false;
     setDesktopUpdateState({
       status: 'available',
       availableVersion: String(info?.version || '').slice(0, 32) || null,
       progress: 0,
       lastCheckedAt: new Date().toISOString(),
-      message: 'A new version is available and is downloading securely.',
+      message: 'Yeni sürüm güvenli bağlantı üzerinden indiriliyor.',
     });
+    scheduleUpdateWindow();
   });
   autoUpdater.on('update-not-available', () => {
     setDesktopUpdateState({
@@ -941,7 +1051,7 @@ function initializeDesktopUpdater() {
       availableVersion: null,
       progress: null,
       lastCheckedAt: new Date().toISOString(),
-      message: 'tahosapp is up to date.',
+      message: 'tahosapp güncel.',
     });
   });
   autoUpdater.on('download-progress', progress => {
@@ -949,19 +1059,30 @@ function initializeDesktopUpdater() {
     setDesktopUpdateState({
       status: 'downloading',
       progress: Math.round(percent * 10) / 10,
-      message: `Downloading update: ${Math.round(percent)}%`,
+      message: `Güncelleme indiriliyor: %${Math.round(percent)}`,
     });
   });
   autoUpdater.on('update-downloaded', info => {
+    clearTimeout(updateWindowTimer);
+    updateWindowTimer = null;
+    const downloadDuration = updateDownloadStartedAt ? Date.now() - updateDownloadStartedAt : Number.POSITIVE_INFINITY;
     setDesktopUpdateState({
       status: 'downloaded',
       availableVersion: String(info?.version || '').slice(0, 32) || desktopUpdateState.availableVersion,
       progress: 100,
       lastCheckedAt: new Date().toISOString(),
-      message: 'The update is ready. Restart now, or close the app to install it later.',
+      message: 'Güncelleme hazır. tahosapp yeniden başlatılıyor…',
     });
+    if (downloadDuration > 1_000) {
+      createUpdateWindow();
+      restartToInstallUpdate(1_000);
+    } else {
+      restartToInstallUpdate();
+    }
   });
   autoUpdater.on('error', error => {
+    clearTimeout(updateWindowTimer);
+    updateWindowTimer = null;
     setDesktopUpdateState({
       status: 'error',
       progress: null,
@@ -1025,7 +1146,8 @@ function createWindow() {
   }
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
+    if (isDev) mainWindow?.show();
+    else finishSplashAndShowMainWindow();
   });
 
   mainWindow.webContents.on('did-finish-load', () => {
@@ -1170,9 +1292,11 @@ if (!ownsSingleInstance) {
   app.whenReady().then(async () => {
     if (!isDev) registerProductionProtocol();
     configurePermissions();
+    createSplashWindow();
     await startPackagedBackend();
     const backendReady = await waitForPackagedBackend();
     if (!backendReady) {
+      splashWindow?.close();
       dialog.showErrorBox(
         'tahosapp could not start',
         `The local service could not start at 127.0.0.1:${BACKEND_PORT}. Close any other program using this port and try again.`,
@@ -1184,6 +1308,7 @@ if (!ownsSingleInstance) {
     createWindow();
     createTray();
   }).catch(error => {
+    splashWindow?.close();
     console.error('Application startup failed:', error);
     dialog.showErrorBox(
       'tahosapp could not start',
@@ -1198,6 +1323,8 @@ if (!ownsSingleInstance) {
       clearInterval(desktopUpdateCheckTimer);
       desktopUpdateCheckTimer = null;
     }
+    clearTimeout(updateWindowTimer);
+    clearTimeout(updateRestartTimer);
     if (isQuitting) return;
     isQuitting = true;
     tray?.destroy();
@@ -1248,9 +1375,14 @@ if (!ownsSingleInstance) {
     if (!isTrustedAppFrame(event.senderFrame, event.senderFrame?.url)
       || !isDesktopUpdaterSupported()
       || desktopUpdateState.status !== 'downloaded') return { started: false };
-    setDesktopUpdateState({ status: 'installing', message: 'Installing the update; tahosapp will restart…' });
-    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+    createUpdateWindow();
+    restartToInstallUpdate(650);
     return { started: true };
+  });
+
+  ipcMain.on('update-window:hide', event => {
+    if (!updateWindow || updateWindow.isDestroyed() || event.sender !== updateWindow.webContents) return;
+    updateWindow.hide();
   });
 
   ipcMain.handle('automatic-presence:start', event => {

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>tahosapp açılıyor</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; color: #f5f7ff; font-family: Inter, "Segoe UI", sans-serif; background: #090d1a; user-select: none; }
+    body { display: grid; place-items: center; border: 1px solid rgba(255,255,255,.1); background: radial-gradient(circle at 50% 33%, rgba(124,92,255,.3), transparent 36%), linear-gradient(150deg,#11172c,#080b15 65%); }
+    .shell { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .logo-wrap { position: relative; width: 116px; height: 116px; display: grid; place-items: center; }
+    .ring { position: absolute; inset: 0; border: 2px solid rgba(255,255,255,.08); border-top-color: #8b7bff; border-right-color: #31d7dc; border-radius: 34px; animation: spin 1.45s cubic-bezier(.65,.05,.36,1) infinite; }
+    .glow { position: absolute; inset: 22px; border-radius: 28px; background: rgba(108,88,255,.32); filter: blur(20px); animation: breathe 1.8s ease-in-out infinite; }
+    img { position: relative; width: 82px; height: 82px; object-fit: contain; filter: drop-shadow(0 12px 22px rgba(36,19,144,.55)); }
+    h1 { margin: 28px 0 7px; font-size: 22px; letter-spacing: -.025em; }
+    p { margin: 0; color: #929bb3; font-size: 13px; }
+    .dots span { animation: dot 1.2s infinite; opacity: .2; }.dots span:nth-child(2) { animation-delay: .15s; }.dots span:nth-child(3) { animation-delay: .3s; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes breathe { 50% { transform: scale(1.16); opacity: .65; } }
+    @keyframes dot { 50% { opacity: 1; } }
+  </style>
+</head>
+<body><main class="shell"><div class="logo-wrap"><div class="ring"></div><div class="glow"></div><img src="assets/tahosapp-icon.png" alt="" /></div><h1>tahosapp açılıyor<span class="dots"><span>.</span><span>.</span><span>.</span></span></h1><p>Sohbetlerin ve toplulukların hazırlanıyor</p></main></body>
+</html>

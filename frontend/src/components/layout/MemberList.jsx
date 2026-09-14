@@ -188,7 +188,7 @@ export default function MemberList() {
         />
       )}
 
-      <aside className="flex h-full w-[256px] flex-col overflow-y-auto border-l border-white/[0.06] bg-[#151b27] custom-scrollbar">
+      <aside className="flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-white/[0.06] bg-[#151b27] custom-scrollbar">
         <div className="px-3 py-4">
           <div className="mb-4 flex items-center justify-between px-2">
             <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#94a3b8]">

@@ -69,6 +69,19 @@ h1 .gradient, .gradient-text { color: transparent; background: linear-gradient(1
 .button.secondary { border-color: var(--line); background: rgba(255,255,255,.05); }
 .button.ghost { padding-inline: 0; color: #b9b1ff; }
 .subnote { margin-top: 16px; color: #81899f; font-size: 13px; line-height: 1.6; }
+.download-panel { max-width: 680px; margin-top: 30px; }
+.download-title { margin: 0 0 12px; color: #eef0fb; font-size: 15px; font-weight: 900; }
+.platform-downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.platform-download { min-width: 0; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 13px; min-height: 82px; padding: 14px 15px; border: 1px solid rgba(255,255,255,.13); border-radius: 18px; background: linear-gradient(145deg,rgba(27,33,58,.96),rgba(15,18,34,.96)); color: white; text-decoration: none; box-shadow: 0 14px 32px rgba(0,0,0,.2); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+.platform-download:hover { transform: translateY(-2px); border-color: rgba(174,164,255,.55); background: linear-gradient(145deg,rgba(38,43,75,.98),rgba(19,23,43,.98)); }
+.platform-logo { width: 38px; height: 38px; fill: currentColor; }
+.platform-download.windows .platform-logo { color: #55b9ff; }
+.platform-download.android .platform-logo { color: #a4d65e; }
+.platform-download strong, .platform-download small { display: block; min-width: 0; }
+.platform-download strong { font-size: 16px; }
+.platform-download small { margin-top: 4px; overflow: hidden; color: #8f98b0; font-size: 11px; font-weight: 700; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.download-arrow { color: #7f89a2; font-size: 20px; font-weight: 900; }
+.hero-secondary-actions { margin-top: 18px; }
 .hero-visual { position: relative; min-height: 470px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 34px; background: linear-gradient(150deg, rgba(117,95,255,.25), rgba(14,18,34,.86) 55%, rgba(25,217,220,.08)); box-shadow: 0 32px 100px rgba(0,0,0,.38); }
 .hero-visual::before, .hero-visual::after { content: ""; position: absolute; width: 270px; height: 270px; border: 1px solid rgba(255,255,255,.09); border-radius: 72px; transform: rotate(28deg); }
 .hero-visual::before { left: -120px; bottom: -120px; }
@@ -247,6 +260,8 @@ tr:last-child td { border-bottom: 0; }
   .site-nav { gap: 2px; }
   .site-nav a:not(.nav-cta) { display: none; }
   .hero { padding-top: 48px; }
+  .platform-downloads { grid-template-columns: 1fr; }
+  .platform-download { min-height: 76px; }
   .hero-visual { min-height: 320px; }
   .hero-visual img { max-height: 260px; }
   .feature-grid, .contact-grid { grid-template-columns: 1fr; }

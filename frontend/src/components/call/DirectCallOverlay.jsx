@@ -69,7 +69,7 @@ export default function DirectCallOverlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[110] flex items-center justify-center p-4">
       <RemoteCallAudio stream={remoteStream} outputDeviceId={outputDeviceId} />
-      <section className={`pointer-events-auto w-full overflow-hidden border border-white/[0.1] bg-[#111827]/98 shadow-2xl shadow-black/60 backdrop-blur ${ringing ? 'max-w-sm rounded-3xl' : 'fixed bottom-5 left-1/2 max-w-xl -translate-x-1/2 rounded-2xl'}`}>
+      <section className={`pointer-events-auto w-full overflow-hidden border border-white/[0.1] bg-[#111827]/98 shadow-2xl shadow-black/60 backdrop-blur ${ringing ? 'max-w-sm rounded-3xl' : 'direct-call-bar fixed bottom-5 left-1/2 max-w-xl -translate-x-1/2 rounded-2xl'}`}>
         <div className={`flex ${ringing ? 'flex-col items-center px-7 py-8 text-center' : 'items-center gap-4 px-5 py-4'}`}>
           <div className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold text-white ${ringing ? 'mb-5 h-24 w-24 text-3xl' : 'h-12 w-12 text-lg'}`} style={{ backgroundColor: avatarColor }}>
             {avatarUrl

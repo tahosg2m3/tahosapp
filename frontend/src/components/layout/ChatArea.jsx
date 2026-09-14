@@ -416,12 +416,12 @@ export default function ChatArea() {
   if (!currentChannel) return null;
 
   return (
-    <div className="relative z-10 flex h-full min-w-0 flex-1 flex-col bg-[#111827]">
-      <div className="z-20 flex h-14 shrink-0 items-center border-b border-white/[0.06] bg-[#111827]/90 px-5 backdrop-blur">
+    <div className="chat-surface relative z-10 flex h-full min-h-0 min-w-0 flex-1 flex-col bg-[#111827]">
+      <div className="channel-toolbar z-20 flex h-14 shrink-0 items-center border-b border-white/[0.06] bg-[#111827]/90 px-5 backdrop-blur">
         <div className="mr-2.5 flex items-center text-[#60a5fa]"><Hash className="h-5 w-5" /></div>
-        <div className="min-w-0"><div className="font-semibold text-[#f8fafc]">{currentChannel.name}</div>{currentChannel.topic && <div className="max-w-[420px] truncate text-[10px] text-[#64748b]">{currentChannel.topic}</div>}</div>
+        <div className="channel-toolbar-title min-w-0"><div className="truncate font-semibold text-[#f8fafc]">{currentChannel.name}</div>{currentChannel.topic && <div className="max-w-[420px] truncate text-[10px] text-[#64748b]">{currentChannel.topic}</div>}</div>
 
-        <div className="ml-auto flex items-center gap-2 text-[#94a3b8]">
+        <div className="channel-toolbar-actions ml-auto flex items-center gap-2 text-[#94a3b8]">
           {isSearchOpen ? (
             <div className="flex items-center rounded-lg border border-white/[0.08] bg-[#1e293b] px-2">
               <Search className="h-4 w-4 text-[#64748b]" />

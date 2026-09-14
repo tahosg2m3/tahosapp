@@ -13,6 +13,7 @@ import { resolveSafeAvatarUrl } from '../../utils/safeMediaUrl';
 import GroupDMAvatar from './GroupDMAvatar';
 import GroupDMDetailsPanel from './GroupDMDetailsPanel';
 import { useDirectCall } from '../../context/DirectCallContext';
+import { useI18n } from '../../i18n/I18nContext';
 
 function updateMessageInList(messages, update) {
   const messageId = update.messageId || update.id;
@@ -23,7 +24,8 @@ function isGroupConversation(conversation) {
   return conversation?.type === 'group' || conversation?.isGroupDM;
 }
 
-export default function DMArea() {
+export default function DMArea({ onBrowseConversations }) {
+  const { t } = useI18n();
   const { activeDM, setActiveDM } = useDM();
   const { user } = useAuth();
   const { socket } = useSocket();
@@ -205,10 +207,11 @@ export default function DMArea() {
 
   if (!activeDM) {
     return (
-      <div className="flex flex-1 select-none flex-col items-center justify-center bg-[#111827] text-[#94a3b8]">
+      <div className="flex flex-1 select-none flex-col items-center justify-center bg-[#111827] px-6 text-center text-[#94a3b8]">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#1e293b] shadow-inner"><span className="text-4xl text-[#475569]">@</span></div>
         <h3 className="mb-2 text-xl font-bold text-[#f8fafc]">Message your friends</h3>
-        <p className="text-[15px]">Select someone on the left to start a conversation.</p>
+        <p className="text-[15px]">{t('mobile.chooseConversation')}</p>
+        <button type="button" onClick={onBrowseConversations} className="mt-5 rounded-xl bg-[#2563eb] px-5 py-3 text-sm font-semibold text-white md:hidden">{t('mobile.browseMessages')}</button>
       </div>
     );
   }
@@ -238,7 +241,7 @@ export default function DMArea() {
   };
 
   return (
-    <div className="relative flex h-full min-w-0 flex-1 flex-col bg-[#111827]">
+    <div className="chat-surface relative flex h-full min-h-0 min-w-0 flex-1 flex-col bg-[#111827]">
       <div className="z-10 flex h-14 shrink-0 items-center border-b border-white/[0.06] bg-[#111827]/90 px-5 backdrop-blur">
         <div className="flex min-w-0 items-center gap-3">
           {groupDM ? <GroupDMAvatar conversation={activeDM} size={30} /> : <span className="select-none text-xl font-medium text-[#94a3b8]">@</span>}

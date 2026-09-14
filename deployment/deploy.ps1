@@ -2,7 +2,8 @@
 param(
   [switch]$SkipBuild,
   [switch]$AllowDirty,
-  [string]$InstallerPath = ''
+  [string]$InstallerPath = '',
+  [string]$AndroidApkPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +46,7 @@ function Split-UploadFile {
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$packageVersion = (Get-Content -LiteralPath (Join-Path $repoRoot 'package.json') -Raw | ConvertFrom-Json).version
 $deployBase = [IO.Path]::GetFullPath((Join-Path $repoRoot '.deploy'))
 $releaseId = Get-Date -Format 'yyyyMMdd-HHmmss'
 $stageRoot = [IO.Path]::GetFullPath((Join-Path $deployBase $releaseId))
@@ -57,6 +59,13 @@ $remoteUser = 'tahosdeploy'
 $sshKey = 'C:\Users\User\.ssh\tahosapp_deploy_ed25519'
 $knownHosts = 'C:\Users\User\.ssh\tahosapp_known_hosts'
 
+if (-not $InstallerPath) {
+  $defaultInstaller = Join-Path $repoRoot "release\nsis-web\tahosapp-Online-Setup-$packageVersion.exe"
+  if (Test-Path -LiteralPath $defaultInstaller -PathType Leaf) {
+    $InstallerPath = $defaultInstaller
+  }
+}
+
 if (-not $stageRoot.StartsWith($deployBase + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
   throw 'Gecici dagitim klasoru proje sinirlari disinda.'
 }
@@ -67,20 +76,32 @@ if (-not (Test-Path -LiteralPath $sshKey -PathType Leaf)) {
 
 $resolvedInstaller = ''
 $resolvedUpdateManifest = ''
-$resolvedInstallerBlockmap = ''
+$resolvedWebPackage = ''
 if ($InstallerPath) {
   $resolvedInstaller = [IO.Path]::GetFullPath($InstallerPath)
   if (-not (Test-Path -LiteralPath $resolvedInstaller -PathType Leaf) -or [IO.Path]::GetExtension($resolvedInstaller) -ne '.exe') {
     throw 'Gecerli bir Windows .exe kurulum dosyasi secmelisin.'
   }
-  $resolvedUpdateManifest = Join-Path (Split-Path -Parent $resolvedInstaller) 'latest.yml'
-  $resolvedInstallerBlockmap = "$resolvedInstaller.blockmap"
+  $resolvedUpdateManifest = Join-Path (Split-Path -Parent $resolvedInstaller) 'native.yml'
   if (-not (Test-Path -LiteralPath $resolvedUpdateManifest -PathType Leaf)) {
-    throw 'Otomatik guncelleme manifesti bulunamadi: release/latest.yml'
+    throw 'Otomatik guncelleme manifesti bulunamadi: release/nsis-web/native.yml'
   }
-  if (-not (Test-Path -LiteralPath $resolvedInstallerBlockmap -PathType Leaf)) {
-    throw 'Otomatik guncelleme blockmap dosyasi bulunamadi.'
+  $resolvedWebPackage = Join-Path (Split-Path -Parent $resolvedInstaller) "tahosapp-$packageVersion-x64.nsis.7z"
+  if (-not (Test-Path -LiteralPath $resolvedWebPackage -PathType Leaf)) {
+    throw 'Sikistirilmis Windows uygulama paketi bulunamadi.'
   }
+}
+
+if (-not $AndroidApkPath) {
+  $AndroidApkPath = Join-Path $repoRoot "mobile\releases\tahosapp-android-$packageVersion.apk"
+}
+$resolvedAndroidApk = [IO.Path]::GetFullPath($AndroidApkPath)
+$expectedAndroidApkName = "tahosapp-android-$packageVersion.apk"
+if (-not (Test-Path -LiteralPath $resolvedAndroidApk -PathType Leaf) -or [IO.Path]::GetExtension($resolvedAndroidApk) -ne '.apk') {
+  throw "Imzali Android APK bulunamadi. Once npm run build:android:apk calistir: $resolvedAndroidApk"
+}
+if ((Split-Path -Leaf $resolvedAndroidApk) -cne $expectedAndroidApkName) {
+  throw "Android APK proje surumuyle eslesmiyor. Beklenen: $expectedAndroidApkName"
 }
 
 if (-not $AllowDirty) {
@@ -106,9 +127,12 @@ if (-not (Test-Path -LiteralPath (Join-Path $siteSource 'index.html') -PathType 
   throw 'Tanitim sitesi kaynagi bulunamadi: deployment/site'
 }
 Get-ChildItem -LiteralPath $siteSource -Force | Copy-Item -Destination $webStage -Recurse -Force
-$packageVersion = (Get-Content -LiteralPath (Join-Path $repoRoot 'package.json') -Raw | ConvertFrom-Json).version
+$stagedDownloads = Join-Path $webStage 'downloads'
+New-Item -ItemType Directory -Path $stagedDownloads -Force | Out-Null
+Copy-Item -LiteralPath $resolvedAndroidApk -Destination (Join-Path $stagedDownloads 'tahosapp-Android-latest.apk') -Force
 if ($resolvedInstaller) {
-  $expectedInstallerName = "tahosapp-Setup-$packageVersion.exe"
+  $expectedInstallerName = "tahosapp-Online-Setup-$packageVersion.exe"
+  $expectedWebPackageName = "tahosapp-$packageVersion-x64.nsis.7z"
   if ((Split-Path -Leaf $resolvedInstaller) -cne $expectedInstallerName) {
     throw "Kurulum dosyasi proje surumuyle eslesmiyor. Beklenen: $expectedInstallerName"
   }
@@ -118,6 +142,12 @@ if ($resolvedInstaller) {
   }
   if ($manifestText -notmatch [regex]::Escape($expectedInstallerName)) {
     throw 'latest.yml secilen kurulum dosyasini gostermiyor.'
+  }
+  if ($manifestText -notmatch [regex]::Escape($expectedWebPackageName)) {
+    throw 'latest.yml sikistirilmis Windows paketini gostermiyor.'
+  }
+  if ((Get-Item -LiteralPath $resolvedInstaller).Length -gt 10MB) {
+    throw 'Windows cevrimici kurucusu 10 MB sinirini asiyor.'
   }
 }
 $stagedLandingPage = Join-Path $webStage 'index.html'
@@ -148,8 +178,24 @@ if ($resolvedInstaller) {
   $updateStage = Join-Path $stageRoot 'updates'
   New-Item -ItemType Directory -Path $updateStage -Force | Out-Null
   Copy-Item -LiteralPath $resolvedInstaller -Destination (Join-Path $updateStage (Split-Path -Leaf $resolvedInstaller))
-  Copy-Item -LiteralPath $resolvedInstallerBlockmap -Destination (Join-Path $updateStage (Split-Path -Leaf $resolvedInstallerBlockmap))
-  Copy-Item -LiteralPath $resolvedUpdateManifest -Destination (Join-Path $updateStage 'latest.yml')
+  Copy-Item -LiteralPath $resolvedWebPackage -Destination (Join-Path $updateStage (Split-Path -Leaf $resolvedWebPackage))
+  Copy-Item -LiteralPath $resolvedUpdateManifest -Destination (Join-Path $updateStage 'native.yml')
+  # 1.3.0 ve daha eski masaustu istemcileri web-package alanini reddeder.
+  # Onlar yalniz kucuk EXE'yi indirip paketi kurucuya birakir; 1.3.1 ve sonrasi
+  # native.yml ile sikistirilmis paketi uygulama icinde ilerleme gostererek indirir.
+  $legacyManifest = [regex]::Replace(
+    $manifestText,
+    '(?m)^packages:\r?\n(?:[ \t]+[^\r\n]*(?:\r?\n|$))+',
+    ''
+  )
+  if ($legacyManifest -match '(?m)^packages:') {
+    throw 'Eski masaustu istemcileri icin latest.yml donusturulemedi.'
+  }
+  [IO.File]::WriteAllText(
+    (Join-Path $updateStage 'latest.yml'),
+    $legacyManifest,
+    [Text.UTF8Encoding]::new($false)
+  )
   & tar.exe -czf $updateArchive -C $updateStage .
   if ($LASTEXITCODE -ne 0) { throw 'Otomatik guncelleme arsivi olusturulamadi.' }
 }
@@ -170,6 +216,7 @@ $remoteScript = "/tmp/tahosapp-server-deploy-$releaseId.sh"
 $remoteCaddyFile = "/tmp/tahosapp-Caddyfile-$releaseId"
 $remoteUpdateArchive = '-'
 $remoteInstallerName = '-'
+$remoteWebPackageName = '-'
 $stagedRemoteScript = Join-Path $stageRoot "tahosapp-server-deploy-$releaseId.sh"
 $stagedCaddyFile = Join-Path $stageRoot "tahosapp-Caddyfile-$releaseId"
 Copy-Item -LiteralPath (Join-Path $repoRoot 'deployment\tahosapp-server-deploy.sh') -Destination $stagedRemoteScript
@@ -180,6 +227,7 @@ $updateParts = @()
 if ($resolvedInstaller) {
   $remoteUpdateArchive = "/tmp/$(Split-Path -Leaf $updateArchive)"
   $remoteInstallerName = Split-Path -Leaf $resolvedInstaller
+  $remoteWebPackageName = Split-Path -Leaf $resolvedWebPackage
   $updateParts = Split-UploadFile -SourcePath $updateArchive -DestinationDirectory $stageRoot
 }
 
@@ -208,7 +256,7 @@ $remotePrepare = ''
 if ($updateParts.Count -gt 0) {
   $remotePrepare = "cat $remoteUpdateArchive.part* > $remoteUpdateArchive && "
 }
-& ssh @sshOptions $remote "${remotePrepare}sudo bash $remoteScript $releaseId $remoteBackend $remoteWeb $remoteUpdateArchive $remoteInstallerName $remoteCaddyFile"
+& ssh @sshOptions $remote "${remotePrepare}sudo bash $remoteScript $releaseId $remoteBackend $remoteWeb $remoteUpdateArchive $remoteInstallerName $remoteWebPackageName $remoteCaddyFile"
 if ($LASTEXITCODE -ne 0) { throw 'Sunucu saglik kontrolu basarisiz oldu; onceki surum korunuyor.' }
 
 Write-Host ''

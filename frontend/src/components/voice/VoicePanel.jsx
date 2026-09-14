@@ -3,6 +3,7 @@ import { MessageSquare, Mic, MicOff, MonitorUp, Music, PhoneOff, Settings, Users
 import { useVoice } from '../../context/VoiceContext';
 import { useSocket } from '../../context/SocketContext';
 import { applyAudioOutputDevice, registerAudioOutputTarget } from '../../services/audioOutputService';
+import { isNativeAndroid } from '../../utils/nativePlatform';
 
 function RemoteAudio({ stream, muted, outputDeviceId }) {
   const audioRef = useRef(null);
@@ -65,6 +66,7 @@ async function playSynthSound(soundId) {
 }
 
 export default function VoicePanel() {
+  const nativeAndroid = isNativeAndroid();
   const [showSettings, setShowSettings] = useState(false);
   const [stageRequested, setStageRequested] = useState(false);
   const [showSoundboard, setShowSoundboard] = useState(false);
@@ -116,6 +118,10 @@ export default function VoicePanel() {
   } = useVoice();
 
   useEffect(() => {
+    if (nativeAndroid && voiceMode === 'push-to-talk') setVoiceMode('activity');
+  }, [nativeAndroid, setVoiceMode, voiceMode]);
+
+  useEffect(() => {
     if (!socket || !activeVoiceChannel?.id) return undefined;
     const play = payload => {
       if (!payload?.channelId || payload.channelId === activeVoiceChannel.id) playSynthSound(payload.soundId);
@@ -154,7 +160,7 @@ export default function VoicePanel() {
   };
 
   return (
-    <section className="relative shrink-0 border-t border-white/[0.06] bg-[#151b27] p-4">
+    <section className="voice-panel relative shrink-0 border-t border-white/[0.06] bg-[#151b27] p-4">
       {Object.entries(remoteStreams).map(([userId, stream]) => (
         <RemoteAudio key={userId} stream={stream} muted={isDeafened} outputDeviceId={outputDeviceId} />
       ))}
@@ -164,7 +170,7 @@ export default function VoicePanel() {
           <div className="text-[13px] font-bold text-[#34d399]">Voice connected</div>
           <div className="truncate text-[12px] text-[#94a3b8]">{activeVoiceChannel.name}</div>
           {!canSpeak && <div className="mt-1 text-[11px] text-[#fbbf24]">Listener mode — you cannot speak</div>}
-          {canSpeak && voiceMode === 'push-to-talk' && <div className={`mt-1 text-[11px] ${isPushToTalkActive ? 'font-bold text-[#34d399]' : 'text-[#fbbf24]'}`}>{isPushToTalkActive ? 'You are speaking' : `${pushToTalkKey} hold to talk`}</div>}
+          {!nativeAndroid && canSpeak && voiceMode === 'push-to-talk' && <div className={`mt-1 text-[11px] ${isPushToTalkActive ? 'font-bold text-[#34d399]' : 'text-[#fbbf24]'}`}>{isPushToTalkActive ? 'You are speaking' : `${pushToTalkKey} hold to talk`}</div>}
           {isStage && !canSpeak && <button type="button" disabled={stageRequested} onClick={requestToSpeak} className="mt-1 text-[11px] font-semibold text-[#60a5fa] hover:underline disabled:text-[#fbbf24] disabled:no-underline">{stageRequested ? 'Request to speak sent' : 'Request to speak'}</button>}
           {voiceError && <div className="mt-1 text-[11px] text-[#fca5a5]">{voiceError}</div>}
         </div>
@@ -216,7 +222,7 @@ export default function VoicePanel() {
             {isDeafened ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
 
-          <button
+          {!nativeAndroid && <button
             type="button"
             onClick={toggleScreenShare}
             disabled={!canStream && !isScreenSharing}
@@ -224,7 +230,7 @@ export default function VoicePanel() {
             title={!canStream && !isScreenSharing ? 'You do not have permission to stream' : isScreenSharing ? 'Stop stream' : 'Share your screen'}
           >
             <MonitorUp className="h-4 w-4" />
-          </button>
+          </button>}
 
           <button
             type="button"
@@ -254,11 +260,11 @@ export default function VoicePanel() {
             <label className="text-[10px] font-bold uppercase text-[#64748b]">Input device<select value={inputDeviceId} onChange={event => changeInputDevice(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="">System default</option>{availableDevices.audioinput.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${index + 1}`}</option>)}</select></label>
             <label className="text-[10px] font-bold uppercase text-[#64748b]">Output device<select value={outputDeviceId} onChange={event => setOutputDeviceId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="">System default</option>{availableDevices.audiooutput.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Speaker ${index + 1}`}</option>)}</select></label>
             <label className="text-[10px] font-bold uppercase text-[#64748b]">Camera<select value={cameraDeviceId} onChange={event => changeCameraDevice(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="">System default</option>{availableDevices.videoinput.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>)}</select></label>
-            <label className="text-[10px] font-bold uppercase text-[#64748b]">Input mode<select value={voiceMode} onChange={event => setVoiceMode(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="activity">Voice activity</option><option value="push-to-talk">Push to talk</option></select></label>
-            {voiceMode === 'push-to-talk' && <label className="text-[10px] font-bold uppercase text-[#64748b]">Push-to-talk key<input readOnly value={pushToTalkKey} onKeyDown={event => { event.preventDefault(); setPushToTalkKey(event.code); }} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-center text-xs font-bold text-[#cbd5e1] outline-none focus:border-[#3b82f6]" title="Select the field and press the key you want" /></label>}
+            <label className="text-[10px] font-bold uppercase text-[#64748b]">Input mode<select value={nativeAndroid ? 'activity' : voiceMode} onChange={event => setVoiceMode(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="activity">Voice activity</option>{!nativeAndroid && <option value="push-to-talk">Push to talk</option>}</select></label>
+            {!nativeAndroid && voiceMode === 'push-to-talk' && <label className="text-[10px] font-bold uppercase text-[#64748b]">Push-to-talk key<input readOnly value={pushToTalkKey} onKeyDown={event => { event.preventDefault(); setPushToTalkKey(event.code); }} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-center text-xs font-bold text-[#cbd5e1] outline-none focus:border-[#3b82f6]" title="Select the field and press the key you want" /></label>}
             <label className="text-[10px] font-bold uppercase text-[#64748b]">Voice isolation<select value={voiceIsolationMode} onChange={event => void setVoiceIsolationMode(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="off">Off</option><option value="standard">Standard</option><option value="strong" disabled={!rnnoiseSupported}>RNNoise (Strong){!rnnoiseSupported ? ' — not supported' : ''}</option></select></label>
             <label className="text-[10px] font-bold uppercase text-[#64748b]">Audio quality<select value={audioQuality} onChange={event => void setAudioQuality(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="standard">Standard</option><option value="high">High</option><option value="studio">Studio</option></select></label>
-            <label className="text-[10px] font-bold uppercase text-[#64748b]">Stream quality<select value={screenSharePreset} onChange={event => setScreenSharePreset(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="720p30">720p / 30 FPS</option><option value="1080p30">1080p / 30 FPS</option><option value="1080p60">1080p / 60 FPS</option></select></label>
+            {!nativeAndroid && <label className="text-[10px] font-bold uppercase text-[#64748b]">Stream quality<select value={screenSharePreset} onChange={event => setScreenSharePreset(event.target.value)} className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-[#151d2c] px-2 py-2 text-xs text-[#cbd5e1] outline-none"><option value="720p30">720p / 30 FPS</option><option value="1080p30">1080p / 30 FPS</option><option value="1080p60">1080p / 60 FPS</option></select></label>}
             <div className={`rounded-lg border px-3 py-2 text-xs md:col-span-2 ${voiceProcessingStatus === 'error' ? 'border-[#ef4444]/30 bg-[#ef4444]/10 text-[#fca5a5]' : voiceProcessingStatus === 'fallback' ? 'border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fcd34d]' : 'border-[#22c55e]/20 bg-[#22c55e]/10 text-[#86efac]'}`} role="status" aria-live="polite">{voiceProcessingLabels[voiceProcessingStatus] || voiceProcessingLabels.idle}</div>
           </div>
         </div>

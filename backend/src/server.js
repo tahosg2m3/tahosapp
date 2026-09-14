@@ -51,6 +51,7 @@ const { disconnectPeerFromVoice } = require('./sockets/handlers/voiceHandler');
 const { startPeerServer } = require('./peerServer');
 const errorHandler = require('./middleware/errorHandler');
 const logger = require('./middleware/logger');
+const { getClientOrigins, createCorsOrigin } = require('./middleware/clientOrigins');
 
 const app = express();
 app.disable('x-powered-by');
@@ -60,29 +61,8 @@ app.set('query parser', 'simple');
 // without accepting spoofed X-Forwarded-For headers from the public internet.
 app.set('trust proxy', 'loopback');
 const server = http.createServer(app);
-const DESKTOP_CLIENT_ORIGIN = 'tahosapp://app';
-// Eski masaüstü sürümlerinin otomatik güncellemeyi alabilmesi has geçici
-// uyumluluk. En az bir sürüm döngüsünden sonra kaldırılabilir.
-const LEGACY_DESKTOP_CLIENT_ORIGIN = 'discord-clone://app';
-const configuredClientOrigins = new Set(String(process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map(value => value.trim())
-  .filter(Boolean));
-configuredClientOrigins.add(DESKTOP_CLIENT_ORIGIN);
-configuredClientOrigins.add(LEGACY_DESKTOP_CLIENT_ORIGIN);
-const allowConfiguredClientOrigin = (origin, callback) => {
-  // Health checks and native/non-browser clients may omit Origin. Browser and
-  // Electron renderer requests must match the explicit allowlist exactly.
-  if (!origin || configuredClientOrigins.has(origin)) {
-    callback(null, true);
-    return;
-  }
-
-  const error = new Error('Client origin is not allowed.');
-  error.status = 403;
-  error.code = 'CORS_ORIGIN_DENIED';
-  callback(error);
-};
+const configuredClientOrigins = getClientOrigins();
+const allowConfiguredClientOrigin = createCorsOrigin(configuredClientOrigins);
 const uploadsDirectory = process.env.APP_DATA_DIR
   ? path.join(path.resolve(process.env.APP_DATA_DIR), 'uploads')
   : path.join(__dirname, '../uploads');

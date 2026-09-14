@@ -14,7 +14,9 @@ const expectedLandingValues = [
   `\"softwareVersion\":\"${version}\"`,
   `v${version} · Windows`,
   `id=\"current-release-title\">tahosapp ${version}<`,
-  `>Download ${version}<`,
+  'href=\"/downloads/tahosapp-Online-Setup-latest.exe\"',
+  'href=\"/downloads/tahosapp-Android-latest.apk\"',
+  '>Choose Windows or Android<',
 ];
 const missingLandingValue = expectedLandingValues.find(value => !landingPage.includes(value));
 if (missingLandingValue) {

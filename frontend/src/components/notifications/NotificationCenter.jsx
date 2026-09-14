@@ -62,7 +62,7 @@ export default function NotificationCenter({ visible = true }) {
   if (!visible) return null;
 
   return (
-    <div className="fixed right-5 top-4 z-[80]">
+    <div className="notification-center fixed right-5 top-4 z-[80]">
       <button
         type="button"
         onClick={() => {

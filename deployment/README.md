@@ -45,16 +45,30 @@ GitHub'a göndermeden yalnızca sunucuyu güncellemek istersen:
 npm run deploy:production
 ```
 
+Normal dağıtım imzalı Android APK'yı `mobile/releases` klasöründen alır ve
+`/downloads/tahosapp-Android-latest.apk` adresinde yayınlar. Windows için web
+sitesinde yalnız küçük `tahosapp-Online-Setup-latest.exe` bulunur. Bu çevrimiçi
+kurucu çalıştırıldığında mimariye uygun sıkıştırılmış uygulama paketini
+`/updates/windows/` adresinden indirir ve bilgisayara kurar. Android APK eksikse
+önce `npm run build:android:apk` çalıştırılmalıdır.
+
 Yalnız daha önce oluşturulmuş belirli bir masaüstü paketini göndermek için:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File deployment/deploy.ps1 -InstallerPath "release\tahosapp-Setup-1.1.2.exe"
+powershell -NoProfile -ExecutionPolicy Bypass -File deployment/deploy.ps1 -InstallerPath "release\tahosapp-Online-Setup-1.3.1.exe"
 ```
 
 Kurulu Windows uygulaması açılıştan kısa süre sonra ve her 30 dakikada bir
-`https://tahosapp.com.tr/updates/windows/latest.yml` adresini denetler. Yeni paket
-SHA-512 doğrulamasından geçtikten sonra arka planda indirilir. Kullanıcı isterse
-hemen yeniden başlatır; aksi halde güncelleme normal kapanışta kurulur.
+`https://tahosapp.com.tr/updates/windows/native.yml` adresini denetler. Yeni paket
+SHA-512 doğrulamasından geçtikten sonra arka planda indirilir. Bir saniyeden uzun
+indirmelerde markalı ilerleme penceresi görünür; çok kısa güncellemelerde uygulama
+doğrudan yeniden başlatılır. Kurulum, kaldırma ve açılış pencereleri de tahosapp
+tasarımını kullanır.
+
+`latest.yml`, 1.3.0 ve daha eski masaüstü sürümlerinin küçük çevrimiçi EXE ile
+1.3.1'e geçebilmesi için paket alanı çıkarılmış uyumluluk manifestidir. 1.3.1 ve
+sonraki sürümler `native.yml` kullanarak sıkıştırılmış paketi uygulama içinde
+indirir ve sessiz güncelleme uygular.
 
 ## Brevo ile e-posta gönderimi
 

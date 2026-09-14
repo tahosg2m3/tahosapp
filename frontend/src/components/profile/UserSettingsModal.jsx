@@ -1097,7 +1097,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
             </div>
           ) : (
             <div className="space-y-4">
-              <ToggleRow disabled={desktopUpdateBusy} checked={desktopUpdateState.automaticChecks !== false} onChange={handleAutomaticUpdateChange} label="Automatically check for and download updates" description="Checks after launch and every 30 minutes. A downloaded version installs automatically after the app closes." />
+              <ToggleRow disabled={desktopUpdateBusy} checked={desktopUpdateState.automaticChecks !== false} onChange={handleAutomaticUpdateChange} label="Automatically check for and download updates" description="Checks after launch and every 30 minutes. Longer updates show a tahosapp progress window; quick updates restart directly." />
 
               <div className="rounded-xl border border-white/[0.06] bg-[#1E1F22] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1131,8 +1131,8 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
         <SettingsSection title="Update Behavior" description="Explains how the web and desktop apps are updated.">
           <ul className="space-y-2 text-sm leading-6 text-[#B5BAC1]">
             <li>• The web app updates on the next launch after a new server version is deployed.</li>
-            <li>• The desktop app downloads new packages in the background and installs them when it closes.</li>
-            <li>• The app never closes itself during a voice call; you choose when to restart.</li>
+            <li>• The desktop app downloads the compressed update package and installs it silently.</li>
+            <li>• Updates that take longer than one second show a tahosapp progress window before restarting.</li>
           </ul>
         </SettingsSection>
       </div>

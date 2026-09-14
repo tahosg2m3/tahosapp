@@ -5,6 +5,7 @@ import './index.css'
 import { APP_THEME_OPTIONS } from './utils/profileAppearance'
 import { applyAccessibilityPreferences, readAccessibilityPreferences } from './utils/accessibilityPreferences.js'
 import { I18nProvider } from './i18n/I18nContext.jsx'
+import { isNativeAndroid } from './utils/nativePlatform.js'
 
 const supportedThemes = new Set(APP_THEME_OPTIONS.map(option => option.value))
 const requestedTheme = localStorage.getItem('chat:theme') || 'dark'
@@ -12,7 +13,7 @@ const savedTheme = supportedThemes.has(requestedTheme) ? requestedTheme : 'dark'
 document.documentElement.dataset.theme = savedTheme
 applyAccessibilityPreferences(readAccessibilityPreferences())
 
-if ('serviceWorker' in navigator) {
+if (!isNativeAndroid() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(error => {
       console.warn('Background notifications could not be initialized:', error.message)

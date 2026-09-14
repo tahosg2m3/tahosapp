@@ -1,0 +1,17 @@
+{
+  "appId": "com.tahosapp.mobile",
+  "appName": "tahosapp",
+  "webDir": "frontend/dist-android",
+  "backgroundColor": "#0f172a",
+  "loggingBehavior": "none",
+  "server": {
+    "hostname": "tahosapp.com.tr",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

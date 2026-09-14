@@ -119,6 +119,14 @@ Desktop:
 npm run build:electron
 ```
 
+Android APK:
+
+```bash
+npm run build:android:apk
+```
+
+The package is written to `mobile/releases`. Java 21 and Android SDK 36 are required for the initial toolchain setup. See `mobile/DIRECT-INSTALL.tr.md` for direct installation instructions.
+
 Everything:
 
 ```bash

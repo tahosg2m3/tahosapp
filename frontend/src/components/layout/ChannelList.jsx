@@ -474,7 +474,7 @@ export default function ChannelList({ onNavigate }) {
 
   return (
     <>
-      <div className="flex h-full w-[256px] flex-col border-r border-white/[0.06] bg-[#151b27]">
+      <div className="flex h-full w-full flex-col border-r border-white/[0.06] bg-[#151b27]">
         <header className="relative z-20 h-14 shrink-0 border-b border-white/[0.06] px-3" ref={menuRef}>
           <button
             type="button"
