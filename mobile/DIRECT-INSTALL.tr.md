@@ -1,6 +1,6 @@
 # tahosapp — Android'e doğrudan kurulum
 
-Android uygulamasını APK dosyasından kurabilirsin. Hazır dosya: `mobile/releases/tahosapp-android-1.3.1.apk`. Uygulama Android 7.0 ve üzerini destekler.
+Android uygulamasını APK dosyasından kurabilirsin. Hazır dosya: `mobile/releases/tahosapp-android-1.3.2.apk`. Uygulama Android 7.0 ve üzerini destekler.
 
 ## Telefona kurma
 

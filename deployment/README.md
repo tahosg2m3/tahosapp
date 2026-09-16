@@ -126,3 +126,14 @@ GOOGLE_OAUTH_CLIENT_SECRET=...
 Anahtarlar yalnız backend'de tutulur. Eksik olduklarında giriş ve kayıt ekranındaki
 ilgili düğmeler pasif görünür. Değerleri ekledikten sonra backend servisini yeniden
 başlatmak yeterlidir; aynı akış web ve masaüstü uygulamasında kullanılır.
+
+Bu dört değeri `backend/.env` dosyasına girdikten sonra yalnız kimlik doğrulama
+ayarlarını güvenli biçimde canlı sunucuya aktarmak için:
+
+```powershell
+npm run auth:production
+```
+
+Bu komut bütün `.env` dosyasını göndermez. Yalnızca `SOCIAL_AUTH_*`,
+`GOOGLE_OAUTH_*` ve varsa `WEBAUTHN_*` satırlarını ayrı bir sunucu dosyasına
+aktarır, servisi yeniden başlatır ve Google girişinin etkin olduğunu doğrular.

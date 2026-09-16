@@ -1,6 +1,6 @@
 {
   "name": "tahosapp",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Tahosapp desktop communication application",
   "author": "tahosg2m3",
   "main": "electron/main.js",
@@ -21,6 +21,7 @@
     "deploy:production": "powershell -NoProfile -ExecutionPolicy Bypass -File deployment/deploy.ps1",
     "publish:production": "powershell -NoProfile -ExecutionPolicy Bypass -File deployment/publish.ps1",
     "release:production": "npm run build && npm run publish:production",
+    "auth:production": "powershell -NoProfile -ExecutionPolicy Bypass -File deployment/update-auth.ps1",
     "smtp:production": "powershell -NoProfile -ExecutionPolicy Bypass -File deployment/update-smtp.ps1",
     "postinstall": "cd backend && npm install && cd ../frontend && npm install"
   },

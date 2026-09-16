@@ -11,6 +11,24 @@ $sdkRoot = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { Join-Path
 if (-not (Test-Path (Join-Path $javaHome 'bin/java.exe'))) { throw 'Java 21 was not found.' }
 if (-not (Test-Path (Join-Path $sdkRoot 'platforms/android-36'))) { throw 'Android SDK platform 36 was not found.' }
 
+function Remove-GeneratedDirectory {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  $fullPath = [IO.Path]::GetFullPath($Path)
+  $workspacePrefix = [IO.Path]::GetFullPath($repoRoot) + [IO.Path]::DirectorySeparatorChar
+  if (-not $fullPath.StartsWith($workspacePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Generated Android path is outside the project: $fullPath"
+  }
+  if (-not (Test-Path -LiteralPath $fullPath)) { return }
+
+  Get-ChildItem -LiteralPath $fullPath -Recurse -Force | ForEach-Object {
+    $_.Attributes = $_.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)
+  }
+  $rootItem = Get-Item -LiteralPath $fullPath -Force
+  $rootItem.Attributes = $rootItem.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)
+  Remove-Item -LiteralPath $fullPath -Recurse -Force
+}
+
 if ($Variant -eq 'release') {
   & (Join-Path $PSScriptRoot 'initialize-android-signing.ps1') -JavaHome $javaHome
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -24,6 +42,10 @@ try {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   & powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-android-assets.ps1
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  $variantTaskName = $Variant.Substring(0, 1).ToUpperInvariant() + $Variant.Substring(1)
+  Remove-GeneratedDirectory (Join-Path $repoRoot "android/app/build/outputs/apk/$Variant")
+  Remove-GeneratedDirectory (Join-Path $repoRoot "android/app/build/intermediates/incremental/package$variantTaskName/tmp")
 
   $env:JAVA_HOME = $javaHome
   $env:ANDROID_SDK_ROOT = $sdkRoot
