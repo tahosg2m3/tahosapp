@@ -45,6 +45,7 @@ if (!isDev) {
   }
 }
 const APP_SCHEME = 'tahosapp';
+const SOCIAL_AUTH_SCHEME = 'tahosapp-auth';
 const APP_HOST = 'app';
 const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`;
 const APP_ENTRY_URL = `${APP_ORIGIN}/index.html`;
@@ -254,6 +255,7 @@ let desktopUpdateState = Object.freeze({
   lastCheckedAt: null,
   message: 'Automatic updates are available only in the installed Windows app.',
 });
+let pendingSocialAuthPayload = null;
 
 function parseUrl(value) {
   try {
@@ -261,6 +263,35 @@ function parseUrl(value) {
   } catch (_) {
     return null;
   }
+}
+
+function parseSocialAuthUrl(value) {
+  const parsed = parseUrl(value);
+  if (!parsed || parsed.protocol !== `${SOCIAL_AUTH_SCHEME}:` || parsed.hostname !== 'callback') return null;
+  const ticket = String(parsed.searchParams.get('social_ticket') || '');
+  const error = String(parsed.searchParams.get('social_error') || '');
+  if (ticket && /^[A-Za-z0-9_-]{40,100}$/.test(ticket)) return { ticket };
+  if (error && /^[a-z_]{3,40}$/.test(error)) return { error };
+  return null;
+}
+
+function deliverSocialAuthPayload() {
+  if (!pendingSocialAuthPayload || !mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) return;
+  mainWindow.webContents.send('social-auth:callback', pendingSocialAuthPayload);
+  pendingSocialAuthPayload = null;
+}
+
+function receiveSocialAuthUrl(value, { focus = true } = {}) {
+  const payload = parseSocialAuthUrl(value);
+  if (!payload) return false;
+  pendingSocialAuthPayload = payload;
+  deliverSocialAuthPayload();
+  if (focus && app.isReady()) showMainWindow();
+  return true;
+}
+
+function socialAuthUrlFromArguments(argumentsList) {
+  return (Array.isArray(argumentsList) ? argumentsList : []).find(value => String(value || '').startsWith(`${SOCIAL_AUTH_SCHEME}://`));
 }
 
 function isTrustedRendererOrigin(value) {
@@ -1152,6 +1183,7 @@ function createWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     broadcastDesktopUpdateState();
+    deliverSocialAuthPayload();
   });
 
   const template = [
@@ -1280,11 +1312,23 @@ function configurePermissions() {
 
 const ownsSingleInstance = isDev || app.requestSingleInstanceLock();
 
+if (!isDev) {
+  app.setAsDefaultProtocolClient(SOCIAL_AUTH_SCHEME);
+  const initialSocialAuthUrl = socialAuthUrlFromArguments(process.argv);
+  if (initialSocialAuthUrl) receiveSocialAuthUrl(initialSocialAuthUrl, { focus: false });
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    receiveSocialAuthUrl(url);
+  });
+}
+
 if (!ownsSingleInstance) {
   app.quit();
 } else {
   if (!isDev) {
-    app.on('second-instance', () => {
+    app.on('second-instance', (_event, commandLine) => {
+      const socialAuthUrl = socialAuthUrlFromArguments(commandLine);
+      if (socialAuthUrl) receiveSocialAuthUrl(socialAuthUrl);
       showMainWindow();
     });
   }
@@ -1352,6 +1396,16 @@ if (!ownsSingleInstance) {
       return { transportError: true, code: 'UNTRUSTED_RENDERER' };
     }
     return performDesktopApiRequest(request);
+  });
+
+  ipcMain.handle('social-auth:start', (event, providerId) => {
+    if (!isTrustedAppFrame(event.senderFrame, event.senderFrame?.url)) return { started: false };
+    const provider = String(providerId || '').toLowerCase();
+    if (!['google', 'discord'].includes(provider)) return { started: false };
+    const target = new URL(`/api/auth/social/${provider}/start`, `${DEPLOYMENT_CONFIG.apiOrigin}/`);
+    target.searchParams.set('client', 'desktop');
+    shell.openExternal(target.href).catch(() => {});
+    return { started: true };
   });
 
   ipcMain.handle('desktop-update:get-state', event => {

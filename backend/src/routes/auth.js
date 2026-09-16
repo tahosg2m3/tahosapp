@@ -4,7 +4,7 @@ const { ipKeyGenerator, rateLimit } = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 
 const storage = require('../storage/inMemory');
-const { createSession } = require('../services/communityHubService');
+const { createSession, ensureHubState } = require('../services/communityHubService');
 const {
   sendTwoFactorCode,
   sendPasswordResetCode,
@@ -23,6 +23,8 @@ const router = express.Router();
 const pendingTwoFactorLogins = new Map();
 const pendingPasswordResets = new Map();
 const pendingEmailChanges = new Map();
+const pendingSocialStates = new Map();
+const pendingSocialTickets = new Map();
 const authRateLimitEntries = new Map();
 
 const CODE_EXPIRES_IN_MS = 10 * 60 * 1000;
@@ -30,6 +32,29 @@ const RESEND_WAIT_MS = 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 const RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
+const SOCIAL_STATE_TTL_MS = 10 * 60 * 1000;
+const SOCIAL_TICKET_TTL_MS = 2 * 60 * 1000;
+const SOCIAL_PASSWORD_SETUP_WINDOW_MS = 15 * 60 * 1000;
+const SOCIAL_PROVIDERS = Object.freeze({
+  google: Object.freeze({
+    label: 'Google',
+    clientIdEnv: 'GOOGLE_OAUTH_CLIENT_ID',
+    clientSecretEnv: 'GOOGLE_OAUTH_CLIENT_SECRET',
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: 'https://oauth2.googleapis.com/token',
+    userInfoUrl: 'https://openidconnect.googleapis.com/v1/userinfo',
+    scope: 'openid profile email',
+  }),
+  discord: Object.freeze({
+    label: 'Discord',
+    clientIdEnv: 'DISCORD_OAUTH_CLIENT_ID',
+    clientSecretEnv: 'DISCORD_OAUTH_CLIENT_SECRET',
+    authorizationUrl: 'https://discord.com/oauth2/authorize',
+    tokenUrl: 'https://discord.com/api/oauth2/token',
+    userInfoUrl: 'https://discord.com/api/users/@me',
+    scope: 'identify email',
+  }),
+});
 // Kodlar kısa and tek useslı olduğundan Argon2 ile parola gibi işlenmez.
 // Süreç belleğinde kalan rastgele HMAC anahtarı, Map içindeki özetlerin çevrimdışı
 // 000000-999999 taramasına karşı doğrudan SHA-256'dan daha güvenli olmasını sağlar.
@@ -49,6 +74,12 @@ function cleanupExpiredSecurityState(now = Date.now()) {
 
   for (const [key, entry] of authRateLimitEntries.entries()) {
     if (!entry || now >= entry.expiresAt) authRateLimitEntries.delete(key);
+  }
+  for (const [key, entry] of pendingSocialStates.entries()) {
+    if (!entry || now >= entry.expiresAt) pendingSocialStates.delete(key);
+  }
+  for (const [key, entry] of pendingSocialTickets.entries()) {
+    if (!entry || now >= entry.expiresAt) pendingSocialTickets.delete(key);
   }
 }
 
@@ -208,6 +239,26 @@ const rateLimits = Object.freeze({
   resetPasswordAccount: rateLimit(authRateLimitOptions({
     scope: 'reset-password', kind: 'account', windowMs: 15 * 60 * 1000, limit: 8,
     subject: req => req.body?.resetTicket,
+  })),
+  changePasswordIp: rateLimit(authRateLimitOptions({
+    scope: 'change-password', kind: 'ip', windowMs: 15 * 60 * 1000, limit: 20,
+    subject: requestRemoteAddress,
+  })),
+  changePasswordAccount: rateLimit(authRateLimitOptions({
+    scope: 'change-password', kind: 'account', windowMs: 15 * 60 * 1000, limit: 8,
+    subject: req => req.user?.id,
+  })),
+  socialStartIp: rateLimit(authRateLimitOptions({
+    scope: 'social-start', kind: 'ip', windowMs: 15 * 60 * 1000, limit: 30,
+    subject: requestRemoteAddress,
+  })),
+  socialExchangeIp: rateLimit(authRateLimitOptions({
+    scope: 'social-exchange', kind: 'ip', windowMs: 15 * 60 * 1000, limit: 40,
+    subject: requestRemoteAddress,
+  })),
+  socialCallbackIp: rateLimit(authRateLimitOptions({
+    scope: 'social-callback', kind: 'ip', windowMs: 15 * 60 * 1000, limit: 60,
+    subject: requestRemoteAddress,
   })),
   requestEmailChangeIp: rateLimit(authRateLimitOptions({
     scope: 'request-email-change', kind: 'ip', windowMs: 60 * 60 * 1000, limit: 20,
@@ -489,6 +540,268 @@ async function resendPendingCode(map, ticket, sendCode, resolveRecipient = pendi
   return { pending };
 }
 
+function getSocialProvider(providerId) {
+  const id = String(providerId || '').trim().toLowerCase();
+  const definition = SOCIAL_PROVIDERS[id];
+  if (!definition) return null;
+  const clientId = String(process.env[definition.clientIdEnv] || '').trim();
+  const clientSecret = String(process.env[definition.clientSecretEnv] || '').trim();
+  return { id, ...definition, clientId, clientSecret, configured: Boolean(clientId && clientSecret) };
+}
+
+function readCookie(req, name) {
+  const prefix = `${name}=`;
+  const entry = String(req.headers.cookie || '').split(';').map(value => value.trim()).find(value => value.startsWith(prefix));
+  if (!entry) return '';
+  try {
+    return decodeURIComponent(entry.slice(prefix.length));
+  } catch (_) {
+    return '';
+  }
+}
+
+function socialStateCookie(req, value, maxAgeSeconds) {
+  const secure = req.secure;
+  return [
+    `tahos_social_state=${encodeURIComponent(value)}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/api/auth/social/',
+    `Max-Age=${maxAgeSeconds}`,
+    ...(secure ? ['Secure'] : []),
+  ].join('; ');
+}
+
+function safeOrigin(value, fallback) {
+  try {
+    const parsed = new URL(String(value || fallback || ''));
+    const localhost = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+    if ((parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && localhost)) || parsed.username || parsed.password) return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function socialCallbackUrl(req, providerId) {
+  const requestOrigin = `${req.protocol}://${req.get('host')}`;
+  const base = safeOrigin(process.env.SOCIAL_AUTH_BASE_URL, requestOrigin);
+  if (!base) throw new Error('SOCIAL_AUTH_BASE_URL must be an HTTPS origin.');
+  return new URL(`/api/auth/social/${providerId}/callback`, base).href;
+}
+
+function socialWebUrl(req) {
+  const requestOrigin = `${req.protocol}://${req.get('host')}`;
+  const target = safeOrigin(process.env.SOCIAL_AUTH_WEB_URL || process.env.CLIENT_URL, requestOrigin);
+  if (!target) throw new Error('SOCIAL_AUTH_WEB_URL must be an HTTPS URL.');
+  return target;
+}
+
+function redirectSocialResult(req, res, client, values) {
+  try {
+    if (client === 'desktop') {
+      const target = new URL('tahosapp-auth://callback');
+      Object.entries(values).forEach(([key, value]) => target.searchParams.set(key, String(value)));
+      return res.redirect(303, target.href);
+    }
+
+    const target = socialWebUrl(req);
+    target.hash = new URLSearchParams(values).toString();
+    return res.redirect(303, target.href);
+  } catch (error) {
+    console.error('Social sign-in redirect error:', error.message);
+    return res.status(500).send('Social sign-in could not return to tahosapp.');
+  }
+}
+
+async function fetchOAuthJson(url, options, providerLabel) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  timeout.unref?.();
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(`${providerLabel} returned an authentication error.`);
+    return payload;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchSocialProfile(provider, code, redirectUri) {
+  const token = await fetchOAuthJson(provider.tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body: new URLSearchParams({
+      code,
+      client_id: provider.clientId,
+      client_secret: provider.clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  }, provider.label);
+  if (!token.access_token || !/^[A-Za-z][A-Za-z0-9+.-]*$/.test(String(token.token_type || 'Bearer'))) {
+    throw new Error(`${provider.label} did not return a usable access token.`);
+  }
+
+  const profile = await fetchOAuthJson(provider.userInfoUrl, {
+    headers: { Authorization: `${token.token_type || 'Bearer'} ${token.access_token}`, Accept: 'application/json' },
+  }, provider.label);
+
+  if (provider.id === 'google') {
+    return {
+      subject: String(profile.sub || ''),
+      email: normalizeEmail(profile.email),
+      emailVerified: profile.email_verified === true,
+      username: String(profile.name || profile.email?.split('@')[0] || ''),
+      avatar: String(profile.picture || ''),
+    };
+  }
+
+  return {
+    subject: String(profile.id || ''),
+    email: normalizeEmail(profile.email),
+    emailVerified: profile.verified === true,
+    username: String(profile.global_name || profile.username || profile.email?.split('@')[0] || ''),
+    avatar: profile.id && profile.avatar
+      ? `https://cdn.discordapp.com/avatars/${encodeURIComponent(profile.id)}/${encodeURIComponent(profile.avatar)}.png?size=128`
+      : '',
+  };
+}
+
+function uniqueSocialUsername(preferred, email) {
+  const fallback = String(email || '').split('@')[0] || 'tahosapp-user';
+  const base = String(preferred || fallback)
+    .replace(/[\r\n\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 43) || 'tahosapp-user';
+  if (!storage.getUserByUsername(base)) return base;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const candidate = `${base.slice(0, 43)}-${crypto.randomBytes(3).toString('hex')}`;
+    if (!storage.getUserByUsername(candidate)) return candidate;
+  }
+  return `tahosapp-${crypto.randomBytes(12).toString('hex')}`.slice(0, 50);
+}
+
+async function findOrCreateSocialUser(provider, profile) {
+  if (!profile.subject || !isValidEmail(profile.email) || !profile.emailVerified) {
+    throw new Error(`${provider.label} must provide a verified email address.`);
+  }
+
+  const hub = ensureHubState();
+  const identityKey = `${provider.id}:${profile.subject}`;
+  const identity = hub.socialIdentities[identityKey];
+  let user = identity?.userId ? storage.getUserById(identity.userId) : null;
+  if (!user) user = storage.getUserByEmail(profile.email);
+
+  if (!user) {
+    user = storage.createUserWithAuth({
+      username: uniqueSocialUsername(profile.username, profile.email),
+      email: profile.email,
+      password: await hashPassword(crypto.randomBytes(48).toString('base64url')),
+    });
+    user.socialOnly = true;
+    if (/^https:\/\//i.test(profile.avatar)) user.avatar = profile.avatar;
+  }
+
+  hub.socialIdentities[identityKey] = {
+    userId: user.id,
+    provider: provider.id,
+    subject: profile.subject,
+    email: profile.email,
+    linkedAt: identity?.linkedAt || Date.now(),
+    lastLoginAt: Date.now(),
+  };
+  storage.saveData();
+  return user;
+}
+
+router.get('/social/providers', (_req, res) => {
+  return res.json({
+    providers: Object.keys(SOCIAL_PROVIDERS).map(id => {
+      const provider = getSocialProvider(id);
+      return { id, label: provider.label, enabled: provider.configured };
+    }),
+  });
+});
+
+router.get('/social/:provider/start', rateLimits.socialStartIp, (req, res) => {
+  const provider = getSocialProvider(req.params.provider);
+  const client = req.query.client === 'desktop' ? 'desktop' : 'web';
+  if (!provider) return res.status(404).send('Social sign-in provider not found.');
+  if (!provider.configured) return res.status(503).send(`${provider.label} sign-in is not configured.`);
+
+  try {
+    cleanupExpiredSecurityState();
+    const state = crypto.randomBytes(32).toString('base64url');
+    const redirectUri = socialCallbackUrl(req, provider.id);
+    pendingSocialStates.set(state, { providerId: provider.id, client, redirectUri, expiresAt: Date.now() + SOCIAL_STATE_TTL_MS });
+    res.set('Set-Cookie', socialStateCookie(req, state, Math.ceil(SOCIAL_STATE_TTL_MS / 1000)));
+    const target = new URL(provider.authorizationUrl);
+    target.searchParams.set('client_id', provider.clientId);
+    target.searchParams.set('redirect_uri', redirectUri);
+    target.searchParams.set('response_type', 'code');
+    target.searchParams.set('scope', provider.scope);
+    target.searchParams.set('state', state);
+    if (provider.id === 'google') target.searchParams.set('prompt', 'select_account');
+    return res.redirect(303, target.href);
+  } catch (error) {
+    console.error('Could not start social sign-in:', error.message);
+    return res.status(500).send('Social sign-in could not be started.');
+  }
+});
+
+router.get('/social/:provider/callback', rateLimits.socialCallbackIp, async (req, res) => {
+  cleanupExpiredSecurityState();
+  const state = String(req.query.state || '');
+  const pending = pendingSocialStates.get(state);
+  if (pending) pendingSocialStates.delete(state);
+  const cookieState = readCookie(req, 'tahos_social_state');
+  res.set('Set-Cookie', socialStateCookie(req, '', 0));
+  const provider = getSocialProvider(req.params.provider);
+  const client = pending?.client === 'desktop' ? 'desktop' : 'web';
+  const stateBuffer = Buffer.from(state);
+  const cookieStateBuffer = Buffer.from(cookieState);
+  const stateMatchesCookie = stateBuffer.length > 0
+    && cookieStateBuffer.length === stateBuffer.length
+    && crypto.timingSafeEqual(cookieStateBuffer, stateBuffer);
+
+  if (!pending || !stateMatchesCookie || !provider || pending.providerId !== provider.id || !provider.configured) {
+    return redirectSocialResult(req, res, client, { social_error: 'invalid_request' });
+  }
+  if (req.query.error || !req.query.code) {
+    return redirectSocialResult(req, res, client, { social_error: req.query.error === 'access_denied' ? 'cancelled' : 'provider_error' });
+  }
+
+  try {
+    const profile = await fetchSocialProfile(provider, String(req.query.code), pending.redirectUri);
+    const user = await findOrCreateSocialUser(provider, profile);
+    const platformBan = storage.getUserPlatformBan(user.id);
+    if (platformBan) return redirectSocialResult(req, res, client, { social_error: 'account_banned' });
+
+    const ticket = crypto.randomBytes(32).toString('base64url');
+    pendingSocialTickets.set(ticket, { userId: user.id, providerId: provider.id, expiresAt: Date.now() + SOCIAL_TICKET_TTL_MS });
+    return redirectSocialResult(req, res, client, { social_ticket: ticket });
+  } catch (error) {
+    console.error(`${provider.label} sign-in callback error:`, error.message);
+    return redirectSocialResult(req, res, client, { social_error: 'verification_failed' });
+  }
+});
+
+router.post('/social/exchange', rateLimits.socialExchangeIp, (req, res) => {
+  cleanupExpiredSecurityState();
+  const ticket = String(req.body.ticket || '');
+  const pending = pendingSocialTickets.get(ticket);
+  if (pending) pendingSocialTickets.delete(ticket);
+  if (!pending) return res.status(400).json({ error: 'Social sign-in expired. Please try again.' });
+
+  const user = storage.getUserById(pending.userId);
+  if (!user || storage.getUserPlatformBan(user.id)) return res.status(403).json({ error: 'This account cannot sign in.' });
+  const session = createSession(user.id, req, `oauth:${pending.providerId}`);
+  return res.json({ user: publicUser(user), token: signAuthToken(user, { sid: session.id }) });
+});
+
 router.post('/register', rateLimits.registerIp, rateLimits.registerAccount, async (req, res) => {
   try {
     const username = String(req.body.username || '').trim();
@@ -722,6 +1035,48 @@ router.post('/reset-password', rateLimits.resetPasswordIp, rateLimits.resetPassw
     return res.status(500).json({ error: 'The password could not be updated.' });
   }
 });
+
+router.post(
+  '/change-password',
+  rateLimits.changePasswordIp,
+  requireAuth,
+  rateLimits.changePasswordAccount,
+  async (req, res) => {
+    try {
+      const currentPassword = String(req.body.currentPassword || '');
+      const newPassword = String(req.body.newPassword || '');
+      if (!isValidPassword(newPassword)) {
+        return res.status(400).json({ error: 'The new password must be between 8 and 128 characters.' });
+      }
+
+      const session = ensureHubState().sessions[String(req.auth?.sid || '')];
+      const freshSocialSession = Boolean(
+        req.user.socialOnly
+        && session?.userId === req.user.id
+        && String(session.method || '').startsWith('oauth:')
+        && Date.now() - Number(session.createdAt || 0) <= SOCIAL_PASSWORD_SETUP_WINDOW_MS,
+      );
+
+      if (!freshSocialSession && !(await checkPasswordAndMigrate(req.user, currentPassword))) {
+        return res.status(401).json({
+          error: req.user.socialOnly
+            ? 'Sign in again with Google or Discord before setting your first password.'
+            : 'The current password is incorrect.',
+        });
+      }
+
+      const passwordHash = await hashPassword(newPassword);
+      req.user.socialOnly = false;
+      storage.updateUserPassword(req.user.id, passwordHash);
+      return res.json({ message: 'Your password was updated. Sign in again for security.' });
+    } catch (error) {
+      const busyResponse = passwordWorkBusyResponse(error, res);
+      if (busyResponse) return busyResponse;
+      console.error('Password change error:', error.message);
+      return res.status(500).json({ error: 'The password could not be updated.' });
+    }
+  },
+);
 
 router.post(
   '/request-email-change',

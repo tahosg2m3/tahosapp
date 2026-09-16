@@ -478,6 +478,11 @@ router.delete('/passkeys/:id', (req, res) => {
   return res.json({ success: true });
 });
 
+router.get('/passkeys', (req, res) => {
+  const hub = ensureHubState();
+  return res.json((hub.passkeys[req.user.id] || []).map(({ publicKey, ...item }) => item));
+});
+
 router.get('/push/public-key', (req, res) => res.json({ publicKey: configureWebPush() }));
 
 router.post('/push/subscriptions', (req, res) => {

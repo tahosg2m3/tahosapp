@@ -4,6 +4,7 @@ import {
   resendTwoFactorCode,
   verifyTwoFactorCode,
 } from '../../services/api';
+import SocialAuthButtons from './SocialAuthButtons';
 
 export default function RegisterForm({ onSwitchToLogin }) {
   const [username, setUsername] = useState('');
@@ -186,7 +187,7 @@ export default function RegisterForm({ onSwitchToLogin }) {
           onChange={(event) => setPassword(event.target.value)}
           className="w-full bg-[#1E1F22] text-[#DBDEE1] px-3 py-2.5 rounded"
           placeholder="Password"
-          minLength={6}
+          minLength={8}
           required
         />
 
@@ -198,6 +199,9 @@ export default function RegisterForm({ onSwitchToLogin }) {
           {isLoading ? 'Sending code...' : 'Sign Up'}
         </button>
       </form>
+
+      <div className="my-4 flex items-center gap-3 text-xs text-[#64748b]"><span className="h-px flex-1 bg-white/[0.08]" /><span>veya</span><span className="h-px flex-1 bg-white/[0.08]" /></div>
+      <SocialAuthButtons mode="register" onError={setError} />
 
       <div className="mt-4 text-sm text-[#949BA4]">
         Already have an account?{' '}

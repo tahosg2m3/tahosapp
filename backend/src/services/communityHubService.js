@@ -18,7 +18,7 @@ function ensureHubState() {
   const hub = root.communityHub;
   const arrayFields = ['bookmarks', 'reminders', 'scheduledMessages', 'lfgPosts', 'tickets', 'wikiPages', 'whiteboards'];
   arrayFields.forEach(field => { if (!Array.isArray(hub[field])) hub[field] = []; });
-  ['sessions', 'passkeys', 'pushSubscriptions'].forEach(field => {
+  ['sessions', 'passkeys', 'pushSubscriptions', 'socialIdentities'].forEach(field => {
     if (!hub[field] || typeof hub[field] !== 'object' || Array.isArray(hub[field])) hub[field] = {};
   });
   if (!hub.vapidKeys || typeof hub.vapidKeys !== 'object') hub.vapidKeys = null;

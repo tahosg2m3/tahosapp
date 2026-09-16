@@ -51,6 +51,7 @@ export const getCatchUp = (channelId, since) => request(`/catch-up/${encodeURICo
 
 export const revokeSession = id => request(`/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
 export const deletePasskey = id => request(`/passkeys/${encodeURIComponent(id)}`, { method: 'DELETE' });
+export const listPasskeys = () => request('/passkeys');
 
 export async function registerPasskey(name = '') {
   const start = await request('/passkeys/register/options', json('POST'));

@@ -104,3 +104,25 @@ npm run smtp:production
 Bu komut yalnızca `SMTP_*` ve `MAIL_FROM` satırlarını aktarır, Brevo SMTP bağlantısını
 sunucudan sınar ve geçici sır dosyasını bilgisayardan kaldırır. Bağlantı kontrolü
 e-posta göndermez.
+
+## Google ile giriş
+
+Google Cloud Console içinde bir OAuth uygulaması oluştur ve aşağıdaki geri dönüş
+adresini birebir ekle:
+
+```text
+https://api.tahosapp.com.tr/api/auth/social/google/callback
+```
+
+Canlı backend'in `.env` dosyasına şu değerleri gir:
+
+```dotenv
+SOCIAL_AUTH_BASE_URL=https://api.tahosapp.com.tr
+SOCIAL_AUTH_WEB_URL=https://tahosapp.com.tr/app/
+GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_SECRET=...
+```
+
+Anahtarlar yalnız backend'de tutulur. Eksik olduklarında giriş ve kayıt ekranındaki
+ilgili düğmeler pasif görünür. Değerleri ekledikten sonra backend servisini yeniden
+başlatmak yeterlidir; aynı akış web ve masaüstü uygulamasında kullanılır.

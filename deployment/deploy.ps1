@@ -121,6 +121,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'frontend\dist\index.html'
   throw 'frontend/dist bulunamadi. Dagitimdan once web derlemesi gerekli.'
 }
 
+# A desktop build also writes frontend/dist, but its /assets URLs do not work
+# at the website's /app/ mount. Validate even when -SkipBuild is requested.
+& node (Join-Path $repoRoot 'scripts\verify-web-build.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Web dosya adresleri gecersiz; npm run build:frontend ile yeniden derle.' }
+
 New-Item -ItemType Directory -Path $webStage -Force | Out-Null
 $siteSource = Join-Path $repoRoot 'deployment\site'
 if (-not (Test-Path -LiteralPath (Join-Path $siteSource 'index.html') -PathType Leaf)) {

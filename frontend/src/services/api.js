@@ -70,6 +70,18 @@ export const resetPassword = (data) => request('/auth/reset-password', {
   body: JSON.stringify(data),
 });
 
+export const changePassword = (data) => request('/auth/change-password', {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+
+export const fetchSocialAuthProviders = () => request('/auth/social/providers');
+
+export const exchangeSocialAuthTicket = (ticket) => request('/auth/social/exchange', {
+  method: 'POST',
+  body: JSON.stringify({ ticket }),
+});
+
 export const requestEmailChange = (data) => request('/auth/request-email-change', {
   method: 'POST',
   body: JSON.stringify(data),

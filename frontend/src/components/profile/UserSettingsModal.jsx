@@ -58,6 +58,7 @@ import {
 } from '../../utils/automaticPresencePreferences';
 import {
   clearRichPresenceActivity,
+  changePassword,
   createSpotifyAuthorization,
   createRichPresenceToken,
   disconnectSpotify,
@@ -67,6 +68,7 @@ import {
   setRichPresenceActivity,
   updateRichPresenceSettings,
 } from '../../services/api';
+import { deletePasskey, listPasskeys, registerPasskey } from '../../services/communityHubApi';
 import {
   getNotificationPreferences,
   listBlockedUsers,
@@ -83,21 +85,22 @@ const SETTING_GROUPS = [
   {
     label: 'USER SETTINGS',
     items: [
-      { id: 'account', label: 'My Account', icon: User, description: 'Login details and account summary' },
-      { id: 'profile', label: 'Profiles', icon: Palette, description: 'Edit your public profile' },
-      { id: 'rich-presence', label: 'Rich Presence', icon: Activity, description: 'Automatic game and music activity' },
-      { id: 'privacy', label: 'Privacy & Safety', icon: Shield, description: 'Manage blocked users' },
+      { id: 'account', label: 'My Account', icon: User, description: 'Login details and account summary', keywords: 'hesap e-posta email' },
+      { id: 'security', label: 'Password & Passkeys', icon: KeyRound, description: 'Change your password and manage passkeys', keywords: 'şifre parola password passkey güvenlik security' },
+      { id: 'profile', label: 'Profiles', icon: Palette, description: 'Edit your public profile', keywords: 'profil avatar banner görünüm' },
+      { id: 'rich-presence', label: 'Rich Presence', icon: Activity, description: 'Automatic game and music activity', keywords: 'oyun müzik etkinlik durum spotify' },
+      { id: 'privacy', label: 'Privacy & Safety', icon: Shield, description: 'Manage blocked users', keywords: 'gizlilik engel güvenlik' },
     ],
   },
   {
     label: 'APP SETTINGS',
     items: [
-      { id: 'voice', label: 'Voice & Video', icon: Headphones, description: 'Devices, quality, and voice isolation' },
-      { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Alert and sound preferences' },
-      { id: 'appearance', label: 'Appearance', icon: Palette, description: 'Choose the app theme' },
-      { id: 'accessibility', label: 'Accessibility', icon: Settings, description: 'Readability and motion options' },
-      { id: 'language', label: 'Language', icon: Globe2, description: 'Choose the app language' },
-      { id: 'updates', label: 'Updates', icon: Download, description: 'Keep the desktop app up to date' },
+      { id: 'voice', label: 'Voice & Video', icon: Headphones, description: 'Devices, quality, and voice isolation', keywords: 'ses video mikrofon kamera hoparlör' },
+      { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Alert and sound preferences', keywords: 'bildirim uyarı ses' },
+      { id: 'appearance', label: 'Appearance', icon: Palette, description: 'Choose the app theme', keywords: 'görünüm tema renk' },
+      { id: 'accessibility', label: 'Accessibility', icon: Settings, description: 'Readability and motion options', keywords: 'erişilebilirlik yazı hareket kontrast' },
+      { id: 'language', label: 'Language', icon: Globe2, description: 'Choose the app language', keywords: 'dil türkçe english' },
+      { id: 'updates', label: 'Updates', icon: Download, description: 'Keep the desktop app up to date', keywords: 'güncelleme sürüm version', desktopOnly: true },
     ],
   },
   {
@@ -189,7 +192,7 @@ function OptionGrid({ label, options, value, onChange, renderPreview }) {
 }
 
 export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
-  const { user, updateUserData } = useAuth();
+  const { user, logout, updateUserData } = useAuth();
   const { locale: activeLocale, setLocale: applyLocale, t, locales } = useI18n();
   const { socket } = useSocket();
   const voice = useVoice();
@@ -221,13 +224,28 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     setAudioQuality,
   } = voice;
 
+  const isDesktopApp = Boolean(globalThis.electron?.platform);
+  const [settingsQuery, setSettingsQuery] = useState('');
   const settingGroups = useMemo(() => SETTING_GROUPS
     .map(group => ({
       ...group,
-      items: group.items.filter(item => !item.adminOnly || user.isPlatformAdmin),
+      items: group.items.filter(item => (
+        (!item.adminOnly || user.isPlatformAdmin)
+        && (!item.desktopOnly || isDesktopApp)
+      )),
     }))
-    .filter(group => group.items.length), [user.isPlatformAdmin]);
+    .filter(group => group.items.length), [isDesktopApp, user.isPlatformAdmin]);
   const allSettings = useMemo(() => settingGroups.flatMap(group => group.items), [settingGroups]);
+  const visibleSettingGroups = useMemo(() => {
+    const query = settingsQuery.trim().toLocaleLowerCase('tr-TR');
+    if (!query) return settingGroups;
+    return settingGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => `${item.label} ${item.description} ${item.keywords || ''}`.toLocaleLowerCase('tr-TR').includes(query)),
+      }))
+      .filter(group => group.items.length);
+  }, [settingGroups, settingsQuery]);
   const validInitialTab = allSettings.some(item => item.id === initialTab) ? initialTab : 'account';
   const [activeTab, setActiveTab] = useState(validInitialTab);
   const initialAvatar = typeof user.avatar === 'string' ? user.avatar : '';
@@ -264,6 +282,11 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const [deviceRefreshBusy, setDeviceRefreshBusy] = useState(false);
   const [newEmail, setNewEmail] = useState(user.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passkeys, setPasskeys] = useState([]);
+  const [passkeyName, setPasskeyName] = useState('');
+  const [passkeyBusy, setPasskeyBusy] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [emailChangeTicket, setEmailChangeTicket] = useState(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
@@ -344,6 +367,9 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
       .catch(() => {});
     getSpotifyStatus()
       .then(setSpotifyState)
+      .catch(() => {});
+    listPasskeys()
+      .then(payload => setPasskeys(Array.isArray(payload) ? payload : []))
       .catch(() => {});
   }, []);
 
@@ -765,6 +791,56 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     if (!result?.started) toast.error('The downloaded update is not ready yet.');
   };
 
+  const handleChangePassword = async event => {
+    event.preventDefault();
+    if (!user.socialOnly && !passwordForm.currentPassword) return toast.error('Mevcut şifrenizi girin.');
+    if (passwordForm.newPassword.length < 8 || passwordForm.newPassword.length > 128) return toast.error('Yeni şifre 8–128 karakter olmalı.');
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) return toast.error('Yeni şifreler eşleşmiyor.');
+    setPasswordBusy(true);
+    try {
+      await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      toast.success('Şifreniz değiştirildi. Güvenliğiniz için tekrar giriş yapın.');
+      logout();
+      onClose();
+    } catch (error) {
+      toast.error(error.message || 'Şifre değiştirilemedi.');
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const handleCreatePasskey = async () => {
+    if (!window.PublicKeyCredential) return toast.error('Bu cihaz passkey oluşturmayı desteklemiyor.');
+    setPasskeyBusy('create');
+    try {
+      const passkey = await registerPasskey(passkeyName.trim());
+      setPasskeys(current => [...current.filter(item => item.id !== passkey.id), passkey]);
+      setPasskeyName('');
+      toast.success('Passkey oluşturuldu.');
+    } catch (error) {
+      toast.error(error.message || 'Passkey oluşturulamadı.');
+    } finally {
+      setPasskeyBusy('');
+    }
+  };
+
+  const handleDeletePasskey = async passkey => {
+    if (!window.confirm(`${passkey.name || 'Passkey'} kaldırılsın mı?`)) return;
+    setPasskeyBusy(passkey.id);
+    try {
+      await deletePasskey(passkey.id);
+      setPasskeys(current => current.filter(item => item.id !== passkey.id));
+      toast.success('Passkey kaldırıldı.');
+    } catch (error) {
+      toast.error(error.message || 'Passkey kaldırılamadı.');
+    } finally {
+      setPasskeyBusy('');
+    }
+  };
+
   const renderAccount = () => (
     <div className="space-y-5">
       <section className="relative mt-12 overflow-visible rounded-xl border border-white/[0.07] bg-[#2B2D31]">
@@ -794,6 +870,50 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
             <label className="mt-4 block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Six-digit verification code</span><input value={emailCode} onChange={event => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-3 text-center font-mono text-lg tracking-[0.35em] text-[#F2F3F5] outline-none focus:border-[#00A8FC]" /></label>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><button type="button" onClick={cancelEmailChange} disabled={isEmailLoading} className="flex items-center gap-1.5 rounded px-2 py-2 text-sm text-[#B5BAC1] hover:bg-[#35373C] hover:text-white"><ArrowLeft className="h-4 w-4" /> Cancel</button><div className="flex items-center gap-2"><button type="button" onClick={handleResendEmailCode} disabled={isEmailLoading} className="flex items-center gap-1.5 rounded px-2 py-2 text-sm text-[#B5BAC1] hover:bg-[#35373C] hover:text-white disabled:opacity-50"><RotateCcw className="h-3.5 w-3.5" /> Resend</button><button type="submit" disabled={isEmailLoading || emailCode.length !== 6} className="flex items-center gap-1.5 rounded-md bg-[#23A559] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D8046] disabled:opacity-50"><Check className="h-4 w-4" /> {isEmailLoading ? 'Verifying…' : 'Verify'}</button></div></div>
           </form>
+        )}
+      </SettingsSection>
+    </div>
+  );
+
+  const renderSecurity = () => (
+    <div className="space-y-5">
+      <SettingsSection icon={Lock} title="Şifre Değiştir" description="Şifreniz değiştiğinde açık oturumlar güvenlik amacıyla kapatılır.">
+        <form className="space-y-4" onSubmit={handleChangePassword}>
+          {user.socialOnly ? (
+            <div className="rounded-lg border border-[#5865F2]/30 bg-[#5865F2]/10 p-4 text-sm leading-6 text-[#c7ceff]">
+              Sosyal hesapla giriş yaptığınız için ilk şifrenizi mevcut şifre olmadan belirleyebilirsiniz. Bu işlem yeni bir Google girişinden sonraki 15 dakika içinde yapılabilir.
+            </div>
+          ) : (
+            <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Mevcut şifre</span><input type="password" value={passwordForm.currentPassword} onChange={event => setPasswordForm(current => ({ ...current, currentPassword: event.target.value }))} autoComplete="current-password" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Yeni şifre</span><input type="password" minLength={8} maxLength={128} value={passwordForm.newPassword} onChange={event => setPasswordForm(current => ({ ...current, newPassword: event.target.value }))} autoComplete="new-password" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
+            <label className="block"><span className="mb-2 block text-xs font-bold uppercase text-[#B5BAC1]">Yeni şifreyi doğrula</span><input type="password" minLength={8} maxLength={128} value={passwordForm.confirmPassword} onChange={event => setPasswordForm(current => ({ ...current, confirmPassword: event.target.value }))} autoComplete="new-password" className="w-full rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
+          </div>
+          <div className="flex justify-end"><button type="submit" disabled={passwordBusy || !passwordForm.newPassword || !passwordForm.confirmPassword} className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-50">{passwordBusy ? 'Değiştiriliyor…' : 'Şifreyi Değiştir'}</button></div>
+        </form>
+      </SettingsSection>
+
+      <SettingsSection icon={KeyRound} title="Passkey'ler" description="Parmak izi, yüz tanıma veya cihaz kilidinizle şifresiz giriş yapın.">
+        {!window.PublicKeyCredential ? (
+          <div className="rounded-lg border border-[#F0B232]/25 bg-[#F0B232]/10 p-4 text-sm leading-6 text-[#f8d58b]">Bu cihaz veya tarayıcı passkey oluşturmayı desteklemiyor.</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input value={passkeyName} onChange={event => setPasskeyName(event.target.value.slice(0, 80))} placeholder="Örn. Dizüstü bilgisayarım" maxLength={80} className="min-w-0 flex-1 rounded-md border border-transparent bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" />
+              <button type="button" onClick={handleCreatePasskey} disabled={Boolean(passkeyBusy)} className="flex items-center justify-center gap-2 rounded-md bg-[#23A559] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1D8046] disabled:cursor-not-allowed disabled:opacity-50"><KeyRound className="h-4 w-4" /> {passkeyBusy === 'create' ? 'Oluşturuluyor…' : 'Passkey Oluştur'}</button>
+            </div>
+            <div className="space-y-2">
+              {passkeys.map(passkey => (
+                <div key={passkey.id} className="flex items-center gap-3 rounded-lg border border-white/[0.05] bg-[#1E1F22] px-4 py-3">
+                  <KeyRound className="h-5 w-5 shrink-0 text-[#8b93ff]" />
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[#DBDEE1]">{passkey.name || 'Passkey'}</p><p className="mt-0.5 text-xs text-[#949BA4]">{passkey.createdAt ? new Date(passkey.createdAt).toLocaleDateString('tr-TR') : 'Kayıtlı passkey'}</p></div>
+                  <button type="button" aria-label={`${passkey.name || 'Passkey'} kaldır`} onClick={() => handleDeletePasskey(passkey)} disabled={Boolean(passkeyBusy)} className="flex h-9 w-9 items-center justify-center rounded-md text-[#B5BAC1] hover:bg-[#DA373C]/15 hover:text-[#ff8b8f] disabled:opacity-50"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              ))}
+              {!passkeys.length && <div className="rounded-lg border border-dashed border-white/[0.08] bg-[#1E1F22] p-5 text-center text-sm text-[#949BA4]">Henüz kayıtlı passkey yok.</div>}
+            </div>
+          </div>
         )}
       </SettingsSection>
     </div>
@@ -848,6 +968,11 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
 
   const renderRichPresence = () => (
     <div className="space-y-5">
+      {!isDesktopApp && (
+        <div className="rounded-xl border border-[#F0B232]/30 bg-[#F0B232]/10 p-4 text-sm leading-6 text-[#f8d58b]">
+          <strong className="text-[#ffe2a4]">Otomatik Rich Presence yalnızca masaüstü uygulamasında çalışır.</strong> Web sürümünde özel entegrasyon anahtarıyla etkinlik yayınlamaya devam edebilirsiniz.
+        </div>
+      )}
       <SettingsSection icon={Activity} title="Automatic activity status" description="Running games and Spotify or YouTube Music sessions are detected automatically on Windows. No account link, key, or game plugin is required.">
         <ToggleRow
           checked={richPresenceState.enabled !== false}
@@ -864,25 +989,25 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
 
       <SettingsSection icon={Settings} title="Automatic Detection" description="Control automatic game and media sharing on this computer. Changes apply immediately.">
         <div className="space-y-3">
-          <ToggleRow checked={automaticPresencePrefs.enabled} onChange={value => updateAutomaticPresencePreference('enabled', value)} label="Use automatic detection on this device" description="When off, automatic game, music, and video activities are removed; custom integrations are unaffected." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showGames} onChange={value => updateAutomaticPresencePreference('showGames', value)} label="Show games I play" description="Publish detected game processes as Playing on your profile." />
+          <ToggleRow disabled={!isDesktopApp} checked={automaticPresencePrefs.enabled} onChange={value => updateAutomaticPresencePreference('enabled', value)} label="Use automatic detection on this device" description="When off, automatic game, music, and video activities are removed; custom integrations are unaffected." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showGames} onChange={value => updateAutomaticPresencePreference('showGames', value)} label="Show games I play" description="Publish detected game processes as Playing on your profile." />
         </div>
       </SettingsSection>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <SettingsSection icon={Activity} title="Game Privacy" description="Choose which details appear in game activity.">
           <div className="space-y-3">
-            <ToggleRow disabled={!automaticPresencePrefs.enabled || !automaticPresencePrefs.showGames} checked={automaticPresencePrefs.showGamePlatform} onChange={value => updateAutomaticPresencePreference('showGamePlatform', value)} label="Show game platform" description="Share Steam, Xbox, Epic Games, or another detected store name." />
-            <ToggleRow disabled={!automaticPresencePrefs.enabled || !automaticPresencePrefs.showGames} checked={automaticPresencePrefs.showGameElapsed} onChange={value => updateAutomaticPresencePreference('showGameElapsed', value)} label="Show elapsed game time" description="Show how long the game has been running on the profile card." />
+            <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled || !automaticPresencePrefs.showGames} checked={automaticPresencePrefs.showGamePlatform} onChange={value => updateAutomaticPresencePreference('showGamePlatform', value)} label="Show game platform" description="Share Steam, Xbox, Epic Games, or another detected store name." />
+            <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled || !automaticPresencePrefs.showGames} checked={automaticPresencePrefs.showGameElapsed} onChange={value => updateAutomaticPresencePreference('showGameElapsed', value)} label="Show elapsed game time" description="Show how long the game has been running on the profile card." />
           </div>
         </SettingsSection>
 
         <SettingsSection icon={Headphones} title="Music Services" description="Choose which music sources may appear on your profile.">
           <div className="space-y-3">
-            <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showSpotify} onChange={value => updateAutomaticPresencePreference('showSpotify', value)} label="Spotify" description="Show music from the Spotify desktop app." />
-            <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showYouTubeMusic} onChange={value => updateAutomaticPresencePreference('showYouTubeMusic', value)} label="YouTube Music" description="Show only the YouTube Music app; regular YouTube videos are excluded." />
-            <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showOtherMusic} onChange={value => updateAutomaticPresencePreference('showOtherMusic', value)} label="Other music players" description="Show other standalone music apps connected to Windows media controls." />
-            <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showPausedMusic} onChange={value => updateAutomaticPresencePreference('showPausedMusic', value)} label="Show paused music" description="Keep the activity as Paused instead of removing it when playback stops." />
+            <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showSpotify} onChange={value => updateAutomaticPresencePreference('showSpotify', value)} label="Spotify" description="Show music from the Spotify desktop app." />
+            <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showYouTubeMusic} onChange={value => updateAutomaticPresencePreference('showYouTubeMusic', value)} label="YouTube Music" description="Show only the YouTube Music app; regular YouTube videos are excluded." />
+            <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showOtherMusic} onChange={value => updateAutomaticPresencePreference('showOtherMusic', value)} label="Other music players" description="Show other standalone music apps connected to Windows media controls." />
+            <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showPausedMusic} onChange={value => updateAutomaticPresencePreference('showPausedMusic', value)} label="Show paused music" description="Keep the activity as Paused instead of removing it when playback stops." />
           </div>
         </SettingsSection>
       </div>
@@ -907,23 +1032,23 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
 
       <SettingsSection icon={Headphones} title="Music Details" description="Choose each field shared in music activity.">
         <div className="grid gap-3 lg:grid-cols-2">
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showSongTitle} onChange={value => updateAutomaticPresencePreference('showSongTitle', value)} label="Track title" description="When off, a generic track description replaces the real title." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showArtist} onChange={value => updateAutomaticPresencePreference('showArtist', value)} label="Artist" description="Show the track artist or channel." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showAlbum} onChange={value => updateAutomaticPresencePreference('showAlbum', value)} label="Album" description="Show the album name when Windows provides it." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showMusicProgress} onChange={value => updateAutomaticPresencePreference('showMusicProgress', value)} label="Track progress bar" description="Show the current time, total duration, and progress bar." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showMusicElapsed} onChange={value => updateAutomaticPresencePreference('showMusicElapsed', value)} label="Listening time" description="Also show how long the activity has been active." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showSongTitle} onChange={value => updateAutomaticPresencePreference('showSongTitle', value)} label="Track title" description="When off, a generic track description replaces the real title." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showArtist} onChange={value => updateAutomaticPresencePreference('showArtist', value)} label="Artist" description="Show the track artist or channel." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showAlbum} onChange={value => updateAutomaticPresencePreference('showAlbum', value)} label="Album" description="Show the album name when Windows provides it." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showMusicProgress} onChange={value => updateAutomaticPresencePreference('showMusicProgress', value)} label="Track progress bar" description="Show the current time, total duration, and progress bar." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showMusicElapsed} onChange={value => updateAutomaticPresencePreference('showMusicElapsed', value)} label="Listening time" description="Also show how long the activity has been active." />
         </div>
       </SettingsSection>
 
       <SettingsSection icon={Video} title="Video & Browser Activity" description="Regular YouTube and other browser videos are managed separately from music. Browser video sharing is off by default for privacy.">
         <div className="grid gap-3 lg:grid-cols-2">
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showBrowserVideos} onChange={value => updateAutomaticPresencePreference('showBrowserVideos', value)} label="Show browser videos" description="Publish Chrome, Edge, Firefox, Opera, and Vivaldi media sessions as Watching." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showOtherVideos} onChange={value => updateAutomaticPresencePreference('showOtherVideos', value)} label="Show other video apps" description="Allow activity from video players outside the browser." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showPausedVideos} onChange={value => updateAutomaticPresencePreference('showPausedVideos', value)} label="Show paused videos" description="Keep paused video activity on your profile." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoTitle} onChange={value => updateAutomaticPresencePreference('showVideoTitle', value)} label="Video title" description="Show the title of the video being watched." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoCreator} onChange={value => updateAutomaticPresencePreference('showVideoCreator', value)} label="Channel or creator" description="Show the artist/channel field from Windows media information." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoProgress} onChange={value => updateAutomaticPresencePreference('showVideoProgress', value)} label="Video progress bar" description="Show the current time and total duration." />
-          <ToggleRow disabled={!automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoElapsed} onChange={value => updateAutomaticPresencePreference('showVideoElapsed', value)} label="Watch time" description="Also show how long the activity has been active." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showBrowserVideos} onChange={value => updateAutomaticPresencePreference('showBrowserVideos', value)} label="Show browser videos" description="Publish Chrome, Edge, Firefox, Opera, and Vivaldi media sessions as Watching." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showOtherVideos} onChange={value => updateAutomaticPresencePreference('showOtherVideos', value)} label="Show other video apps" description="Allow activity from video players outside the browser." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showPausedVideos} onChange={value => updateAutomaticPresencePreference('showPausedVideos', value)} label="Show paused videos" description="Keep paused video activity on your profile." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoTitle} onChange={value => updateAutomaticPresencePreference('showVideoTitle', value)} label="Video title" description="Show the title of the video being watched." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoCreator} onChange={value => updateAutomaticPresencePreference('showVideoCreator', value)} label="Channel or creator" description="Show the artist/channel field from Windows media information." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoProgress} onChange={value => updateAutomaticPresencePreference('showVideoProgress', value)} label="Video progress bar" description="Show the current time and total duration." />
+          <ToggleRow disabled={!isDesktopApp || !automaticPresencePrefs.enabled} checked={automaticPresencePrefs.showVideoElapsed} onChange={value => updateAutomaticPresencePreference('showVideoElapsed', value)} label="Watch time" description="Also show how long the activity has been active." />
         </div>
       </SettingsSection>
 
@@ -1220,7 +1345,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
     </div>
   );
 
-  const tabContent = { account: renderAccount, profile: renderProfile, 'rich-presence': renderRichPresence, privacy: renderPrivacy, voice: renderVoice, notifications: renderNotifications, appearance: renderAppearance, accessibility: renderAccessibility, language: renderLanguage, updates: renderUpdates, admin: renderAdmin };
+  const tabContent = { account: renderAccount, security: renderSecurity, profile: renderProfile, 'rich-presence': renderRichPresence, privacy: renderPrivacy, voice: renderVoice, notifications: renderNotifications, appearance: renderAppearance, accessibility: renderAccessibility, language: renderLanguage, updates: renderUpdates, admin: renderAdmin };
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] bg-[#313338] text-[#DBDEE1]">
@@ -1228,7 +1353,12 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
         <aside className="hidden w-[260px] shrink-0 justify-end bg-[#2B2D31] md:flex">
           <div className="custom-scrollbar h-full w-[230px] overflow-y-auto px-3 py-8">
             <div className="mb-6 px-2"><p className="text-lg font-extrabold text-[#F2F3F5]">Settings</p><p className="mt-1 truncate text-xs text-[#949BA4]">{user.username}</p></div>
-            {settingGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? 'mt-6' : ''}><p className="mb-2 px-2 text-[11px] font-bold tracking-wide text-[#949BA4]">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium transition ' + (activeTab === item.id ? 'bg-[#404249] text-white' : 'text-[#B5BAC1] hover:bg-[#35373C] hover:text-[#DBDEE1]')}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="truncate">{item.label}</span></button>; })}</div></div>)}
+            <label className="relative mb-5 block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#949BA4]" />
+              <input value={settingsQuery} onChange={event => setSettingsQuery(event.target.value)} placeholder="Ayarlarda ara" aria-label="Ayarlarda ara" className="w-full rounded-md border border-transparent bg-[#1E1F22] py-2.5 pl-9 pr-3 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" />
+            </label>
+            {visibleSettingGroups.map((group, groupIndex) => <div key={group.label} className={groupIndex ? 'mt-6' : ''}><p className="mb-2 px-2 text-[11px] font-bold tracking-wide text-[#949BA4]">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => { setActiveTab(item.id); setSettingsQuery(''); }} className={'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium transition ' + (activeTab === item.id ? 'bg-[#404249] text-white' : 'text-[#B5BAC1] hover:bg-[#35373C] hover:text-[#DBDEE1]')}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="truncate">{item.label}</span></button>; })}</div></div>)}
+            {!visibleSettingGroups.length && <p className="rounded-lg border border-dashed border-white/[0.08] p-4 text-center text-xs leading-5 text-[#949BA4]">Bu aramayla eşleşen ayar bulunamadı.</p>}
           </div>
         </aside>
 
@@ -1237,7 +1367,10 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
             <div className="custom-scrollbar min-w-0 flex-1 overflow-y-auto">
               <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#313338]/95 px-5 py-4 backdrop-blur md:px-10">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-4"><div className="min-w-0"><h1 className="truncate text-xl font-bold text-[#F2F3F5]">{activeDefinition.label}</h1><p className="mt-0.5 hidden text-xs text-[#949BA4] sm:block">{activeDefinition.description}</p></div><button type="button" onClick={onClose} aria-label="Close settings" title="Close (Esc)" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#72767D] text-[#B5BAC1] transition hover:border-[#DBDEE1] hover:text-white"><X className="h-5 w-5" /></button></div>
-                <select value={activeTab} onChange={event => setActiveTab(event.target.value)} className="mt-4 w-full rounded-md border border-white/[0.08] bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none md:hidden">{settingGroups.map(group => <optgroup key={group.label} label={group.label}>{group.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select>
+                <div className="mt-4 space-y-2 md:hidden">
+                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#949BA4]" /><input value={settingsQuery} onChange={event => setSettingsQuery(event.target.value)} placeholder="Ayarlarda ara" aria-label="Ayarlarda ara" className="w-full rounded-md border border-white/[0.08] bg-[#1E1F22] py-2.5 pl-9 pr-3 text-sm text-[#DBDEE1] outline-none focus:border-[#00A8FC]" /></label>
+                  {visibleSettingGroups.length ? <select value={activeTab} onChange={event => { setActiveTab(event.target.value); setSettingsQuery(''); }} className="w-full rounded-md border border-white/[0.08] bg-[#1E1F22] px-3 py-2.5 text-sm text-[#DBDEE1] outline-none">{visibleSettingGroups.map(group => <optgroup key={group.label} label={group.label}>{group.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select> : <p className="rounded-md border border-dashed border-white/[0.08] p-3 text-center text-xs text-[#949BA4]">Eşleşen ayar bulunamadı.</p>}
+                </div>
               </header>
               <div className="mx-auto max-w-4xl px-5 pb-16 pt-7 md:px-10">{tabContent[activeTab]?.()}</div>
             </div>

@@ -11,7 +11,7 @@
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
     "i18n:check": "node scripts/check-i18n.mjs",
     "version:check": "node scripts/check-version-policy.mjs",
-    "build:frontend": "npm run i18n:check && npm run version:check && cd frontend && npm run build",
+    "build:frontend": "npm run i18n:check && npm run version:check && cd frontend && cross-env VITE_BASE_PATH=/app/ npm run build && node ../scripts/verify-web-build.mjs",
     "build:frontend:desktop": "npm run i18n:check && npm run version:check && cd frontend && cross-env VITE_BASE_PATH=/ npm run build",
     "build:android:web": "node scripts/build-android-web.mjs",
     "sync:android": "npm run build:android:web && cap sync android",
@@ -27,6 +27,14 @@
   "build": {
     "appId": "com.tahosapp.desktop",
     "productName": "tahosapp",
+    "protocols": [
+      {
+        "name": "tahosapp social authentication",
+        "schemes": [
+          "tahosapp-auth"
+        ]
+      }
+    ],
     "asar": true,
     "compression": "maximum",
     "electronLanguages": [
