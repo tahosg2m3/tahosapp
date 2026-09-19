@@ -1,6 +1,7 @@
 const {
   app,
   BrowserWindow,
+  clipboard,
   desktopCapturer,
   dialog,
   ipcMain,
@@ -1295,7 +1296,7 @@ function stopAutomaticPresence() {
 }
 
 function configurePermissions() {
-  const allowedPermissions = new Set(['media', 'display-capture', 'speaker-selection']);
+  const allowedPermissions = new Set(['media', 'display-capture', 'speaker-selection', 'clipboard-sanitized-write']);
 
   session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     return allowedPermissions.has(permission)
@@ -1402,6 +1403,19 @@ if (!ownsSingleInstance) {
       return { transportError: true, code: 'UNTRUSTED_RENDERER' };
     }
     return performDesktopApiRequest(request);
+  });
+
+  ipcMain.handle('clipboard:write-text', (event, value) => {
+    if (!isTrustedAppFrame(event.senderFrame, event.senderFrame?.url)
+      || typeof value !== 'string'
+      || !value
+      || value.length > 65_536) return false;
+    try {
+      clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   ipcMain.handle('social-auth:start', (event, providerId) => {

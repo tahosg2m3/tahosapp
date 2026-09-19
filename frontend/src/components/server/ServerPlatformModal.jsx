@@ -66,6 +66,7 @@ import { useServer } from '../../context/ServerContext';
 import { useSocket } from '../../context/SocketContext';
 import { fetchChannels } from '../../services/api';
 import { buildInviteUrl } from '../../utils/inviteLinks';
+import { copyText } from '../../utils/copyText';
 
 const TAB_GROUPS = [
   {
@@ -306,12 +307,28 @@ function InvitesTab({ serverId, payload, refresh }) {
   const [expiresInHours, setExpiresInHours] = useState(24);
   const submit = async event => {
     event.preventDefault();
+    let created;
     try {
-      const created = await createInvite(serverId, { maxUses: Number(maxUses) || 0, maxAgeSeconds: Math.max(0, Number(expiresInHours) || 0) * 3600 });
-      await navigator.clipboard?.writeText(buildInviteUrl(created.code || created.invite?.code || ''));
+      created = await createInvite(serverId, { maxUses: Number(maxUses) || 0, maxAgeSeconds: Math.max(0, Number(expiresInHours) || 0) * 3600 });
+    } catch (error) {
+      toast.error(error.message);
+      return;
+    }
+    refresh();
+    try {
+      await copyText(buildInviteUrl(created.code || created.invite?.code || ''));
       toast.success('Invite created and link copied.');
-      refresh();
-    } catch (error) { toast.error(error.message); }
+    } catch {
+      toast.error('The invite link could not be copied.');
+    }
+  };
+  const copyInvite = async code => {
+    try {
+      await copyText(buildInviteUrl(code));
+      toast.success('Invite link copied.');
+    } catch {
+      toast.error('The invite link could not be copied.');
+    }
   };
   return <>
     <Panel title="New invite" description="Choose how long the invite lasts and how many times it can be used.">
@@ -322,7 +339,7 @@ function InvitesTab({ serverId, payload, refresh }) {
       </form>
     </Panel>
     <Panel title="Active invites" description="Expired or revoked links cannot be used.">
-      {invites.length === 0 ? <Empty>No active invites.</Empty> : <div className="space-y-2">{invites.map(invite => <div key={invite.id || invite.code} className="flex items-center gap-3 rounded-xl bg-[#0f172a] p-3"><code className="min-w-0 flex-1 truncate font-bold text-[#93c5fd]">{buildInviteUrl(invite.code)}</code><span className="shrink-0 text-xs text-[#64748b]">{invite.uses || 0}/{invite.maxUses || '∞'} uses · {formatDate(invite.expiresAt)}</span><div className="flex shrink-0 gap-1"><button className={secondaryButton} onClick={() => navigator.clipboard?.writeText(buildInviteUrl(invite.code)).then(() => toast.success('Invite link copied.'))}><Copy className="h-4 w-4" /></button><button className="rounded-lg p-2 text-[#f87171] hover:bg-[#ef4444]/10" onClick={() => revokeInvite(serverId, invite.id || invite.code).then(refresh).catch(error => toast.error(error.message))}><Trash2 className="h-4 w-4" /></button></div></div>)}</div>}
+      {invites.length === 0 ? <Empty>No active invites.</Empty> : <div className="space-y-2">{invites.map(invite => <div key={invite.id || invite.code} className="flex items-center gap-3 rounded-xl bg-[#0f172a] p-3"><code className="min-w-0 flex-1 truncate font-bold text-[#93c5fd]">{buildInviteUrl(invite.code)}</code><span className="shrink-0 text-xs text-[#64748b]">{invite.uses || 0}/{invite.maxUses || '∞'} uses · {formatDate(invite.expiresAt)}</span><div className="flex shrink-0 gap-1"><button type="button" className={secondaryButton} onClick={() => copyInvite(invite.code)}><Copy className="h-4 w-4" /></button><button className="rounded-lg p-2 text-[#f87171] hover:bg-[#ef4444]/10" onClick={() => revokeInvite(serverId, invite.id || invite.code).then(refresh).catch(error => toast.error(error.message))}><Trash2 className="h-4 w-4" /></button></div></div>)}</div>}
     </Panel>
   </>;
 }
@@ -520,7 +537,7 @@ function IntegrationsTab({ serverId, payload, refresh }) {
   const [hookName, setHookName] = useState('');
   const [hookChannelId, setHookChannelId] = useState('');
   const [command, setCommand] = useState({ name: '', response: '' });
-  return <><Panel title="Webhooks" description="Lets external services send messages securely to selected channels."><form className="mb-4 grid gap-2 md:grid-cols-[1fr_1fr_auto]" onSubmit={async e => { e.preventDefault(); try { const result = await createWebhook(serverId, { name: hookName, channelId: hookChannelId }); setHookName(''); if (result.url || result.webhookUrl) await navigator.clipboard?.writeText(result.url || result.webhookUrl); toast.success('Webhook created. The URL is shown only once.'); refresh(); } catch (error) { toast.error(error.message); } }}><input required className={fieldClass} value={hookName} onChange={e => setHookName(e.target.value)} placeholder="Webhook name" /><select required className={fieldClass} value={hookChannelId} onChange={e => setHookChannelId(e.target.value)}><option value="">Target channel</option>{channels.map(channel => <option key={channel.id} value={channel.id}>#{channel.name}</option>)}</select><button className={primaryButton}><Webhook className="h-4 w-4" /> Create</button></form>{webhooks.length === 0 ? <Empty>No webhooks found.</Empty> : webhooks.map(item => <Row key={item.id} title={item.name} subtitle={channels.find(channel => channel.id === item.channelId)?.name ? `#${channels.find(channel => channel.id === item.channelId).name}` : formatDate(item.createdAt)} onDelete={() => deleteWebhook(serverId, item.id).then(refresh).catch(error => toast.error(error.message))} />)}</Panel><Panel title="Slash commands" description="Show an automatic response when a command such as /rules is entered."><form className="mb-4 grid gap-2 md:grid-cols-[180px_1fr_auto]" onSubmit={async e => { e.preventDefault(); try { await createCommand(serverId, command); setCommand({ name: '', response: '' }); toast.success('Command added.'); refresh(); } catch (error) { toast.error(error.message); } }}><input required className={fieldClass} value={command.name} onChange={e => setCommand({ ...command, name: e.target.value.replace(/^\//, '') })} placeholder="command" /><input required className={fieldClass} value={command.response} onChange={e => setCommand({ ...command, response: e.target.value })} placeholder="Response" /><button className={primaryButton}><Plus className="h-4 w-4" /> Add</button></form>{commands.length === 0 ? <Empty>No custom commands.</Empty> : commands.map(item => <Row key={item.id} title={`/${item.name}`} subtitle={item.response} onDelete={() => deleteCommand(serverId, item.id).then(refresh).catch(error => toast.error(error.message))} />)}</Panel></>;
+  return <><Panel title="Webhooks" description="Lets external services send messages securely to selected channels."><form className="mb-4 grid gap-2 md:grid-cols-[1fr_1fr_auto]" onSubmit={async e => { e.preventDefault(); try { const result = await createWebhook(serverId, { name: hookName, channelId: hookChannelId }); setHookName(''); if (result.url || result.webhookUrl) await copyText(result.url || result.webhookUrl); toast.success('Webhook created. The URL is shown only once.'); refresh(); } catch (error) { toast.error(error.message); } }}><input required className={fieldClass} value={hookName} onChange={e => setHookName(e.target.value)} placeholder="Webhook name" /><select required className={fieldClass} value={hookChannelId} onChange={e => setHookChannelId(e.target.value)}><option value="">Target channel</option>{channels.map(channel => <option key={channel.id} value={channel.id}>#{channel.name}</option>)}</select><button className={primaryButton}><Webhook className="h-4 w-4" /> Create</button></form>{webhooks.length === 0 ? <Empty>No webhooks found.</Empty> : webhooks.map(item => <Row key={item.id} title={item.name} subtitle={channels.find(channel => channel.id === item.channelId)?.name ? `#${channels.find(channel => channel.id === item.channelId).name}` : formatDate(item.createdAt)} onDelete={() => deleteWebhook(serverId, item.id).then(refresh).catch(error => toast.error(error.message))} />)}</Panel><Panel title="Slash commands" description="Show an automatic response when a command such as /rules is entered."><form className="mb-4 grid gap-2 md:grid-cols-[180px_1fr_auto]" onSubmit={async e => { e.preventDefault(); try { await createCommand(serverId, command); setCommand({ name: '', response: '' }); toast.success('Command added.'); refresh(); } catch (error) { toast.error(error.message); } }}><input required className={fieldClass} value={command.name} onChange={e => setCommand({ ...command, name: e.target.value.replace(/^\//, '') })} placeholder="command" /><input required className={fieldClass} value={command.response} onChange={e => setCommand({ ...command, response: e.target.value })} placeholder="Response" /><button className={primaryButton}><Plus className="h-4 w-4" /> Add</button></form>{commands.length === 0 ? <Empty>No custom commands.</Empty> : commands.map(item => <Row key={item.id} title={`/${item.name}`} subtitle={item.response} onDelete={() => deleteCommand(serverId, item.id).then(refresh).catch(error => toast.error(error.message))} />)}</Panel></>;
 }
 
 function AssetsTab({ serverId, payload, refresh }) {

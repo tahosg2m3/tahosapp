@@ -49,6 +49,7 @@ import {
 } from '../server/serverManagementApi';
 import { fetchChannels, leaveServer } from '../../services/api';
 import { buildInviteUrl } from '../../utils/inviteLinks';
+import { copyText } from '../../utils/copyText';
 import ServerNotificationModal from '../notifications/ServerNotificationModal';
 import { useI18n } from '../../i18n/I18nContext';
 
@@ -277,9 +278,13 @@ export default function ChannelList({ onNavigate }) {
   };
 
   const copyInviteCode = async () => {
-    if (!currentServer?.inviteCode) return;
+    const inviteUrl = buildInviteUrl(currentServer?.inviteCode);
+    if (!inviteUrl) {
+      toast.error('The invite link could not be copied.');
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(buildInviteUrl(currentServer.inviteCode));
+      await copyText(inviteUrl);
       toast.success('Invite link copied.');
       setShowServerMenu(false);
     } catch {
@@ -288,13 +293,20 @@ export default function ChannelList({ onNavigate }) {
   };
 
   const shareInvite = async () => {
-    if (!currentServer?.inviteCode) return;
-    const url = buildInviteUrl(currentServer.inviteCode);
+    const url = buildInviteUrl(currentServer?.inviteCode);
+    if (!url) {
+      toast.error('The invite could not be shared.');
+      return;
+    }
     const text = `${currentServer.name} Join the server: ${url}`;
     try {
-      if (navigator.share) await navigator.share({ title: currentServer.name, text, url });
-      else await navigator.clipboard.writeText(text);
-      toast.success('Invite details are ready.');
+      if (navigator.share && !globalThis.electron) {
+        await navigator.share({ title: currentServer.name, text, url });
+        toast.success('Invite details are ready.');
+      } else {
+        await copyText(url);
+        toast.success('Invite link copied.');
+      }
       setShowServerMenu(false);
     } catch (error) {
       if (error?.name !== 'AbortError') toast.error('The invite could not be shared.');

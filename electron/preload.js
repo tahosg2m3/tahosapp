@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('electron', {
   api: Object.freeze({
     request: request => ipcRenderer.invoke('api:request', request),
   }),
+  clipboard: Object.freeze({
+    writeText: value => ipcRenderer.invoke('clipboard:write-text', value),
+  }),
   socialAuth: Object.freeze({
     start: provider => ipcRenderer.invoke('social-auth:start', provider),
     onCallback: callback => {

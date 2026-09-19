@@ -36,6 +36,7 @@ import { useSocket } from '../../context/SocketContext';
 import { useVoice } from '../../context/VoiceContext';
 import { getColorForString } from '../../utils/colors';
 import { resolveSafeAvatarUrl, resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
+import { copyText } from '../../utils/copyText';
 import {
   APP_THEME_OPTIONS,
   AVATAR_DECORATION_OPTIONS,
@@ -537,7 +538,7 @@ export default function UserSettingsModal({ onClose, initialTab = 'account' }) {
   const copyPresenceToken = async () => {
     if (!generatedPresenceToken) return;
     try {
-      await navigator.clipboard.writeText(generatedPresenceToken);
+      await copyText(generatedPresenceToken);
       toast.success('The integration key was copied.');
     } catch (_) {
       toast.error('The key could not be copied to the clipboard.');

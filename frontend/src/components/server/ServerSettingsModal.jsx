@@ -22,6 +22,7 @@ import MemberManagementModal from './MemberManagementModal';
 import RoleManagementModal from './RoleManagementModal';
 import ServerPlatformModal from './ServerPlatformModal';
 import { buildInviteUrl } from '../../utils/inviteLinks';
+import { copyText } from '../../utils/copyText';
 import {
   getServerMembers,
   getServerRoles,
@@ -147,9 +148,13 @@ export default function ServerSettingsModal({ onClose, initialTab = 'overview' }
   };
 
   const copyInvite = async () => {
-    if (!currentServer?.inviteCode) return;
+    const inviteUrl = buildInviteUrl(currentServer?.inviteCode);
+    if (!inviteUrl) {
+      toast.error('The invite link could not be copied.');
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(buildInviteUrl(currentServer.inviteCode));
+      await copyText(inviteUrl);
       setCopied(true);
       toast.success('Invite link copied.');
       window.setTimeout(() => setCopied(false), 1800);

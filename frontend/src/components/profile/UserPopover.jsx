@@ -38,6 +38,7 @@ import { useServer } from '../../context/ServerContext';
 import { useSocket } from '../../context/SocketContext';
 import { getColorForString } from '../../utils/colors';
 import { resolveSafeMediaUrl } from '../../utils/safeMediaUrl';
+import { copyText } from '../../utils/copyText';
 import {
   getAvatarDecoration,
   getNameAppearance,
@@ -587,7 +588,7 @@ export default function UserPopover({ targetUser, onClose, anchorRect = null }) 
   const handleCopyId = async () => {
     if (!targetId) return;
     try {
-      await navigator.clipboard.writeText(targetId);
+      await copyText(targetId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success('User ID copied.');
