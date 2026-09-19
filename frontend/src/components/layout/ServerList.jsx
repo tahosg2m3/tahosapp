@@ -1,25 +1,32 @@
 ﻿import { useState, useEffect } from 'react';
-import { Plus, Compass, MessageSquare, Users, LayoutGrid } from 'lucide-react';
+import { Plus, Compass, MessageSquare, Users, LayoutGrid, RefreshCw } from 'lucide-react';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { fetchServers } from '../../services/api';
+import { fetchChannelMessages, fetchChannels, fetchServerMembers } from '../../services/api';
+import { getServerRoles } from '../server/serverManagementApi';
 import ServerIcon from '../server/ServerIcon';
 import CreateServerModal from '../server/CreateServerModal';
 import DiscoveryModal from '../server/DiscoveryModal';
 import CommunityHub from '../hub/CommunityHub';
 
 export default function ServerList({ viewMode, setViewMode, onExternalNavigate = setViewMode }) {
-  const { servers, setServers, currentServer, currentChannel, setCurrentServer, setCurrentChannel } = useServer();
+  const { servers, setServers, serversLoading, serversError, refreshServers, currentServer, currentChannel, setCurrentServer, setCurrentChannel } = useServer();
   const { user } = useAuth();
   const { socket } = useSocket();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDiscovery, setShowDiscovery] = useState(false);
   const [showCommunityHub, setShowCommunityHub] = useState(false);
 
-  useEffect(() => {
-    if (user?.id) fetchServers(user.id).then(setServers).catch(console.error);
-  }, [setServers, user]);
+  const prefetchServer = (serverId) => {
+    const channelsRequest = fetchChannels(serverId);
+    Promise.allSettled([channelsRequest, fetchServerMembers(serverId), getServerRoles(serverId)]);
+    channelsRequest.then((channels) => {
+      const firstTextChannel = (Array.isArray(channels) ? channels : [])
+        .find((channel) => ['text', 'announcement'].includes(channel.type || 'text'));
+      if (firstTextChannel?.id) fetchChannelMessages(firstTextChannel.id).catch(() => {});
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     const navigateToDM = () => {
@@ -99,11 +106,25 @@ export default function ServerList({ viewMode, setViewMode, onExternalNavigate =
 
       <div className="w-8 h-[2px] bg-[#313338] my-2 shrink-0 rounded-full" />
 
+      {!servers.length && (serversLoading || serversError) && (
+        <button
+          type="button"
+          onClick={() => refreshServers().catch(() => {})}
+          disabled={serversLoading}
+          className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#313338] text-[#b5bac1] transition-colors hover:bg-[#5865f2] hover:text-white disabled:cursor-wait"
+          title={serversError ? 'Servers could not be loaded. Try again.' : 'Loading servers'}
+          aria-label={serversError ? 'Retry loading servers' : 'Loading servers'}
+        >
+          <RefreshCw className={`h-5 w-5 ${serversLoading ? 'animate-spin' : ''}`} />
+        </button>
+      )}
+
       {servers.map((server) => (
         <ServerIcon
           key={server.id}
           server={server}
           active={viewMode === 'servers' && currentServer?.id === server.id} 
+          onPrefetch={() => prefetchServer(server.id)}
           onClick={() => { setCurrentChannel(null); setCurrentServer(server); setViewMode('servers'); }}
         />
       ))}

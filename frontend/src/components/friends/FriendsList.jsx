@@ -1,7 +1,7 @@
 // frontend/src/components/friends/FriendsList.jsx
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { MessageSquare, MoreVertical, Check, X, UserPlus, Search } from 'lucide-react';
+import { MessageSquare, MoreVertical, Check, X, UserPlus, Search, RefreshCw } from 'lucide-react';
 import { createDMConversation } from '../../services/api';
 import { useServer } from '../../context/ServerContext';
 import { useDM } from '../../context/DMContext';
@@ -27,6 +27,9 @@ export default function FriendsList() {
   const {
     friends,
     pendingRequests,
+    friendsLoading,
+    friendsError,
+    refreshFriends,
     sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,
@@ -228,9 +231,10 @@ export default function FriendsList() {
             {filteredFriends.length === 0 ? (
                  <div className="flex flex-col items-center justify-center py-10 opacity-50">
                     <div className="bg-gray-600 p-4 rounded-full mb-4">
-                        <Search className="w-8 h-8 text-gray-400" />
+                        {friendsLoading ? <RefreshCw className="w-8 h-8 animate-spin text-gray-400" /> : <Search className="w-8 h-8 text-gray-400" />}
                     </div>
-                    <p className="text-gray-400">No friends found.</p>
+                    <p className="text-gray-400">{friendsError ? 'Friends could not be loaded.' : friendsLoading ? 'Loading friends…' : 'No friends found.'}</p>
+                    {friendsError && <button type="button" onClick={refreshFriends} className="mt-3 rounded bg-[#5865f2] px-3 py-1.5 text-sm font-semibold text-white opacity-100 hover:bg-[#4752c4]">Try again</button>}
                 </div>
             ) : (
                 filteredFriends.map(friend => (

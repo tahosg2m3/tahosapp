@@ -10,6 +10,7 @@ import {
   removeFriend as removeFriendApi,
   sendFriendRequest as sendFriendRequestApi,
 } from '../services/api';
+import { readUserResourceCache, writeUserResourceCache } from '../services/localResourceCache';
 
 const FriendsContext = createContext(null);
 
@@ -24,17 +25,25 @@ export const FriendsProvider = ({ children }) => {
   const { user } = useAuth();
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsError, setFriendsError] = useState(null);
 
   const loadFriends = useCallback(async () => {
     if (!user?.id) return [];
+    setFriendsLoading(true);
     try {
       const data = await fetchFriends(user.id);
       const nextFriends = Array.isArray(data) ? data : [];
       setFriends(nextFriends);
+      writeUserResourceCache('friends', user.id, nextFriends);
+      setFriendsError(null);
       return nextFriends;
     } catch (error) {
       console.error('Failed to load friends:', error);
+      setFriendsError(error);
       return [];
+    } finally {
+      setFriendsLoading(false);
     }
   }, [user?.id]);
 
@@ -52,25 +61,44 @@ export const FriendsProvider = ({ children }) => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      const cachedFriends = readUserResourceCache('friends', user.id);
+      setFriends(cachedFriends || []);
       loadFriends();
       loadPendingRequests();
     } else {
       setFriends([]);
       setPendingRequests([]);
+      setFriendsError(null);
     }
-  }, [loadFriends, loadPendingRequests, user]);
+  }, [loadFriends, loadPendingRequests, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    const refreshAfterReconnect = () => {
+      loadFriends();
+      loadPendingRequests();
+    };
+    window.addEventListener('online', refreshAfterReconnect);
+    window.addEventListener('focus', refreshAfterReconnect);
+    return () => {
+      window.removeEventListener('online', refreshAfterReconnect);
+      window.removeEventListener('focus', refreshAfterReconnect);
+    };
+  }, [loadFriends, loadPendingRequests, user?.id]);
 
   useEffect(() => {
     if (!socket) return;
 
     // Listen for status updates
     const handleStatusUpdate = ({ userId, status, customStatus }) => {
-      setFriends(prev =>
-        prev.map(friend =>
+      setFriends(prev => {
+        const nextFriends = prev.map(friend =>
           friend.id === userId ? { ...friend, status, ...(customStatus !== undefined ? { customStatus } : {}) } : friend
-        )
-      );
+        );
+        writeUserResourceCache('friends', user?.id, nextFriends);
+        return nextFriends;
+      });
     };
     const handleRichPresenceUpdate = ({ userId, activities }) => {
       setFriends(previous => previous.map(friend => (
@@ -131,7 +159,11 @@ export const FriendsProvider = ({ children }) => {
   const removeFriend = async (friendId) => {
     try {
       await removeFriendApi(user.id, friendId);
-      setFriends((previous) => previous.filter((friend) => friend.id !== friendId));
+      setFriends((previous) => {
+        const nextFriends = previous.filter((friend) => friend.id !== friendId);
+        writeUserResourceCache('friends', user.id, nextFriends);
+        return nextFriends;
+      });
       return true;
     } catch (error) {
       console.error('Failed to remove friend:', error);
@@ -142,6 +174,8 @@ export const FriendsProvider = ({ children }) => {
   const value = {
     friends,
     pendingRequests,
+    friendsLoading,
+    friendsError,
     sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,

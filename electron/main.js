@@ -465,7 +465,10 @@ async function performDesktopApiRequest(value) {
   timeout.unref();
 
   try {
-    const response = await net.fetch(request.url, {
+    // Bearer tokens are sent explicitly. Keep API traffic in its own in-memory
+    // session so an old renderer profile's network cache cannot break sign-in.
+    const apiSession = session.fromPartition('tahosapp-api');
+    const response = await apiSession.fetch(request.url, {
       method: request.method,
       headers: request.headers,
       body: request.body,
@@ -492,7 +495,10 @@ async function performDesktopApiRequest(value) {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,
-      body: Buffer.from(responseBody).toString('base64'),
+      // Electron's structured clone transports typed arrays directly. This
+      // avoids Base64's extra allocation and 33% size overhead on every API
+      // response while the renderer still accepts the older string format.
+      body: new Uint8Array(responseBody),
     };
   } catch (error) {
     const code = error?.name === 'AbortError' ? 'API_TIMEOUT' : 'API_UNREACHABLE';
