@@ -18,6 +18,7 @@ const {
 
 const router = express.Router();
 const passkeyRateLimit = rateLimit(createRateLimitOptions('auth', 'hub-passkey'));
+const authRateLimit = rateLimit(createRateLimitOptions('auth', 'hub'));
 const readRateLimit = rateLimit(createRateLimitOptions('read', 'hub'));
 const mutationRateLimit = rateLimit(createRateLimitOptions('mutation', 'hub'));
 const passkeyChallenges = new Map();
@@ -135,7 +136,7 @@ router.post('/passkeys/login/verify', passkeyRateLimit, async (req, res) => {
   }
 });
 
-router.use(requireAuth, readRateLimit, mutationRateLimit);
+router.use(authRateLimit, requireAuth, readRateLimit, mutationRateLimit);
 
 router.get('/overview', (req, res) => {
   const hub = ensureHubState();
@@ -415,7 +416,8 @@ router.get('/sessions', (req, res) => {
 });
 
 router.delete('/sessions/:id', (req, res) => {
-  const session = ensureHubState().sessions[req.params.id];
+  const sessions = ensureHubState().sessions;
+  const session = Object.hasOwn(sessions, req.params.id) ? sessions[req.params.id] : null;
   if (!session || session.userId !== req.user.id) return fail(res, 404, 'Oturum bulunamadı.');
   session.revokedAt = Date.now();
   storage.saveData();

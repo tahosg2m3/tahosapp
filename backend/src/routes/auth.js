@@ -1049,7 +1049,9 @@ router.post(
         return res.status(400).json({ error: 'The new password must be between 8 and 128 characters.' });
       }
 
-      const session = ensureHubState().sessions[String(req.auth?.sid || '')];
+      const sessions = ensureHubState().sessions;
+      const sessionId = String(req.auth?.sid || '');
+      const session = Object.hasOwn(sessions, sessionId) ? sessions[sessionId] : null;
       const freshSocialSession = Boolean(
         req.user.socialOnly
         && session?.userId === req.user.id

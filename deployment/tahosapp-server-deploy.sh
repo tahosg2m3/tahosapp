@@ -148,8 +148,6 @@ install -m 0644 "$android_apk" "/var/www/tahosapp/downloads/tahosapp-Android-lat
 if [[ "$update_archive" != "-" ]]; then
   install -m 0644 "$update_release/$installer_name" "/var/www/tahosapp/downloads/tahosapp-Online-Setup-latest.exe"
   rm -f /var/www/tahosapp/downloads/tahosapp-Setup-latest.exe
-else
-  rm -f /var/www/tahosapp/downloads/tahosapp-Online-Setup-latest.exe /var/www/tahosapp/downloads/tahosapp-Setup-latest.exe
 fi
 
 # Keep the stable download directory small: only the online bootstrapper and

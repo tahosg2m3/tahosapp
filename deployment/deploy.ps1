@@ -2,6 +2,7 @@
 param(
   [switch]$SkipBuild,
   [switch]$AllowDirty,
+  [switch]$SkipDesktopUpdate,
   [string]$InstallerPath = '',
   [string]$AndroidApkPath = ''
 )
@@ -59,7 +60,11 @@ $remoteUser = 'tahosdeploy'
 $sshKey = 'C:\Users\User\.ssh\tahosapp_deploy_ed25519'
 $knownHosts = 'C:\Users\User\.ssh\tahosapp_known_hosts'
 
-if (-not $InstallerPath) {
+if ($SkipDesktopUpdate -and $InstallerPath) {
+  throw 'SkipDesktopUpdate ve InstallerPath birlikte kullanilamaz.'
+}
+
+if (-not $SkipDesktopUpdate -and -not $InstallerPath) {
   $defaultInstaller = Join-Path $repoRoot "release\nsis-web\tahosapp-Online-Setup-$packageVersion.exe"
   if (Test-Path -LiteralPath $defaultInstaller -PathType Leaf) {
     $InstallerPath = $defaultInstaller

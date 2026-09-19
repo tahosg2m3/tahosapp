@@ -110,7 +110,8 @@ function verifyAuthToken(token) {
 
     if (payload.sid) {
       const hub = storage.platformState?.communityHub;
-      const session = hub?.sessions?.[payload.sid];
+      const sessions = hub?.sessions;
+      const session = sessions && Object.hasOwn(sessions, payload.sid) ? sessions[payload.sid] : null;
       if (!session || session.userId !== user.id || session.revokedAt || Number(session.expiresAt) <= Date.now()) {
         const error = new Error('The session is no longer valid.');
         error.code = 'AUTH_INVALID';

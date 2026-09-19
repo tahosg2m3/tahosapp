@@ -90,7 +90,9 @@ function createSession(userId, req, method = 'password') {
 }
 
 function getSession(sessionId) {
-  return ensureHubState().sessions[String(sessionId || '')] || null;
+  const sessions = ensureHubState().sessions;
+  const id = String(sessionId || '');
+  return Object.hasOwn(sessions, id) ? sessions[id] : null;
 }
 
 function touchSession(sessionId) {

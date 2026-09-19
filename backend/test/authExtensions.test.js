@@ -19,7 +19,7 @@ delete process.env.DISCORD_OAUTH_CLIENT_SECRET;
 const storage = require('../src/storage/inMemory');
 const authRoutes = require('../src/routes/auth');
 const communityHubRoutes = require('../src/routes/communityHub');
-const { createSession } = require('../src/services/communityHubService');
+const { createSession, ensureHubState, getSession } = require('../src/services/communityHubService');
 const { signAuthToken } = require('../src/middleware/auth');
 const { hashPassword, verifyPassword } = require('../src/services/passwordService');
 
@@ -102,6 +102,25 @@ test('social provider state and authenticated password change work end to end', 
   assert.equal(passkeys.status, 200);
   assert.deepEqual(JSON.parse(passkeys.body), []);
 
+  for (const id of ['__proto__', 'constructor']) {
+    const revoke = await request(server, {
+      method: 'DELETE',
+      requestPath: `/api/hub/sessions/${id}`,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(revoke.status, 404);
+    assert.equal(getSession(id), null);
+  }
+  assert.equal(Object.prototype.revokedAt, undefined);
+  const anotherSession = createSession(user.id, { ip: '127.0.0.1', headers: {} });
+  const revokeOwnSession = await request(server, {
+    method: 'DELETE',
+    requestPath: `/api/hub/sessions/${anotherSession.id}`,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  assert.equal(revokeOwnSession.status, 200);
+  assert.ok(ensureHubState().sessions[anotherSession.id].revokedAt);
+
   const wrongPassword = await request(server, {
     method: 'POST',
     requestPath: '/api/auth/change-password',
@@ -124,4 +143,12 @@ test('social provider state and authenticated password change work end to end', 
     headers: { Authorization: `Bearer ${token}` },
   });
   assert.equal(oldSession.status, 401);
+
+  let limited;
+  for (let attempt = 0; attempt < 1201; attempt += 1) {
+    limited = await request(server, { requestPath: '/api/hub/overview' });
+    if (limited.status === 429) break;
+  }
+  assert.equal(limited.status, 429);
+  assert.equal(JSON.parse(limited.body).code, 'RATE_LIMITED');
 });
