@@ -18,7 +18,7 @@
     "express-rate-limit": "8.6.2",
     "jsonwebtoken": "^9.0.2",
     "linkify-it": "^5.0.2",
-    "multer": "^2.3.0",
+    "multer": "^2.4.0",
     "nodemailer": "^9.1.1",
     "peer": "^1.0.2",
     "socket.io": "^4.8.3",
